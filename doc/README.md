@@ -1,14 +1,15 @@
 # Documentation
 
-Esta carpeta contiene la base documental activa del proyecto.
+This directory contains the active documentation base of the project.
 
-## Estructura
+## Structure
 
-- `project/`: vision, diseño, planificación y validación del proyecto.
-- `workflow/`: reglas de trabajo, build, debug, SDL2, CMake y commits.
-- `references/`: investigación, papers y assets de referencia.
+- `project/`: project vision, design, planning, and validation.
+- `documentation/`: generated API documentation configuration and usage.
+- `workflow/`: build, debug, SDL2, CMake, and team workflow rules.
+- `references/`: research notes, papers, and supporting assets.
 
-## Orden recomendado de lectura
+## Recommended Reading Order
 
 1. `project/implementation/README.md`
 2. `project/implementation/05_Midpoint_Procedural_Locomotion_Spec.md`
@@ -20,13 +21,14 @@ Esta carpeta contiene la base documental activa del proyecto.
 8. `project/design/13_Modules_And_Responsibilities.md`
 9. `project/design/12_Update_Loop_And_Timing.md`
 10. `project/design/15_Validation_Principles.md`
-11. `workflow/README.md`
+11. `documentation/README.md`
 12. `references/deep-research-report.md`
 
-## Origen
+## Origin
 
-La mayor parte de esta documentacion fue migrada desde una version anterior del proyecto en:
+Most of this documentation was migrated from an older version of the project located at:
 
 `/home/tomas/UL1/LIFAPCD/phy/doc`
 
-Se conservaron los bloques utiles para el proyecto actual y se dejaron fuera los duplicados academicos y archivos de rendu.
+Only the useful material was kept for the current repository, while duplicated academic deliverables
+and obsolete submission artifacts were left out.
