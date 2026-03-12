@@ -1,0 +1,38 @@
+{
+  "entry": "bobtricks.html",
+  "readySelector": "canvas",
+  "viewport": {
+    "width": 1440,
+    "height": 900
+  },
+  "steps": [
+    {
+      "action": "click",
+      "x": 220,
+      "y": 352
+    },
+    {
+      "action": "drag",
+      "from": {
+        "x": 220,
+        "y": 352
+      },
+      "to": {
+        "x": 730,
+        "y": 352
+      },
+      "steps": 24
+    },
+    {
+      "action": "wait",
+      "ms": 1000
+    },
+    {
+      "action": "screenshot",
+      "path": "debug-drag.png"
+    },
+    {
+      "action": "stop"
+    }
+  ]
+}

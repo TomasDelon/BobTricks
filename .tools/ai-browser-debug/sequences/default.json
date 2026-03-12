@@ -1,0 +1,44 @@
+{
+  "entry": "bobtricks.html",
+  "readySelector": "canvas",
+  "expectTitle": "BobTricks - Success",
+  "viewport": {
+    "width": 1440,
+    "height": 900
+  },
+  "steps": [
+    {
+      "action": "click",
+      "x": 220,
+      "y": 352
+    },
+    {
+      "action": "drag",
+      "from": {
+        "x": 220,
+        "y": 352
+      },
+      "to": {
+        "x": 730,
+        "y": 352
+      },
+      "steps": 24
+    },
+    {
+      "action": "wait",
+      "ms": 1500
+    },
+    {
+      "action": "wait_for_title",
+      "value": "BobTricks - Success",
+      "timeout": 3000
+    },
+    {
+      "action": "screenshot",
+      "path": "default-sequence.png"
+    },
+    {
+      "action": "stop"
+    }
+  ]
+}

@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+remote_name="${1:-}"
+
+if [ "$remote_name" != "origin" ]; then
+    exit 0
+fi
+
+if [ "${DISABLE_FORGE_AUTOPUBLISH:-0}" = "1" ]; then
+    exit 0
+fi
+
+if [ -x "./scripts/dev/forge_autopublish.sh" ]; then
+    ./scripts/dev/forge_autopublish.sh || true
+fi

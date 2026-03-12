@@ -1,0 +1,18 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+remote_name="${1:-}"
+
+if [ "$remote_name" = "forge" ] && [ "${ALLOW_FORGE_PUBLISH:-0}" != "1" ]; then
+    cat <<'EOF'
+Direct pushes to 'forge' are blocked.
+
+Use the staged forge workflow instead:
+  ./scripts/dev/forge_prepare_batch.sh <commit> [<commit> ...]
+  ./scripts/dev/forge_check_batch.sh
+  ./scripts/dev/forge_publish_batch.sh
+
+This keeps forge publication curated, validated, and free of GitHub-only material.
+EOF
+    exit 1
+fi

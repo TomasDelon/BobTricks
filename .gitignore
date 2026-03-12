@@ -1,0 +1,30 @@
+# Build outputs
+/build/
+/dist/
+/web-build/
+/bin/*
+/obj/*
+!.gitkeep
+
+# Generated web artifacts
+*.wasm
+*.map
+
+# Common temp files
+*.o
+*.obj
+*.out
+*.log
+
+# Node / Playwright
+/node_modules/
+/playwright-report/
+/test-results/
+/.tools/ai-browser-debug/node_modules/
+/.tools/ai-browser-debug/playwright-report/
+/.tools/ai-browser-debug/test-results/
+
+# OS/editor
+.DS_Store
+Thumbs.db
+*.swp
