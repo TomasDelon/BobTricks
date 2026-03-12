@@ -10,7 +10,7 @@ namespace bobtricks {
  */
 struct NodeTrajectorySample {
     double simTime {0.0};
-    NodeId node {NodeId::Head};
+    NodeId node {NodeId::HeadTop};
     Vec2 position {};
 };
 

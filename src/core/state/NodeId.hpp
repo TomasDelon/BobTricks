@@ -6,7 +6,7 @@ namespace bobtricks {
  * \brief Identifiants logiques des noeuds principaux du personnage.
  */
 enum class NodeId {
-    Head,
+    HeadTop,
     TorsoTop,
     TorsoCenter,
     TorsoBottom,

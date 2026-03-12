@@ -40,3 +40,21 @@ At this point the project can:
 
 The next implementation phase focuses on making the mannequin visible with a raw skeleton before
 any continuous-line rendering work starts.
+
+### 2026-03-12 - Geometry Types And Naming Alignment
+
+The codebase now introduces explicit mannequin geometry and node-position value types.
+
+This step is intentionally done before any visible skeleton rendering because the implementation
+must match the body model vocabulary already frozen in the design dossier.
+
+The important decision here is naming alignment:
+
+- code now uses `HeadTop` instead of a generic `Head`
+- mannequin node positions are represented explicitly in world space
+- the nominal stickman geometry is now a first-class data object
+
+This reduces future ambiguity when reconstruction and rendering start consuming the same body
+graph.
+
+Spline and continuous-line rendering remain delegated to teammates.
