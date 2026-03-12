@@ -13,6 +13,24 @@ double cycleDurationForMode(LocomotionMode mode, const TuningParams& tuningParam
         return 1.0;
     }
 }
+
+struct PhaseDecision {
+    GaitPhase gaitPhase;
+    SupportSide supportSide;
+};
+
+PhaseDecision walkPhaseForCycle(double cyclePhase) {
+    if (cyclePhase < 0.10) {
+        return {GaitPhase::DoubleSupport, SupportSide::Both};
+    }
+    if (cyclePhase < 0.50) {
+        return {GaitPhase::LeftSupport, SupportSide::Left};
+    }
+    if (cyclePhase < 0.60) {
+        return {GaitPhase::DoubleSupport, SupportSide::Both};
+    }
+    return {GaitPhase::RightSupport, SupportSide::Right};
+}
 }
 
 void LocomotionController::applyIntent(
@@ -40,9 +58,9 @@ void LocomotionController::advance(double dtSeconds, CharacterState& characterSt
 
     const auto mode = characterState.mode;
     if (mode == LocomotionMode::Stand) {
-        characterState.gaitPhase = GaitPhase::DoubleSupport;
+        characterState.gaitPhase = GaitPhase::None;
         characterState.supportSide = SupportSide::Both;
-        characterState.proceduralPose.gaitPhase = GaitPhase::DoubleSupport;
+        characterState.proceduralPose.gaitPhase = GaitPhase::None;
         characterState.proceduralPose.supportSide = SupportSide::Both;
         characterState.proceduralPose.forwardSpeed = 0.0;
         characterState.proceduralPose.normalizedCycle = 0.0;
@@ -63,8 +81,9 @@ void LocomotionController::advance(double dtSeconds, CharacterState& characterSt
         characterState.gaitPhase = (cyclePhase < 0.5) ? GaitPhase::LeftSupport : GaitPhase::RightSupport;
         characterState.supportSide = (cyclePhase < 0.5) ? SupportSide::Left : SupportSide::Right;
     } else {
-        characterState.gaitPhase = (cyclePhase < 0.5) ? GaitPhase::LeftSupport : GaitPhase::RightSupport;
-        characterState.supportSide = (cyclePhase < 0.5) ? SupportSide::Left : SupportSide::Right;
+        const PhaseDecision walkPhase = walkPhaseForCycle(cyclePhase);
+        characterState.gaitPhase = walkPhase.gaitPhase;
+        characterState.supportSide = walkPhase.supportSide;
     }
 
     characterState.proceduralPose.gaitPhase = characterState.gaitPhase;

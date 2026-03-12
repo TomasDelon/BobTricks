@@ -125,3 +125,18 @@ The goal is visual readability:
 
 The result is still a raw skeleton, but it should read less like a flat technical diagram and
 more like a character with a clear orientation in space.
+
+### 2026-03-12 - Walk Timing Now Matches The Midpoint Spec
+
+The locomotion controller now treats `Stand` and `Walk` as two different timing regimes.
+
+This step is intentionally state-level only:
+
+- `Stand` now uses `GaitPhase::None`
+- `Walk` now follows the frozen midpoint phase partition
+- the renderer is not animating those phases yet
+
+This is the correct next step because the animator should consume a valid gait-state machine
+instead of inventing phase timing on its own.
+
+`Run` timing is still the next pending step after this one.
