@@ -73,3 +73,19 @@ the renderer still does not draw it yet.
 
 This keeps the future raw skeleton renderer and the future continuous-line renderer dependent on
 the same authoritative body data instead of rebuilding geometry independently.
+
+### 2026-03-12 - First Visible Raw Skeleton
+
+The project now renders a first visible mannequin as a raw skeleton:
+
+- straight limb segments
+- visible joint markers
+- a simple head circle
+
+This is intentionally not the final visual style.
+
+The goal of this step is to make the body graph visible and debuggable before the continuous-line
+rendering work starts in the teammate track.
+
+At this stage the standing pose is still a first explicit readable layout.
+The next step will make that pose more rigorously geometry-driven from the stickman model itself.

@@ -1,8 +1,31 @@
 #include "render/sdl/SDLRenderer.hpp"
 
+#include <cmath>
+
 #include <SDL.h>
 
 namespace bobtricks {
+
+namespace {
+void drawFilledCircle(SDL_Renderer* renderer, Vec2 center, double radius) {
+    const int xCenter = static_cast<int>(std::lround(center.x));
+    const int yCenter = static_cast<int>(std::lround(center.y));
+    const int radiusPixels = static_cast<int>(std::lround(radius));
+
+    for (int yOffset = -radiusPixels; yOffset <= radiusPixels; ++yOffset) {
+        const double ySquared = static_cast<double>(yOffset * yOffset);
+        const double xRange = std::sqrt(static_cast<double>(radiusPixels * radiusPixels) - ySquared);
+        const int xOffset = static_cast<int>(std::lround(xRange));
+        SDL_RenderDrawLine(
+            renderer,
+            xCenter - xOffset,
+            yCenter + yOffset,
+            xCenter + xOffset,
+            yCenter + yOffset
+        );
+    }
+}
+}
 
 SDLRenderer::~SDLRenderer() {
     shutdown();
@@ -47,6 +70,39 @@ void SDLRenderer::render(const RenderState& renderState) {
         renderState.clearColor.alpha
     );
     SDL_RenderClear(renderer_);
+
+    SDL_SetRenderDrawColor(
+        renderer_,
+        renderState.skeletonColor.red,
+        renderState.skeletonColor.green,
+        renderState.skeletonColor.blue,
+        renderState.skeletonColor.alpha
+    );
+    for (const auto& segment : renderState.skeletonSegments) {
+        SDL_RenderDrawLine(
+            renderer_,
+            static_cast<int>(std::lround(segment.start.x)),
+            static_cast<int>(std::lround(segment.start.y)),
+            static_cast<int>(std::lround(segment.end.x)),
+            static_cast<int>(std::lround(segment.end.y))
+        );
+    }
+
+    if (renderState.headRadius > 0.0) {
+        drawFilledCircle(renderer_, renderState.headCenter, renderState.headRadius);
+    }
+
+    SDL_SetRenderDrawColor(
+        renderer_,
+        renderState.jointColor.red,
+        renderState.jointColor.green,
+        renderState.jointColor.blue,
+        renderState.jointColor.alpha
+    );
+    for (const auto& jointPoint : renderState.jointPoints) {
+        drawFilledCircle(renderer_, jointPoint.position, jointPoint.radius);
+    }
+
     SDL_RenderPresent(renderer_);
 }
 
