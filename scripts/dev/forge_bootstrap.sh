@@ -1,21 +1,21 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-MIN_BATCH_SIZE=1
-MAX_BATCH_SIZE=5
 FORBIDDEN_PATTERNS=(
     ".tools/"
     ".agents/"
     "ai/"
 )
 
-if [ "$#" -lt "$MIN_BATCH_SIZE" ] || [ "$#" -gt "$MAX_BATCH_SIZE" ]; then
-    echo "Usage: $0 <oldest-commit> [<next-commit> ...]"
-    echo "Select between 1 and 5 commits, ordered from oldest to newest."
+if [ "$#" -gt 1 ]; then
+    echo "Usage: $0 [<source-ref>]"
+    echo "Bootstrap forge from a clean snapshot of <source-ref> (default: HEAD)."
     exit 1
 fi
 
-if ! git diff --quiet || ! git diff --cached --quiet; then
+SOURCE_REF="${1:-HEAD}"
+
+if [ "${ALLOW_DIRTY_BOOTSTRAP:-0}" != "1" ] && { ! git diff --quiet || ! git diff --cached --quiet; }; then
     echo "Working tree is not clean."
     echo "Commit or stash changes before bootstrapping forge."
     exit 1
@@ -27,21 +27,15 @@ if git show-ref --verify --quiet refs/remotes/forge/main; then
     exit 1
 fi
 
-for commit in "$@"; do
-    while IFS= read -r path; do
-        for pattern in "${FORBIDDEN_PATTERNS[@]}"; do
-            case "$path" in
-                "$pattern"*)
-                    echo "Commit $commit touches forbidden forge path: $path"
-                    exit 1
-                    ;;
-            esac
-        done
-    done < <(git diff-tree --no-commit-id --name-only -r "$commit")
-done
+if ! git rev-parse --verify --quiet "$SOURCE_REF^{commit}" >/dev/null; then
+    echo "Unknown source ref: $SOURCE_REF"
+    exit 1
+fi
+SOURCE_COMMIT="$(git rev-parse "$SOURCE_REF^{commit}")"
 
 current_branch="$(git branch --show-current)"
 worktree_dir="$(mktemp -d /tmp/bobtricks-forge-bootstrap-XXXXXX)"
+bootstrap_branch="forge-bootstrap-$(date +%s)-$$"
 
 cleanup() {
     git worktree remove --force "$worktree_dir" >/dev/null 2>&1 || true
@@ -52,20 +46,24 @@ trap cleanup EXIT
 git worktree add --detach "$worktree_dir" HEAD >/dev/null
 
 cd "$worktree_dir"
-git switch --orphan forge-publish >/dev/null 2>&1
+git switch --orphan "$bootstrap_branch" >/dev/null 2>&1
 
 find . -mindepth 1 -maxdepth 1 ! -name .git -exec rm -rf {} +
 git rm -rf --cached . >/dev/null 2>&1 || true
 
-for commit in "$@"; do
-    git cherry-pick -x "$commit"
+git checkout "$SOURCE_COMMIT" -- .
 
-    ./scripts/dev/derive_forge_main.sh src/main.cpp
-    if ! git diff --quiet -- src/main.cpp; then
-        git add src/main.cpp
-        git commit --amend --no-edit
-    fi
+for pattern in "${FORBIDDEN_PATTERNS[@]}"; do
+    rm -rf "$pattern"
+    git rm -rf --cached "$pattern" >/dev/null 2>&1 || true
 done
+
+./scripts/dev/derive_forge_main.sh src/main.cpp
+
+git add .
+
+source_sha="$(git rev-parse --short "$SOURCE_COMMIT")"
+git commit -m "Bootstrap academic forge baseline from $source_sha"
 
 echo "Running native build validation..."
 ./scripts/build/build_native.sh
