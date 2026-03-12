@@ -70,6 +70,11 @@ should remain neutral enough to be publishable to both remotes when possible.
 AI-specific instructions and tooling usage must live in private or development-only paths, not in
 the shared public entry points.
 
+The main source file is a special case:
+
+- GitHub keeps the development `src/main.cpp`
+- forge may receive a derived `src/main.cpp` with the `__EMSCRIPTEN__` branch removed
+
 ## Validation Gate Before Publication
 
 Before a batch may be published to forge, it must pass:
@@ -110,6 +115,7 @@ The automation:
 - filters out commits that touch forbidden paths
 - groups eligible commits into batches of `2` to `5`
 - replays the batch onto `forge-publish`
+- derives an academic `src/main.cpp` from the development version when needed
 - validates the batch
 - pushes it to `forge/main`
 

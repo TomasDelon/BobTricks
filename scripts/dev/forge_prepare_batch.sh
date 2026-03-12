@@ -25,7 +25,16 @@ fi
 current_branch="$(git branch --show-current)"
 
 git switch -C "$BRANCH_NAME" "$BASE_REF"
-git cherry-pick -x "$@"
+
+for commit in "$@"; do
+    git cherry-pick -x "$commit"
+
+    ./scripts/dev/derive_forge_main.sh src/main.cpp
+    if ! git diff --quiet -- src/main.cpp; then
+        git add src/main.cpp
+        git commit --amend --no-edit
+    fi
+done
 
 ./scripts/dev/forge_check_batch.sh
 

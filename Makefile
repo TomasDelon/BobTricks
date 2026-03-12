@@ -1,9 +1,10 @@
-.PHONY: help build-native run-native install-hooks forge-prepare forge-check forge-publish forge-autopublish
+.PHONY: help build-native run run-native install-hooks forge-prepare forge-check forge-publish forge-autopublish
 
 help:
 	@echo "Available targets:"
 	@echo "  make help"
 	@echo "  make build-native"
+	@echo "  make run"
 	@echo "  make run-native"
 	@echo "  make install-hooks"
 	@echo "  make forge-prepare COMMITS=\"<sha1> <sha2> ...\""
@@ -13,6 +14,8 @@ help:
 
 build-native:
 	@./scripts/build/build_native.sh
+
+run: run-native
 
 run-native:
 	@./scripts/dev/run_native.sh
