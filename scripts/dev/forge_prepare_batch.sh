@@ -74,7 +74,6 @@ for commit in "$@"; do
     git config --local "$PREPARED_BATCH_KEY" "$*"
 done
 
-git -C "$root_dir" branch -f "$BRANCH_NAME" HEAD >/dev/null
 git -C "$root_dir" config --local "$PREPARED_BATCH_KEY" "$*"
 
 git -C "$root_dir" ./scripts/dev/forge_check_batch.sh
