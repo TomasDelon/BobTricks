@@ -76,7 +76,7 @@ done
 
 git -C "$root_dir" config --local "$PREPARED_BATCH_KEY" "$*"
 
-git -C "$root_dir" ./scripts/dev/forge_check_batch.sh
+"$root_dir/scripts/dev/forge_check_batch.sh"
 
 echo
 echo "Forge batch prepared on branch '$BRANCH_NAME'."
