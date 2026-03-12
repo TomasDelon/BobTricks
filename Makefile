@@ -1,4 +1,4 @@
-.PHONY: help build-native run run-native install-hooks forge-prepare forge-check forge-publish forge-autopublish
+.PHONY: help build-native run run-native install-hooks forge-bootstrap forge-prepare forge-check forge-publish forge-autopublish
 
 help:
 	@echo "Available targets:"
@@ -7,6 +7,7 @@ help:
 	@echo "  make run"
 	@echo "  make run-native"
 	@echo "  make install-hooks"
+	@echo "  make forge-bootstrap COMMITS=\"<sha1> <sha2> ...\""
 	@echo "  make forge-prepare COMMITS=\"<sha1> <sha2> ...\""
 	@echo "  make forge-check"
 	@echo "  make forge-publish"
@@ -22,6 +23,10 @@ run-native:
 
 install-hooks:
 	@./scripts/dev/install_git_hooks.sh
+
+forge-bootstrap:
+	@if [ -z "$(COMMITS)" ]; then echo "Set COMMITS=\"<sha1> <sha2> ...\""; exit 1; fi
+	@./scripts/dev/forge_bootstrap.sh $(COMMITS)
 
 forge-prepare:
 	@if [ -z "$(COMMITS)" ]; then echo "Set COMMITS=\"<sha1> <sha2> ...\""; exit 1; fi

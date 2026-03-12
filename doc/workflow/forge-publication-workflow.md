@@ -167,5 +167,12 @@ After that initial bootstrap, routine publication should always stage new batche
 
 This means:
 
-- bootstrap may still require manual staging
+- bootstrap is done once with:
+
+```bash
+./scripts/dev/forge_bootstrap.sh <oldest-commit> [<next-commit> ...]
+```
+
+- the bootstrap script creates a temporary worktree, derives the academic `src/main.cpp`,
+  validates the result, and publishes `forge/main`
 - routine publication after bootstrap may run automatically
