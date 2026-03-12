@@ -23,10 +23,30 @@ public:
     void toggleFullscreen() override;
     void setMinimumWindowSize(int width, int height) override;
 
+    void requestMode(LocomotionMode mode);
+    void requestPauseToggle();
+    void requestSpeedUp();
+    void requestSlowDown();
+    void requestReset();
+    void requestQuit();
+    void requestFullscreenToggle();
+    void clearPendingWebRequests();
+
 private:
+    struct PendingWebEvents {
+        bool quitRequested {false};
+        bool toggleFullscreenRequested {false};
+        bool togglePauseRequested {false};
+        bool speedUpRequested {false};
+        bool slowDownRequested {false};
+        bool resetRequested {false};
+        std::optional<LocomotionMode> requestedMode {};
+    };
+
     SDL_Window* windowHandle_ {nullptr};
     bool isFullscreen_ {false};
     unsigned long long lastCounter_ {0};
+    PendingWebEvents pendingWebEvents_ {};
 };
 
 }  // namespace bobtricks

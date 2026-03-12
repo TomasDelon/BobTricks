@@ -1,5 +1,7 @@
 #include "platform/sdl/SDLPlatformRuntime.hpp"
 
+#include "platform/web/WebInputBridge.hpp"
+
 #include <SDL.h>
 
 namespace bobtricks {
@@ -34,10 +36,18 @@ bool SDLPlatformRuntime::initialize() {
     }
 
     lastCounter_ = SDL_GetPerformanceCounter();
+
+#ifdef __EMSCRIPTEN__
+    WebInputBridge::install(*this);
+#endif
     return true;
 }
 
 void SDLPlatformRuntime::shutdown() {
+#ifdef __EMSCRIPTEN__
+    WebInputBridge::uninstall(*this);
+    pendingWebEvents_ = {};
+#endif
     if (windowHandle_ != nullptr) {
         SDL_DestroyWindow(windowHandle_);
         windowHandle_ = nullptr;
@@ -97,6 +107,19 @@ PlatformEvents SDLPlatformRuntime::pollEvents() {
         }
     }
 
+#ifdef __EMSCRIPTEN__
+    events.quitRequested = events.quitRequested || pendingWebEvents_.quitRequested;
+    events.toggleFullscreenRequested = events.toggleFullscreenRequested || pendingWebEvents_.toggleFullscreenRequested;
+    events.togglePauseRequested = events.togglePauseRequested || pendingWebEvents_.togglePauseRequested;
+    events.speedUpRequested = events.speedUpRequested || pendingWebEvents_.speedUpRequested;
+    events.slowDownRequested = events.slowDownRequested || pendingWebEvents_.slowDownRequested;
+    events.resetRequested = events.resetRequested || pendingWebEvents_.resetRequested;
+    if (!events.requestedMode.has_value() && pendingWebEvents_.requestedMode.has_value()) {
+        events.requestedMode = pendingWebEvents_.requestedMode;
+    }
+    pendingWebEvents_ = {};
+#endif
+
     return events;
 }
 
@@ -123,6 +146,38 @@ WindowSize SDLPlatformRuntime::getWindowSize() const {
         SDL_GetWindowSize(windowHandle_, &size.width, &size.height);
     }
     return size;
+}
+
+void SDLPlatformRuntime::requestMode(LocomotionMode mode) {
+    pendingWebEvents_.requestedMode = mode;
+}
+
+void SDLPlatformRuntime::requestPauseToggle() {
+    pendingWebEvents_.togglePauseRequested = true;
+}
+
+void SDLPlatformRuntime::requestSpeedUp() {
+    pendingWebEvents_.speedUpRequested = true;
+}
+
+void SDLPlatformRuntime::requestSlowDown() {
+    pendingWebEvents_.slowDownRequested = true;
+}
+
+void SDLPlatformRuntime::requestReset() {
+    pendingWebEvents_.resetRequested = true;
+}
+
+void SDLPlatformRuntime::requestQuit() {
+    pendingWebEvents_.quitRequested = true;
+}
+
+void SDLPlatformRuntime::requestFullscreenToggle() {
+    pendingWebEvents_.toggleFullscreenRequested = true;
+}
+
+void SDLPlatformRuntime::clearPendingWebRequests() {
+    pendingWebEvents_ = {};
 }
 
 void SDLPlatformRuntime::toggleFullscreen() {

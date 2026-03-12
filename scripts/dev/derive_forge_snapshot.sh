@@ -19,6 +19,7 @@ remove_path "ai"
 remove_path "doc/workflow"
 remove_path "doc/documentation/output"
 remove_path "scripts"
+remove_path "src/platform/web"
 
 cat > "$ROOT_DIR/Makefile" <<'EOF'
 .PHONY: help build run docs

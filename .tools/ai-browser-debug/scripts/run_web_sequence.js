@@ -104,6 +104,14 @@ async function runStep(page, step, summary, screenshotDir) {
     }
     case "press":
       assertStep(step, "key");
+      if (step.focusCanvas !== false) {
+        const canvas = page.locator("canvas");
+        await canvas.waitFor();
+        await canvas.click({
+          position: step.focusPosition || { x: 16, y: 16 },
+          force: true
+        });
+      }
       await page.keyboard.press(step.key);
       summary.push(`press ${step.key}`);
       break;

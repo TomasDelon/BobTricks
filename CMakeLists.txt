@@ -25,6 +25,12 @@ add_executable(bobtricks
     src/main.cpp
 )
 
+if(EMSCRIPTEN)
+    target_sources(bobtricks PRIVATE
+        src/platform/web/WebInputBridge.cpp
+    )
+endif()
+
 target_include_directories(bobtricks PRIVATE include src)
 target_compile_options(bobtricks PRIVATE -Wall -Wextra -Wpedantic)
 
