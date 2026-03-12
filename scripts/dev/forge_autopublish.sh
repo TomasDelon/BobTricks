@@ -44,7 +44,7 @@ is_commit_eligible() {
 
     while IFS= read -r path; do
         case "$path" in
-            .tools/*|.agents/*|ai/*)
+            .githooks/*|.tools/*|.agents/*|ai/*|doc/workflow/*|scripts/*)
                 return 1
                 ;;
         esac

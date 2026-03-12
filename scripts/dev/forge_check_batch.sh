@@ -4,9 +4,12 @@ set -euo pipefail
 BRANCH_NAME="${FORGE_BRANCH_NAME:-forge-publish}"
 BASE_REF="${FORGE_BASE_REF:-refs/remotes/forge/main}"
 FORBIDDEN_PATTERNS=(
+    ".githooks/"
     ".tools/"
     ".agents/"
     "ai/"
+    "doc/workflow/"
+    "scripts/"
 )
 
 if [ "$(git branch --show-current)" != "$BRANCH_NAME" ]; then

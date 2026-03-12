@@ -21,7 +21,7 @@ if [ "${ALLOW_DIRTY_BOOTSTRAP:-0}" != "1" ] && { ! git diff --quiet || ! git dif
     exit 1
 fi
 
-if git show-ref --verify --quiet refs/remotes/forge/main; then
+if [ "${FORGE_FORCE_BOOTSTRAP:-0}" != "1" ] && git show-ref --verify --quiet refs/remotes/forge/main; then
     echo "forge/main already exists."
     echo "Use the regular forge batch workflow instead of bootstrap."
     exit 1
@@ -34,6 +34,7 @@ fi
 SOURCE_COMMIT="$(git rev-parse "$SOURCE_REF^{commit}")"
 
 current_branch="$(git branch --show-current)"
+source_repo_dir="$(pwd)"
 worktree_dir="$(mktemp -d /tmp/bobtricks-forge-bootstrap-XXXXXX)"
 bootstrap_branch="forge-bootstrap-$(date +%s)-$$"
 
@@ -52,21 +53,15 @@ find . -mindepth 1 -maxdepth 1 ! -name .git -exec rm -rf {} +
 git rm -rf --cached . >/dev/null 2>&1 || true
 
 git checkout "$SOURCE_COMMIT" -- .
-
-for pattern in "${FORBIDDEN_PATTERNS[@]}"; do
-    rm -rf "$pattern"
-    git rm -rf --cached "$pattern" >/dev/null 2>&1 || true
-done
-
-./scripts/dev/derive_forge_main.sh src/main.cpp
-
-git add .
+"$source_repo_dir/scripts/dev/derive_forge_snapshot.sh" "$worktree_dir"
+git add -A
 
 source_sha="$(git rev-parse --short "$SOURCE_COMMIT")"
-git commit -m "Bootstrap academic forge baseline from $source_sha"
+git commit -m "Initial project structure"
 
 echo "Running native build validation..."
-./scripts/build/build_native.sh
+cmake -S . -B build/native
+cmake --build build/native -j
 
 if ctest --test-dir build/native -N >/tmp/bobtricks-bootstrap-ctest-list.txt 2>/dev/null; then
     if ! grep -q "Total Tests: 0" /tmp/bobtricks-bootstrap-ctest-list.txt; then
@@ -80,7 +75,11 @@ else
 fi
 
 echo "Publishing forge bootstrap batch to forge/main..."
-ALLOW_FORGE_PUBLISH=1 git push forge HEAD:main
+if [ "${FORGE_FORCE_BOOTSTRAP:-0}" = "1" ]; then
+    ALLOW_FORGE_PUBLISH=1 git push --force forge HEAD:main
+else
+    ALLOW_FORGE_PUBLISH=1 git push forge HEAD:main
+fi
 
 echo
 echo "Forge bootstrap completed."

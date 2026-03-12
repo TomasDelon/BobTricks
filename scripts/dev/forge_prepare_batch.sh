@@ -23,15 +23,16 @@ if ! git show-ref --verify --quiet "$BASE_REF"; then
 fi
 
 current_branch="$(git branch --show-current)"
+root_dir="$(pwd)"
 
 git switch -C "$BRANCH_NAME" "$BASE_REF"
 
 for commit in "$@"; do
     git cherry-pick -x "$commit"
 
-    ./scripts/dev/derive_forge_main.sh src/main.cpp
-    if ! git diff --quiet -- src/main.cpp; then
-        git add src/main.cpp
+    "$root_dir/scripts/dev/derive_forge_snapshot.sh" "$root_dir"
+    if ! git diff --quiet; then
+        git add -A
         git commit --amend --no-edit
     fi
 done
