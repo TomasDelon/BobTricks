@@ -43,6 +43,26 @@ run:
 	./build/native/bobtricks
 EOF
 
+cat > "$ROOT_DIR/.gitignore" <<'EOF'
+# Native build outputs
+/build/
+/dist/
+/bin/*
+/obj/*
+!.gitkeep
+
+# Common compiled artifacts
+*.o
+*.obj
+*.out
+*.log
+
+# OS/editor
+.DS_Store
+Thumbs.db
+*.swp
+EOF
+
 cat > "$ROOT_DIR/README.md" <<'EOF'
 # BobTricks
 
