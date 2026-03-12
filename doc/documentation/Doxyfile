@@ -1,0 +1,73 @@
+PROJECT_NAME           = "BobTricks"
+PROJECT_BRIEF          = "2D procedural stickman locomotion project"
+OUTPUT_DIRECTORY       = doc/documentation/output
+CREATE_SUBDIRS         = NO
+ALLOW_UNICODE_NAMES    = YES
+OUTPUT_LANGUAGE        = English
+BRIEF_MEMBER_DESC      = YES
+REPEAT_BRIEF           = NO
+FULL_PATH_NAMES        = NO
+STRIP_FROM_PATH        = .
+JAVADOC_AUTOBRIEF      = YES
+MARKDOWN_SUPPORT       = YES
+AUTOLINK_SUPPORT       = YES
+BUILTIN_STL_SUPPORT    = YES
+TAB_SIZE               = 4
+OPTIMIZE_OUTPUT_FOR_C  = NO
+OPTIMIZE_OUTPUT_JAVA   = NO
+OPTIMIZE_FOR_FORTRAN   = NO
+OPTIMIZE_OUTPUT_VHDL   = NO
+EXTRACT_ALL            = NO
+EXTRACT_PRIVATE        = NO
+EXTRACT_STATIC         = NO
+EXTRACT_LOCAL_CLASSES  = YES
+HIDE_UNDOC_MEMBERS     = NO
+HIDE_UNDOC_CLASSES     = NO
+HIDE_IN_BODY_DOCS      = NO
+CASE_SENSE_NAMES       = YES
+SHOW_INCLUDE_FILES     = YES
+INLINE_INFO            = YES
+SORT_MEMBER_DOCS       = YES
+GENERATE_TODOLIST      = YES
+GENERATE_TESTLIST      = YES
+GENERATE_BUGLIST       = YES
+GENERATE_DEPRECATEDLIST = YES
+WARNINGS               = YES
+WARN_IF_UNDOCUMENTED   = YES
+WARN_IF_DOC_ERROR      = YES
+WARN_NO_PARAMDOC       = YES
+WARN_AS_ERROR          = NO
+INPUT                  = doc/documentation/README.md \
+                         include \
+                         src
+INPUT_ENCODING         = UTF-8
+FILE_PATTERNS          = *.md \
+                         *.hpp \
+                         *.cpp
+RECURSIVE              = YES
+EXCLUDE                = build \
+                         .tools \
+                         .agents \
+                         ai \
+                         doc/workflow \
+                         scripts
+USE_MDFILE_AS_MAINPAGE = doc/documentation/README.md
+SOURCE_BROWSER         = YES
+INLINE_SOURCES         = NO
+STRIP_CODE_COMMENTS    = YES
+REFERENCES_LINK_SOURCE = YES
+VERBATIM_HEADERS       = YES
+ALPHABETICAL_INDEX     = YES
+GENERATE_HTML          = YES
+HTML_OUTPUT            = html
+HTML_FILE_EXTENSION    = .html
+HTML_DYNAMIC_MENUS     = YES
+GENERATE_TREEVIEW      = YES
+SEARCHENGINE           = YES
+HAVE_DOT               = NO
+GENERATE_LATEX         = NO
+GENERATE_XML           = NO
+GENERATE_DOCSET        = NO
+GENERATE_MAN           = NO
+GENERATE_RTF           = NO
+GENERATE_PERLMOD       = NO

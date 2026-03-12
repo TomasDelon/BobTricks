@@ -1,4 +1,4 @@
-.PHONY: help build-native run run-native install-hooks forge-bootstrap forge-prepare forge-check forge-publish forge-autopublish
+.PHONY: help build-native run run-native docs install-hooks forge-bootstrap forge-prepare forge-check forge-publish forge-autopublish
 
 help:
 	@echo "Available targets:"
@@ -6,6 +6,7 @@ help:
 	@echo "  make build-native"
 	@echo "  make run"
 	@echo "  make run-native"
+	@echo "  make docs"
 	@echo "  make install-hooks"
 	@echo "  make forge-bootstrap COMMITS=\"<sha1> <sha2> ...\""
 	@echo "  make forge-prepare COMMITS=\"<sha1> <sha2> ...\""
@@ -20,6 +21,9 @@ run: run-native
 
 run-native:
 	@./scripts/dev/run_native.sh
+
+docs:
+	@doxygen doc/documentation/Doxyfile
 
 install-hooks:
 	@./scripts/dev/install_git_hooks.sh
