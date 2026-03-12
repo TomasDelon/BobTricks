@@ -10,11 +10,22 @@ if(NOT EMSCRIPTEN)
 endif()
 
 add_executable(bobtricks
+    src/app/Application.cpp
+    src/app/SimulationLoop.cpp
+    src/platform/sdl/SDLPlatformRuntime.cpp
+    src/input/InputMapper.cpp
+    src/core/locomotion/LocomotionController.cpp
+    src/core/locomotion/ProceduralAnimator.cpp
+    src/core/simulation/SimulationCore.cpp
+    src/core/debug/DebugCommandBus.cpp
+    src/render/RenderStateAdapter.cpp
+    src/render/sdl/SDLRenderer.cpp
+    src/debug_ui/console/ConsoleDebugUI.cpp
+    src/debug_ui/imgui/ImGuiDebugUI.cpp
     src/main.cpp
-    src/app.cpp
 )
 
-target_include_directories(bobtricks PRIVATE include)
+target_include_directories(bobtricks PRIVATE include src)
 target_compile_options(bobtricks PRIVATE -Wall -Wextra -Wpedantic)
 
 if(EMSCRIPTEN)
