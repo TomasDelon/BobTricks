@@ -5,11 +5,13 @@ namespace bobtricks {
 void SimulationCore::initialize() {
     characterState_ = {};
     characterState_.mode = LocomotionMode::Stand;
+    characterState_.facingDirection = FacingDirection::Right;
     characterState_.gaitPhase = GaitPhase::DoubleSupport;
     characterState_.supportSide = SupportSide::Both;
     characterState_.geometry = {};
     characterState_.nodes = {};
     characterState_.proceduralPose.mode = LocomotionMode::Stand;
+    characterState_.proceduralPose.facingDirection = FacingDirection::Right;
     characterState_.proceduralPose.gaitPhase = GaitPhase::DoubleSupport;
     characterState_.proceduralPose.supportSide = SupportSide::Both;
     characterState_.support.activeSide = SupportSide::Both;

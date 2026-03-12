@@ -2,6 +2,7 @@
 
 #include "core/math/Vec2.hpp"
 #include "core/state/CMState.hpp"
+#include "core/state/FacingDirection.hpp"
 #include "core/state/GaitPhase.hpp"
 #include "core/state/LocomotionMode.hpp"
 #include "core/state/ProceduralPoseState.hpp"
@@ -17,6 +18,7 @@ namespace bobtricks {
  */
 struct CharacterState {
     LocomotionMode mode {LocomotionMode::Stand};
+    FacingDirection facingDirection {FacingDirection::Right};
     GaitPhase gaitPhase {GaitPhase::DoubleSupport};
     SupportSide supportSide {SupportSide::Both};
     StickmanGeometry geometry {};

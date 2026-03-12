@@ -111,3 +111,17 @@ The important change is architectural:
 
 The renderer is still the same raw skeleton renderer.
 Spline rendering and console-debug progression remain delegated to teammates.
+
+### 2026-03-12 - Standing Pose Gets A Nominal Facing Direction
+
+The standing mannequin now carries a nominal facing direction, currently initialized to face right.
+
+This does not introduce locomotion yet.
+The goal is visual readability:
+
+- the torso remains vertically aligned in standing
+- the feet stay symmetric around the CM projection
+- the facing side is suggested through asymmetric bending of the limbs instead of a tilted spine
+
+The result is still a raw skeleton, but it should read less like a flat technical diagram and
+more like a character with a clear orientation in space.

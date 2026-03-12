@@ -29,6 +29,7 @@ void LocomotionController::applyIntent(
 
     characterState.mode = intent.requestedMode;
     characterState.proceduralPose.mode = intent.requestedMode;
+    characterState.proceduralPose.facingDirection = characterState.facingDirection;
     characterState.proceduralPose.cycleDurationS = cycleDurationForMode(intent.requestedMode, tuningParams);
 }
 

@@ -28,34 +28,49 @@ void ProceduralAnimator::update(double dtSeconds, CharacterState& characterState
 
     const auto& geometry = characterState.geometry;
     const Vec2 worldRoot = characterState.rootPosition;
+    const double facingSign = (characterState.facingDirection == FacingDirection::Right) ? 1.0 : -1.0;
     const double legReach = geometry.upperLegLength + geometry.lowerLegLength;
     const double stanceHalfWidth = 0.33 * geometry.lowerLegLength;
     const double pelvisHeight = legReach - 0.08 * geometry.lowerLegLength;
-    const double kneeHeight = pelvisHeight * 0.52;
-    const double kneeInset = 0.28 * stanceHalfWidth;
+    const double rearKneeHeight = pelvisHeight * 0.48;
+    const double frontKneeHeight = pelvisHeight * 0.53;
+    const double rearKneeX = -0.62 * stanceHalfWidth;
+    const double frontKneeX = 0.78 * stanceHalfWidth;
+    const double rearFootLead = 0.08 * geometry.lowerLegLength;
+    const double frontFootLead = 0.06 * geometry.lowerLegLength;
     const double torsoBottomHeight = pelvisHeight;
     const double torsoCenterHeight = torsoBottomHeight + geometry.torsoSegmentLength;
     const double torsoTopHeight = torsoCenterHeight + geometry.torsoSegmentLength;
     const double headTopHeight = torsoTopHeight + 2.0 * geometry.headRadius;
 
-    const Vec2 ankleLeft = worldRoot + Vec2{-stanceHalfWidth, 0.0};
-    const Vec2 ankleRight = worldRoot + Vec2{stanceHalfWidth, 0.0};
-    const Vec2 kneeLeft = worldRoot + Vec2{-(stanceHalfWidth - kneeInset), kneeHeight};
-    const Vec2 kneeRight = worldRoot + Vec2{(stanceHalfWidth - kneeInset), kneeHeight};
+    Vec2 ankleRear = worldRoot + Vec2{-stanceHalfWidth - facingSign * rearFootLead, 0.0};
+    Vec2 ankleFront = worldRoot + Vec2{stanceHalfWidth + facingSign * frontFootLead, 0.0};
+    Vec2 kneeRear = worldRoot + Vec2{rearKneeX, rearKneeHeight};
+    Vec2 kneeFront = worldRoot + Vec2{frontKneeX, frontKneeHeight};
+
+    if (facingSign < 0.0) {
+        const Vec2 previousRearAnkle = ankleRear;
+        const Vec2 previousRearKnee = kneeRear;
+        ankleRear = ankleFront;
+        ankleFront = previousRearAnkle;
+        kneeRear = kneeFront;
+        kneeFront = previousRearKnee;
+    }
+
     const Vec2 torsoBottom = worldRoot + Vec2{0.0, torsoBottomHeight};
     const Vec2 torsoCenter = worldRoot + Vec2{0.0, torsoCenterHeight};
     const Vec2 torsoTop = worldRoot + Vec2{0.0, torsoTopHeight};
     const Vec2 headTop = worldRoot + Vec2{0.0, headTopHeight};
 
-    const Vec2 upperArmLeftDirection = normalize({-0.42, -1.0});
-    const Vec2 lowerArmLeftDirection = normalize({-0.22, -1.0});
-    const Vec2 upperArmRightDirection = normalize({0.42, -1.0});
-    const Vec2 lowerArmRightDirection = normalize({0.22, -1.0});
+    const Vec2 upperArmRearDirection = normalize({-0.22 * facingSign, -1.0});
+    const Vec2 lowerArmRearDirection = normalize({-0.06 * facingSign, -1.0});
+    const Vec2 upperArmFrontDirection = normalize({0.22 * facingSign, -1.0});
+    const Vec2 lowerArmFrontDirection = normalize({0.06 * facingSign, -1.0});
 
-    const Vec2 elbowLeft = addScaled(torsoTop, upperArmLeftDirection, geometry.upperArmLength);
-    const Vec2 wristLeft = addScaled(elbowLeft, lowerArmLeftDirection, geometry.lowerArmLength);
-    const Vec2 elbowRight = addScaled(torsoTop, upperArmRightDirection, geometry.upperArmLength);
-    const Vec2 wristRight = addScaled(elbowRight, lowerArmRightDirection, geometry.lowerArmLength);
+    Vec2 elbowRear = addScaled(torsoTop, upperArmRearDirection, geometry.upperArmLength);
+    Vec2 wristRear = addScaled(elbowRear, lowerArmRearDirection, geometry.lowerArmLength);
+    Vec2 elbowFront = addScaled(torsoTop, upperArmFrontDirection, geometry.upperArmLength);
+    Vec2 wristFront = addScaled(elbowFront, lowerArmFrontDirection, geometry.lowerArmLength);
 
     characterState.cm.procedural.targetPosition = {
         worldRoot.x,
@@ -65,19 +80,31 @@ void ProceduralAnimator::update(double dtSeconds, CharacterState& characterState
     characterState.cm.procedural.operatingHeight = 0.57 * geometry.totalHeight;
     characterState.cm.procedural.pelvisOffsetTarget = 0.0;
     characterState.cm.procedural.trunkLeanTarget = 0.0;
+    characterState.proceduralPose.facingDirection = characterState.facingDirection;
 
-    characterState.nodes.ankleLeft = ankleLeft;
-    characterState.nodes.ankleRight = ankleRight;
-    characterState.nodes.kneeLeft = kneeLeft;
-    characterState.nodes.kneeRight = kneeRight;
+    if (facingSign > 0.0) {
+        characterState.nodes.ankleLeft = ankleRear;
+        characterState.nodes.ankleRight = ankleFront;
+        characterState.nodes.kneeLeft = kneeRear;
+        characterState.nodes.kneeRight = kneeFront;
+        characterState.nodes.elbowLeft = elbowRear;
+        characterState.nodes.wristLeft = wristRear;
+        characterState.nodes.elbowRight = elbowFront;
+        characterState.nodes.wristRight = wristFront;
+    } else {
+        characterState.nodes.ankleLeft = ankleFront;
+        characterState.nodes.ankleRight = ankleRear;
+        characterState.nodes.kneeLeft = kneeFront;
+        characterState.nodes.kneeRight = kneeRear;
+        characterState.nodes.elbowLeft = elbowFront;
+        characterState.nodes.wristLeft = wristFront;
+        characterState.nodes.elbowRight = elbowRear;
+        characterState.nodes.wristRight = wristRear;
+    }
     characterState.nodes.torsoBottom = torsoBottom;
     characterState.nodes.torsoCenter = torsoCenter;
     characterState.nodes.torsoTop = torsoTop;
     characterState.nodes.headTop = headTop;
-    characterState.nodes.elbowLeft = elbowLeft;
-    characterState.nodes.wristLeft = wristLeft;
-    characterState.nodes.elbowRight = elbowRight;
-    characterState.nodes.wristRight = wristRight;
 }
 
 }  // namespace bobtricks
