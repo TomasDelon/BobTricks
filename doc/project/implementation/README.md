@@ -15,6 +15,7 @@ the files in this directory take precedence.
 5. `03_Debug_Architecture.md`
 6. `04_Source_Tree_And_Ownership.md`
 7. `06_Design_To_Implementation_Mapping.md`
+8. `../progress/README.md`
 
 ## Scope
 
@@ -25,3 +26,12 @@ The architecture is defined for:
 
 The midpoint demo only activates a subset of the final architecture, but the codebase must start
 with the final structure in mind.
+
+## Ongoing Implementation Notes
+
+The running implementation narrative for midpoint lives in:
+
+- `doc/project/progress/README.md`
+
+That log records what was implemented, why it was implemented that way, and what remains delegated
+or deferred.
