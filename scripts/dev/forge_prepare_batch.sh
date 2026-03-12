@@ -3,6 +3,8 @@ set -euo pipefail
 
 BRANCH_NAME="${FORGE_BRANCH_NAME:-forge-publish}"
 BASE_REF="${FORGE_BASE_REF:-refs/remotes/forge/main}"
+LAST_PUBLISHED_KEY="bobtricks.forgeLastPublishedSource"
+PREPARED_BATCH_KEY="bobtricks.forgePreparedBatch"
 
 if [ "$#" -lt 1 ] || [ "$#" -gt 5 ]; then
     echo "Usage: $0 <oldest-commit> [<next-commit> ...]"
@@ -25,9 +27,12 @@ fi
 current_branch="$(git branch --show-current)"
 root_dir="$(pwd)"
 helper_dir="$(mktemp -d /tmp/bobtricks-forge-prepare-XXXXXX)"
+worktree_dir="$(mktemp -d /tmp/bobtricks-forge-worktree-XXXXXX)"
 
 cleanup() {
     rm -rf "$helper_dir"
+    git worktree remove --force "$worktree_dir" >/dev/null 2>&1 || true
+    rm -rf "$worktree_dir"
 }
 trap cleanup EXIT
 
@@ -35,19 +40,39 @@ cp "$root_dir/scripts/dev/derive_forge_snapshot.sh" "$helper_dir/derive_forge_sn
 cp "$root_dir/scripts/dev/derive_forge_main.sh" "$helper_dir/derive_forge_main.sh"
 chmod +x "$helper_dir/derive_forge_snapshot.sh" "$helper_dir/derive_forge_main.sh"
 
-git switch -C "$BRANCH_NAME" "$BASE_REF"
+git worktree add --detach "$worktree_dir" "$BASE_REF" >/dev/null
+cd "$worktree_dir"
+git switch -C "$BRANCH_NAME" "$BASE_REF" >/dev/null
 
 for commit in "$@"; do
-    git cherry-pick -x "$commit"
+    source_commit="$(git -C "$root_dir" rev-parse "$commit^{commit}")"
+    source_subject="$(git -C "$root_dir" show -s --format=%s "$source_commit")"
+    source_body_file="$helper_dir/commit-message.txt"
 
-    "$helper_dir/derive_forge_snapshot.sh" "$root_dir"
-    if ! git diff --quiet; then
-        git add -A
-        git commit --amend --no-edit
+    find . -mindepth 1 -maxdepth 1 ! -name .git -exec rm -rf {} +
+    git rm -rf --cached . >/dev/null 2>&1 || true
+    git checkout "$source_commit" -- .
+
+    "$helper_dir/derive_forge_snapshot.sh" "$worktree_dir"
+    git add -A
+
+    if git diff --cached --quiet; then
+        continue
     fi
+
+    git -C "$root_dir" show -s --format=%B "$source_commit" > "$source_body_file"
+    GIT_AUTHOR_NAME="$(git -C "$root_dir" show -s --format=%an "$source_commit")" \
+    GIT_AUTHOR_EMAIL="$(git -C "$root_dir" show -s --format=%ae "$source_commit")" \
+    GIT_AUTHOR_DATE="$(git -C "$root_dir" show -s --format=%aI "$source_commit")" \
+        git commit -F "$source_body_file" >/dev/null
+
+    git config --local "$PREPARED_BATCH_KEY" "$*"
 done
 
-./scripts/dev/forge_check_batch.sh
+git -C "$root_dir" branch -f "$BRANCH_NAME" HEAD >/dev/null
+git -C "$root_dir" config --local "$PREPARED_BATCH_KEY" "$*"
+
+git -C "$root_dir" ./scripts/dev/forge_check_batch.sh
 
 echo
 echo "Forge batch prepared on branch '$BRANCH_NAME'."

@@ -10,12 +10,6 @@ remove_path() {
     rm -rf "$ROOT_DIR/$target"
 }
 
-ensure_parent_dir() {
-    local target="$1"
-
-    mkdir -p "$(dirname "$ROOT_DIR/$target")"
-}
-
 "$SCRIPT_DIR/derive_forge_main.sh" "$ROOT_DIR/src/main.cpp"
 
 remove_path ".agents"
@@ -23,6 +17,7 @@ remove_path ".githooks"
 remove_path ".tools"
 remove_path "ai"
 remove_path "doc/workflow"
+remove_path "doc/documentation/output"
 remove_path "scripts"
 
 cat > "$ROOT_DIR/Makefile" <<'EOF'
@@ -54,6 +49,9 @@ cat > "$ROOT_DIR/.gitignore" <<'EOF'
 /bin/*
 /obj/*
 !.gitkeep
+
+# Generated documentation
+/doc/documentation/output/
 
 # Common compiled artifacts
 *.o

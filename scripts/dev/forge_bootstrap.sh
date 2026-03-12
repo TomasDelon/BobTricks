@@ -1,11 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-FORBIDDEN_PATTERNS=(
-    ".tools/"
-    ".agents/"
-    "ai/"
-)
+LAST_PUBLISHED_KEY="bobtricks.forgeLastPublishedSource"
 
 if [ "$#" -gt 1 ]; then
     echo "Usage: $0 [<source-ref>]"
@@ -80,6 +76,8 @@ if [ "${FORGE_FORCE_BOOTSTRAP:-0}" = "1" ]; then
 else
     ALLOW_FORGE_PUBLISH=1 git push forge HEAD:main
 fi
+
+git -C "$source_repo_dir" config --local "$LAST_PUBLISHED_KEY" "$SOURCE_COMMIT"
 
 echo
 echo "Forge bootstrap completed."

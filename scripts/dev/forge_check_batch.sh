@@ -12,8 +12,8 @@ FORBIDDEN_PATTERNS=(
     "scripts/"
 )
 
-if [ "$(git branch --show-current)" != "$BRANCH_NAME" ]; then
-    echo "Current branch is not '$BRANCH_NAME'."
+if ! git show-ref --verify --quiet "refs/heads/$BRANCH_NAME"; then
+    echo "Missing local forge branch '$BRANCH_NAME'."
     echo "Run ./scripts/dev/forge_prepare_batch.sh first."
     exit 1
 fi
@@ -24,7 +24,17 @@ if ! git show-ref --verify --quiet "$BASE_REF"; then
     exit 1
 fi
 
-changed_files="$(git diff --name-only "$BASE_REF"..HEAD)"
+worktree_dir="$(mktemp -d /tmp/bobtricks-forge-check-XXXXXX)"
+
+cleanup() {
+    git worktree remove --force "$worktree_dir" >/dev/null 2>&1 || true
+    rm -rf "$worktree_dir"
+}
+trap cleanup EXIT
+
+git worktree add --detach "$worktree_dir" "$BRANCH_NAME" >/dev/null
+
+changed_files="$(git -C "$worktree_dir" diff --name-only "$BASE_REF"..HEAD)"
 
 if [ -z "$changed_files" ]; then
     echo "No staged forge batch detected relative to $BASE_REF."
@@ -49,13 +59,14 @@ if [ "${#forbidden_hits[@]}" -gt 0 ]; then
 fi
 
 echo "Running native build validation..."
-./scripts/build/build_native.sh
+cmake -S "$worktree_dir" -B "$worktree_dir/build/native"
+cmake --build "$worktree_dir/build/native" -j
 
-if [ -d build/native ]; then
-    if ctest --test-dir build/native -N >/tmp/bobtricks-ctest-list.txt 2>/dev/null; then
+if [ -d "$worktree_dir/build/native" ]; then
+    if ctest --test-dir "$worktree_dir/build/native" -N >/tmp/bobtricks-ctest-list.txt 2>/dev/null; then
         if ! grep -q "Total Tests: 0" /tmp/bobtricks-ctest-list.txt; then
             echo "Running registered native tests..."
-            ctest --test-dir build/native --output-on-failure
+            ctest --test-dir "$worktree_dir/build/native" --output-on-failure
         else
             echo "No registered native tests found. Skipping test execution."
         fi
