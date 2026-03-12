@@ -58,3 +58,18 @@ This reduces future ambiguity when reconstruction and rendering start consuming 
 graph.
 
 Spline and continuous-line rendering remain delegated to teammates.
+
+### 2026-03-12 - Character State Publishes Visible Body Data
+
+The authoritative `CharacterState` now carries:
+
+- the nominal stickman geometry
+- the solved world-space node positions of the body
+
+This is an important boundary decision.
+
+The simulation core is now responsible for publishing the visible mannequin snapshot, even though
+the renderer still does not draw it yet.
+
+This keeps the future raw skeleton renderer and the future continuous-line renderer dependent on
+the same authoritative body data instead of rebuilding geometry independently.
