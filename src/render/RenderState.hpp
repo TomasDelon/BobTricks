@@ -35,11 +35,21 @@ struct JointPoint {
 };
 
 /**
+ * \brief Reference visuelle simple du sol.
+ */
+struct GroundVisual {
+    RgbaColor color {124, 128, 124, 255};
+    double y {0.0};
+    std::vector<LineSegment> tickMarks {};
+};
+
+/**
  * \brief Etat de rendu minimal consomme par le renderer.
  */
 struct RenderState {
     WindowSize viewport {960, 540};
     RgbaColor clearColor {20, 20, 20, 255};
+    GroundVisual ground {};
     RgbaColor skeletonColor {44, 44, 44, 255};
     RgbaColor jointColor {70, 70, 70, 255};
     std::vector<LineSegment> skeletonSegments {};

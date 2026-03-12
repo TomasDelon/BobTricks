@@ -140,3 +140,14 @@ This is the correct next step because the animator should consume a valid gait-s
 instead of inventing phase timing on its own.
 
 `Run` timing is still the next pending step after this one.
+
+### 2026-03-12 - Ground Reference Added To The Raw Renderer
+
+The raw renderer now draws a simple visual ground reference:
+
+- one horizontal ground line
+- a few small tick marks along the floor
+
+This is still not a physics ground.
+It is a visual debugging aid added before walk animation so that foot locking, foot lift, and
+possible foot sliding can be judged against a visible baseline.

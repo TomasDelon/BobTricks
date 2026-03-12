@@ -73,6 +73,23 @@ void SDLRenderer::render(const RenderState& renderState) {
 
     SDL_SetRenderDrawColor(
         renderer_,
+        renderState.ground.color.red,
+        renderState.ground.color.green,
+        renderState.ground.color.blue,
+        renderState.ground.color.alpha
+    );
+    for (const auto& groundSegment : renderState.ground.tickMarks) {
+        SDL_RenderDrawLine(
+            renderer_,
+            static_cast<int>(std::lround(groundSegment.start.x)),
+            static_cast<int>(std::lround(groundSegment.start.y)),
+            static_cast<int>(std::lround(groundSegment.end.x)),
+            static_cast<int>(std::lround(groundSegment.end.y))
+        );
+    }
+
+    SDL_SetRenderDrawColor(
+        renderer_,
         renderState.skeletonColor.red,
         renderState.skeletonColor.green,
         renderState.skeletonColor.blue,

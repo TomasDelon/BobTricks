@@ -29,6 +29,18 @@ RenderState RenderStateAdapter::build(const CharacterState& characterState, Wind
 
     renderState.skeletonColor = {38, 42, 48, 255};
     renderState.jointColor = {92, 98, 108, 255};
+    renderState.ground.color = {146, 149, 142, 255};
+
+    const auto groundStart = toViewportPoint({-3.0, 0.0}, viewport);
+    const auto groundEnd = toViewportPoint({3.0, 0.0}, viewport);
+    renderState.ground.y = groundStart.y;
+    renderState.ground.tickMarks = {
+        {toViewportPoint({-2.4, 0.0}, viewport), toViewportPoint({-2.4, 0.08}, viewport)},
+        {toViewportPoint({-1.2, 0.0}, viewport), toViewportPoint({-1.2, 0.06}, viewport)},
+        {toViewportPoint({0.0, 0.0}, viewport), toViewportPoint({0.0, 0.08}, viewport)},
+        {toViewportPoint({1.2, 0.0}, viewport), toViewportPoint({1.2, 0.06}, viewport)},
+        {toViewportPoint({2.4, 0.0}, viewport), toViewportPoint({2.4, 0.08}, viewport)}
+    };
 
     const auto& nodes = characterState.nodes;
     const auto screenHeadTop = toViewportPoint(nodes.headTop, viewport);
@@ -76,6 +88,11 @@ RenderState RenderStateAdapter::build(const CharacterState& characterState, Wind
         0.5 * (screenHeadTop.y + screenTorsoTop.y)
     };
     renderState.headRadius = characterState.geometry.headRadius * 180.0;
+
+    renderState.ground.tickMarks.insert(
+        renderState.ground.tickMarks.begin(),
+        {groundStart, groundEnd}
+    );
 
     return renderState;
 }
