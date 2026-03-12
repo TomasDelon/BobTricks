@@ -1,12 +1,12 @@
 # Project Docs
 
-## Contenido
+## Contents
 
 - `implementation/`: source-of-truth implementation freeze for runtime, state, debug, and source tree.
-- `planning/`: alcance, gantt y TODO historico reutilizable.
-- `design/`: dossier tecnico del sistema procedural, control, fisica, reconstruccion, timing y validacion.
+- `planning/`: scope, gantt, and reusable planning material.
+- `design/`: technical dossier for procedural control, physics, reconstruction, timing, and validation.
 
-## Lectura minima para implementar
+## Minimum Reading To Implement
 
 1. `implementation/README.md`
 2. `implementation/05_Midpoint_Procedural_Locomotion_Spec.md`
@@ -21,8 +21,9 @@
 11. `design/13_Modules_And_Responsibilities.md`
 12. `design/15_Validation_Principles.md`
 
-## Nota
+## Note
 
-Los archivos de `design/` siguen siendo una base conceptual potente, pero varios detalles reflejan el proyecto viejo. Deben leerse como arquitectura objetivo.
+The files in `design/` remain a strong conceptual base, but several details still reflect the older
+project version and should be read as target architecture.
 
-Para decisiones concretas de implementacion, los archivos de `implementation/` tienen prioridad.
+For concrete implementation decisions, the files in `implementation/` take priority.
