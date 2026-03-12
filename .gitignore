@@ -5,6 +5,9 @@
 /obj/*
 !.gitkeep
 
+# Generated documentation
+/doc/documentation/output/
+
 # Common compiled artifacts
 *.o
 *.obj
