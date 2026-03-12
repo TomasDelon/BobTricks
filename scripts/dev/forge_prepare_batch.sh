@@ -42,7 +42,12 @@ chmod +x "$helper_dir/derive_forge_snapshot.sh" "$helper_dir/derive_forge_main.s
 
 git worktree add --detach "$worktree_dir" "$BASE_REF" >/dev/null
 cd "$worktree_dir"
-git switch -C "$BRANCH_NAME" "$BASE_REF" >/dev/null
+if git show-ref --verify --quiet "refs/heads/$BRANCH_NAME"; then
+    git switch "$BRANCH_NAME" >/dev/null
+    git reset --hard "$BASE_REF" >/dev/null
+else
+    git switch -c "$BRANCH_NAME" "$BASE_REF" >/dev/null
+fi
 
 for commit in "$@"; do
     source_commit="$(git -C "$root_dir" rev-parse "$commit^{commit}")"
