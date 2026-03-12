@@ -89,3 +89,25 @@ rendering work starts in the teammate track.
 
 At this stage the standing pose is still a first explicit readable layout.
 The next step will make that pose more rigorously geometry-driven from the stickman model itself.
+
+### 2026-03-12 - Standing Pose Driven By Body Geometry
+
+The standing mannequin is no longer positioned from arbitrary segment multiples.
+
+It is now reconstructed from:
+
+- nominal leg lengths
+- nominal torso segment lengths
+- nominal head radius
+- a fixed standing support width
+- a neutral arm hanging direction
+
+This is still a deliberately simple midpoint standing solver.
+The important change is architectural:
+
+- the visible pose is now derived from body geometry
+- the pelvis and the CM reference are expressed in body-scale units
+- the standing posture becomes the baseline reference for later `Walk` and `Run`
+
+The renderer is still the same raw skeleton renderer.
+Spline rendering and console-debug progression remain delegated to teammates.
