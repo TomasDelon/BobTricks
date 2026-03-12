@@ -24,13 +24,23 @@ fi
 
 current_branch="$(git branch --show-current)"
 root_dir="$(pwd)"
+helper_dir="$(mktemp -d /tmp/bobtricks-forge-prepare-XXXXXX)"
+
+cleanup() {
+    rm -rf "$helper_dir"
+}
+trap cleanup EXIT
+
+cp "$root_dir/scripts/dev/derive_forge_snapshot.sh" "$helper_dir/derive_forge_snapshot.sh"
+cp "$root_dir/scripts/dev/derive_forge_main.sh" "$helper_dir/derive_forge_main.sh"
+chmod +x "$helper_dir/derive_forge_snapshot.sh" "$helper_dir/derive_forge_main.sh"
 
 git switch -C "$BRANCH_NAME" "$BASE_REF"
 
 for commit in "$@"; do
     git cherry-pick -x "$commit"
 
-    "$root_dir/scripts/dev/derive_forge_snapshot.sh" "$root_dir"
+    "$helper_dir/derive_forge_snapshot.sh" "$root_dir"
     if ! git diff --quiet; then
         git add -A
         git commit --amend --no-edit
