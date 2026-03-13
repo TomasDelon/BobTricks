@@ -1,6 +1,7 @@
 #pragma once
 
-#include "../state/CharacterState.h"
+#include "../state/CMState.h"
+#include "../state/ProceduralPoseState.h"
 #include "../state/IntentRequest.h"
 #include "../state/TuningParams.h"
 

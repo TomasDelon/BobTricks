@@ -143,7 +143,7 @@ void LocomotionController::onPhaseEnter(GaitPhase phase, const TuningParams& tun
         support_side_                     = SupportSide::Left;
         active_swing_target_.foot         = FootSide::Right;
         active_swing_target_.takeoff_position = right_foot_pos_;
-        active_swing_target_.target_position  = {pelvis_pos_.x + step * 0.5, 0.0};
+        active_swing_target_.target_position  = {pelvis_pos_.x + step, 0.0};
         active_swing_target_.lift_height      = lift;
         break;
 
@@ -152,7 +152,7 @@ void LocomotionController::onPhaseEnter(GaitPhase phase, const TuningParams& tun
         support_side_                     = SupportSide::Right;
         active_swing_target_.foot         = FootSide::Left;
         active_swing_target_.takeoff_position = left_foot_pos_;
-        active_swing_target_.target_position  = {pelvis_pos_.x + step * 0.5, 0.0};
+        active_swing_target_.target_position  = {pelvis_pos_.x + step, 0.0};
         active_swing_target_.lift_height      = lift;
         break;
 
