@@ -7,7 +7,9 @@ LIBS     := $(shell sdl2-config --libs)
 
 SRCS     := src/main.cpp src/app.cpp \
             src/core/locomotion/LocomotionController.cpp \
-            src/core/locomotion/ProceduralAnimator.cpp
+            src/core/locomotion/ProceduralAnimator.cpp \
+            src/core/simulation/SimulationCore.cpp \
+            src/render/sdl/SDLRenderer.cpp
 BIN      := build/bobtricks
 
 help:

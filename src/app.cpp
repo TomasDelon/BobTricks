@@ -2,34 +2,43 @@
 
 #include <SDL.h>
 
+#include "core/simulation/SimulationCore.h"
+#include "core/state/IntentRequest.h"
+#include "render/RenderState.h"
+#include "render/sdl/SDLRenderer.h"
+
 namespace {
-SDL_Window* windowHandle = nullptr;
-SDL_Renderer* renderer = nullptr;
-bool isRunning = false;
-bool isFullscreen = false;
 
-constexpr int windowWidth = 960;
-constexpr int windowHeight = 540;
+SDL_Window*   windowHandle = nullptr;
+SDL_Renderer* sdlRenderer  = nullptr;
+bool          isRunning    = false;
+bool          isFullscreen = false;
 
-void toggleFullscreen() {
-    if (windowHandle == nullptr) {
-        return;
-    }
+constexpr int    WIN_W = 960;
+constexpr int    WIN_H = 540;
+constexpr double DT    = 1.0 / 60.0;
 
+SimulationCore simCore;
+SDLRenderer    gRenderer;
+IntentRequest  intent;
+
+void toggleFullscreen()
+{
+    if (!windowHandle) return;
     isFullscreen = !isFullscreen;
-#ifdef __EMSCRIPTEN__
-    const SDL_bool mode = isFullscreen ? SDL_TRUE : SDL_FALSE;
-#else
-    const Uint32 mode = isFullscreen ? SDL_WINDOW_FULLSCREEN_DESKTOP : 0;
-#endif
+    const Uint32 mode = isFullscreen ? static_cast<Uint32>(SDL_WINDOW_FULLSCREEN_DESKTOP) : 0u;
     if (SDL_SetWindowFullscreen(windowHandle, mode) != 0) {
         SDL_Log("SDL_SetWindowFullscreen failed: %s", SDL_GetError());
         isFullscreen = !isFullscreen;
     }
 }
-}
 
-bool appInit() {
+} // namespace
+
+// --------------------------------------------------------------------------
+
+bool appInit()
+{
     if (SDL_Init(SDL_INIT_VIDEO) != 0) {
         SDL_Log("SDL_Init failed: %s", SDL_GetError());
         return false;
@@ -37,68 +46,85 @@ bool appInit() {
 
     windowHandle = SDL_CreateWindow(
         "BobTricks",
-        SDL_WINDOWPOS_CENTERED,
-        SDL_WINDOWPOS_CENTERED,
-        windowWidth,
-        windowHeight,
+        SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
+        WIN_W, WIN_H,
         SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE
     );
-    if (windowHandle == nullptr) {
+    if (!windowHandle) {
         SDL_Log("SDL_CreateWindow failed: %s", SDL_GetError());
         SDL_Quit();
         return false;
     }
 
-    renderer = SDL_CreateRenderer(windowHandle, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
-    if (renderer == nullptr) {
-        renderer = SDL_CreateRenderer(windowHandle, -1, SDL_RENDERER_SOFTWARE);
-    }
-    if (renderer == nullptr) {
+    sdlRenderer = SDL_CreateRenderer(windowHandle, -1,
+                      SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
+    if (!sdlRenderer)
+        sdlRenderer = SDL_CreateRenderer(windowHandle, -1, SDL_RENDERER_SOFTWARE);
+    if (!sdlRenderer) {
         SDL_Log("SDL_CreateRenderer failed: %s", SDL_GetError());
         SDL_DestroyWindow(windowHandle);
-        windowHandle = nullptr;
         SDL_Quit();
         return false;
     }
 
-#ifndef __EMSCRIPTEN__
     SDL_SetWindowMinimumSize(windowHandle, 320, 240);
-#endif
+    simCore   = SimulationCore{};
+    intent    = IntentRequest{};
     isRunning = true;
     return true;
 }
 
-bool appStep() {
+// --------------------------------------------------------------------------
+
+bool appStep()
+{
+    // --- Événements ---
     SDL_Event event;
-    while (SDL_PollEvent(&event) == 1) {
+    while (SDL_PollEvent(&event)) {
         if (event.type == SDL_QUIT) {
             isRunning = false;
         }
         if (event.type == SDL_KEYDOWN) {
-            if (event.key.keysym.sym == SDLK_ESCAPE) {
-                isRunning = false;
-            }
-            if (event.key.keysym.sym == SDLK_F11) {
-                toggleFullscreen();
+            switch (event.key.keysym.sym) {
+            case SDLK_ESCAPE: isRunning = false;                             break;
+            case SDLK_F11:    toggleFullscreen();                            break;
+            case SDLK_s:      intent.requested_mode = LocomotionMode::Stand; break;
+            case SDLK_w:      intent.requested_mode = LocomotionMode::Walk;  break;
+            case SDLK_r:      intent.requested_mode = LocomotionMode::Run;   break;
+            default: break;
             }
         }
     }
 
-    SDL_SetRenderDrawColor(renderer, 20, 20, 20, 255);
-    SDL_RenderClear(renderer);
-    SDL_RenderPresent(renderer);
+    // --- Simulation (pas fixe 60 Hz) ---
+    simCore.step(DT, intent);
 
+    // --- Construction du RenderState ---
+    const CharacterState& cs = simCore.getState();
+    RenderState rs;
+    rs.nodes      = cs.node_positions;
+    rs.camera_pos = cs.cm.procedural.target_position;
+    rs.mode       = cs.mode;
+    rs.gait_phase = cs.gait_phase;
+
+    // --- Rendu ---
+    int w = 0, h = 0;
+    SDL_GetRendererOutputSize(sdlRenderer, &w, &h);
+
+    SDL_SetRenderDrawColor(sdlRenderer, 20, 20, 20, 255);
+    SDL_RenderClear(sdlRenderer);
+
+    gRenderer.render(sdlRenderer, rs, w, h);
+
+    SDL_RenderPresent(sdlRenderer);
     return isRunning;
 }
 
-void appShutdown() {
-    if (renderer != nullptr) {
-        SDL_DestroyRenderer(renderer);
-        renderer = nullptr;
-    }
-    if (windowHandle != nullptr) {
-        SDL_DestroyWindow(windowHandle);
-        windowHandle = nullptr;
-    }
+// --------------------------------------------------------------------------
+
+void appShutdown()
+{
+    if (sdlRenderer)  { SDL_DestroyRenderer(sdlRenderer); sdlRenderer  = nullptr; }
+    if (windowHandle) { SDL_DestroyWindow(windowHandle);  windowHandle = nullptr; }
     SDL_Quit();
 }
