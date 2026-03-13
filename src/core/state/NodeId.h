@@ -2,7 +2,7 @@
 
 /// @brief Identifiant d'un nœud articulaire du personnage.
 enum class NodeId {
-    Head,
+    HeadTop,
     TorsoTop,
     TorsoCenter,
     TorsoBottom,
