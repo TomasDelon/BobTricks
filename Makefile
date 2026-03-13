@@ -6,7 +6,8 @@ INCLUDES := -Iinclude -Isrc $(shell sdl2-config --cflags)
 LIBS     := $(shell sdl2-config --libs)
 
 SRCS     := src/main.cpp src/app.cpp \
-            src/core/locomotion/LocomotionController.cpp
+            src/core/locomotion/LocomotionController.cpp \
+            src/core/locomotion/ProceduralAnimator.cpp
 BIN      := build/bobtricks
 
 help:
