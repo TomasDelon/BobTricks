@@ -16,11 +16,11 @@ constexpr int NODE_COUNT = 12;
 
 /// @brief Snapshot autoritatif complet du personnage, publié par SimulationCore.
 struct CharacterState {
-    LocomotionMode     mode          = LocomotionMode::Stand;
-    GaitPhase          gait_phase    = GaitPhase::None;
-    SupportSide        support_side  = SupportSide::Both;
-    CMState            cm            = {};
-    SupportState       support       = {};
+    LocomotionMode      mode            = LocomotionMode::Stand;
+    GaitPhase           gait_phase      = GaitPhase::None;
+    SupportSide         support_side    = SupportSide::Both;
+    CMState             cm              = {};
+    SupportState        support         = {};
     ProceduralPoseState procedural_pose = {};
 
     /// @brief Positions mondiales de chaque nœud, indexées par static_cast<int>(NodeId).

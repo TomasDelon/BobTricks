@@ -4,11 +4,11 @@
 
 /// @brief État du centre de masse dans le régime procédural (cible contrôlée).
 struct ProceduralCMState {
-    Vec2   target_position    = {};
-    Vec2   target_velocity    = {};
-    double operating_height   = 0.0;
+    Vec2   target_position      = {};
+    Vec2   target_velocity      = {};
+    double operating_height     = 0.0;
     double pelvis_offset_target = 0.0;
-    double trunk_lean_target  = 0.0;  ///< en radians, positif vers l'avant
+    double trunk_lean_target    = 0.0;  ///< en radians, positif vers l'avant
 };
 
 /// @brief État du centre de masse émergent du régime physique (lecture Box2D).

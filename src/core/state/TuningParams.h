@@ -3,8 +3,8 @@
 /// @brief Paramètres de locomotion ajustables pour Stand/Walk/Run.
 struct LocomotionTuningParams {
     // Walk
-    double walk_cycle_duration_s  = 1.0;
-    double walk_step_length_ratio = 0.30; ///< ratio par rapport à la longueur de jambe
+    double walk_cycle_duration_s  = 1.00;
+    double walk_step_length_ratio = 0.30; ///< ratio par rapport à leg_length
     double walk_swing_lift_ratio  = 0.08;
     double walk_pelvis_bob_ratio  = 0.03;
     double walk_torso_lean_rad    = 0.07; ///< ~4 degrés
@@ -21,12 +21,23 @@ struct LocomotionTuningParams {
 };
 
 /// @brief Paramètres de géométrie du corps.
+/// Toutes les valeurs sont dérivées de limb_rest_length selon le modèle stickman
+/// (cf. doc/design/01_Stickman_Model.md) :
+///   total_height     = 5 * L
+///   leg_length       = 2 * L   (cheville → torso_bottom)
+///   torso_length     = 2 * L   (torso_bottom → torso_top)
+///   arm_length       = 2 * L   (torso_top → wrist)
+///   head_radius      = 0.5 * L
+///   cm_height_stand  = 2.85 * L  (57 % de total_height, référence littérature)
 struct BodyTuningParams {
-    double total_height   = 1.80; ///< hauteur totale du personnage (m)
-    double leg_length     = 0.50; ///< longueur d'une jambe (m)
-    double torso_length   = 0.40; ///< longueur du tronc (m)
-    double arm_length     = 0.35; ///< longueur d'un bras (m)
-    double head_radius    = 0.12; ///< rayon de la tête (m)
+    double limb_rest_length = 0.36;
+
+    double total_height()    const { return 5.0   * limb_rest_length; }
+    double leg_length()      const { return 2.0   * limb_rest_length; }
+    double torso_length()    const { return 2.0   * limb_rest_length; }
+    double arm_length()      const { return 2.0   * limb_rest_length; }
+    double head_radius()     const { return 0.5   * limb_rest_length; }
+    double cm_height_stand() const { return 2.85  * limb_rest_length; }
 };
 
 /// @brief Ensemble complet des paramètres ajustables.

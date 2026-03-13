@@ -2,10 +2,11 @@
 
 CXX      := g++
 CXXFLAGS := -std=c++20 -Wall -Wextra -Wpedantic
-INCLUDES := -Iinclude $(shell sdl2-config --cflags)
+INCLUDES := -Iinclude -Isrc $(shell sdl2-config --cflags)
 LIBS     := $(shell sdl2-config --libs)
 
-SRCS     := src/main.cpp src/app.cpp
+SRCS     := src/main.cpp src/app.cpp \
+            src/core/locomotion/LocomotionController.cpp
 BIN      := build/bobtricks
 
 help:
