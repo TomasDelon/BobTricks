@@ -1,35 +1,92 @@
-.PHONY: help build run docs clean
-
 CXX      := g++
-CXXFLAGS := -std=c++20 -Wall -Wextra -Wpedantic
-INCLUDES := -Iinclude -Isrc $(shell sdl2-config --cflags)
-LIBS     := $(shell sdl2-config --libs)
+CXXFLAGS := -std=c++20 -Wall -Wextra -g
+INCLUDES := -Isrc -Ithird_party/imgui -Icurves_lab/src $(shell sdl2-config --cflags)
+LIBS     := $(shell sdl2-config --libs) -lGL
 
-SRCS     := src/main.cpp src/app.cpp \
-            src/core/locomotion/LocomotionController.cpp \
-            src/core/locomotion/ProceduralAnimator.cpp \
-            src/core/simulation/SimulationCore.cpp \
-            src/render/sdl/SDLRenderer.cpp
-BIN      := build/bobtricks
+SRC_DIRS := src src/app src/config \
+            src/core/math src/core/character src/core/locomotion \
+            src/core/runtime src/core/simulation src/core/telemetry src/core/terrain \
+            src/input src/render src/debug
 
-help:
-	@echo "Available targets:"
-	@echo "  make help"
-	@echo "  make build"
-	@echo "  make run"
-	@echo "  make clean"
-	@echo "  make docs"
+SRCS     := $(wildcard $(addsuffix /*.cpp, $(SRC_DIRS)))
+IMGUI    := third_party/imgui/imgui.cpp \
+            third_party/imgui/imgui_draw.cpp \
+            third_party/imgui/imgui_tables.cpp \
+            third_party/imgui/imgui_widgets.cpp \
+            third_party/imgui/imgui_impl_sdl2.cpp \
+            third_party/imgui/imgui_impl_sdlrenderer2.cpp
 
-build:
-	@mkdir -p build
-	$(CXX) $(CXXFLAGS) $(INCLUDES) $(SRCS) -o $(BIN) $(LIBS)
+CURVES_SRCS := curves_lab/src/Bezier2.cpp \
+               curves_lab/src/CatmullRom2.cpp \
+               curves_lab/src/ArcLength.cpp
+CURVES_OBJS := $(patsubst curves_lab/src/%.cpp, build/curves_lab/%.o, $(CURVES_SRCS))
 
-run:
-	@if [ ! -x $(BIN) ]; then echo "Run 'make build' first."; exit 1; fi
-	./$(BIN)
+ALL_SRCS := $(SRCS) $(IMGUI) $(CURVES_SRCS)
+OBJS     := $(patsubst src/%.cpp,          build/%.o,             $(SRCS)) \
+            $(patsubst third_party/%.cpp,  build/third_party/%.o, $(IMGUI)) \
+            $(CURVES_OBJS)
+TARGET   := build/bobtricks_v4
+
+# ── Headless binary ───────────────────────────────────────────────────────────
+# No SDL, no ImGui, no Camera2D.  Links only core + config + headless.
+HEADLESS_DIRS := src/config \
+                 src/core/character src/core/locomotion \
+                 src/core/simulation src/core/telemetry src/core/terrain \
+                 src/headless
+HEADLESS_SRCS := $(wildcard $(addsuffix /*.cpp, $(HEADLESS_DIRS)))
+HEADLESS_BIN  := build/bobtricks_headless
+
+.PHONY: all build build_headless run test clean help
+
+all: build
+
+build: $(TARGET)
+
+$(TARGET): $(OBJS)
+	@mkdir -p $(@D)
+	$(CXX) $(CXXFLAGS) $^ $(LIBS) -o $@
+	@echo "Build OK → $(TARGET)"
+
+build/%.o: src/%.cpp
+	@mkdir -p $(@D)
+	$(CXX) $(CXXFLAGS) $(INCLUDES) -MMD -MP -c $< -o $@
+
+build/third_party/%.o: third_party/%.cpp
+	@mkdir -p $(@D)
+	$(CXX) $(CXXFLAGS) $(INCLUDES) -MMD -MP -c $< -o $@
+
+build/curves_lab/%.o: curves_lab/src/%.cpp
+	@mkdir -p $(@D)
+	$(CXX) $(CXXFLAGS) $(INCLUDES) -MMD -MP -c $< -o $@
+
+-include $(OBJS:.o=.d)
+
+run: build
+	./$(TARGET)
+
+build_headless: $(HEADLESS_BIN)
+
+test: $(HEADLESS_BIN)
+	@$(HEADLESS_BIN) --all --quiet
+
+$(HEADLESS_BIN): $(HEADLESS_SRCS)
+	@mkdir -p $(@D)
+	$(CXX) -std=c++20 -Wall -Wextra -O2 -Isrc $^ -lm -o $@
+	@echo "Headless OK → $(HEADLESS_BIN)"
+
+# ── Headless analysis tools ───────────────────────────────────────────────────
+# No SDL, no ImGui. Shares headers from src/ via -Isrc.
+# Usage:  make analysis/test_ip_dynamics  &&  ./analysis/test_ip_dynamics > out.csv
+analysis/%: analysis/%.cpp
+	$(CXX) -std=c++20 -O2 -Isrc $< -lm -o $@
 
 clean:
-	rm -rf build
+	rm -rf build/
 
-docs:
-	doxygen doc/documentation/Doxyfile
+help:
+	@echo "make build                   — compile SDL app"
+	@echo "make run                     — compile + run SDL app"
+	@echo "make build_headless          — compile headless binary (no SDL)"
+	@echo "make test                    — run all scenarios, exit 0 if all PASS"
+	@echo "make analysis/<name>         — compile headless analysis tool"
+	@echo "make clean                   — remove build/"

@@ -1,20 +1,7 @@
-# Native build outputs
-/build/
-/dist/
-/bin/*
-/obj/*
-!.gitkeep
-
-# Generated documentation
-/doc/documentation/output/
-
-# Common compiled artifacts
+build/
 *.o
-*.obj
-*.out
-*.log
-
-# OS/editor
-.DS_Store
-Thumbs.db
+*.d
+curves_lab/tests/test_curves
+analysis/test_ip_dynamics
 *.swp
+.DS_Store
