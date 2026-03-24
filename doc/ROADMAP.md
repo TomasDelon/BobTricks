@@ -18,7 +18,7 @@ Pour la spécification technique des régimes, voir `doc/LOCOMOTION_SPEC.md`.
 | 1 | Documentation vivante + structure de tests | 🔄 En cours |
 | 2 | Consolidation structurelle bas risque | ⏳ Planifié |
 | 3 | Infrastructure de validation avancée | ⏳ Planifié |
-| 4 | Walking complet (phases 5 + 6) | ⏳ Planifié |
+| 4 | Walking complet (phases 5 + 6) | ✅ Terminé |
 | 5A | Généralisation structurelle | ⏳ Planifié |
 | 5B | Jumping + Falling | ⏳ Planifié |
 | 5C | Running | ⏳ Planifié |
