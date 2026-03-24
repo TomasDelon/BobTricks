@@ -6,7 +6,7 @@
 #include <cstdio>
 #include "imgui.h"
 
-SaveRequests DebugUI::render(const FrameStats&      stats,
+AppRequests DebugUI::render(const FrameStats&      stats,
                              SimulationLoop&        simLoop,   SimLoopConfig&   simConfig,
                              Camera2D&              camera,    CameraConfig&    camConfig,
                              CharacterConfig&       charConfig,
@@ -18,7 +18,7 @@ SaveRequests DebugUI::render(const FrameStats&      stats,
                              PhysicsConfig&         physConfig,
                              TerrainConfig&         terrainConfig)
 {
-    SaveRequests req;
+    AppRequests req;
 
     ImGui::Begin("Debug");
     renderSimLoopPanel(stats, simLoop, simConfig, req.sim_loop, req.step_back);
@@ -482,7 +482,7 @@ void DebugUI::renderPhysicsPanel(PhysicsConfig& config, bool& saveRequested)
 void DebugUI::renderTerrainPanel(TerrainConfig& config, bool& saveRequested, bool& regenerateRequested)
 {
     // saveRequested is re-used; we pass a second bool for regenerate via the panel
-    // but SaveRequests already has regenerate_terrain — handled at call site.
+    // but AppRequests already has regenerate_terrain — handled at call site.
     if (!ImGui::CollapsingHeader("Terrain", ImGuiTreeNodeFlags_None))
         return;
 
@@ -556,7 +556,7 @@ void DebugUI::renderIPTestPanel(const CMState&        cmState,
                                 const StandingConfig& standConfig,
                                 const PhysicsConfig&  physConfig,
                                 SimulationLoop&       simLoop,
-                                SaveRequests&         req)
+                                AppRequests&         req)
 {
     if (!ImGui::CollapsingHeader("IP Completion Test"))
         return;

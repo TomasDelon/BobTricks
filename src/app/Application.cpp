@@ -251,7 +251,7 @@ void Application::render()
 
     const SimState& s = m_core->state();
     const FrameStats stats{ m_current_fps, m_frame_dt_s };
-    const SaveRequests req = m_debugUI.render(
+    const AppRequests req = m_debugUI.render(
         stats, m_simLoop, m_config.sim_loop,
         m_camera, m_config.camera,
         m_config.character,
