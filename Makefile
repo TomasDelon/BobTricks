@@ -1,12 +1,12 @@
 CXX      := g++
 CXXFLAGS := -std=c++20 -Wall -Wextra -g
-INCLUDES := -Isrc -Ithird_party/imgui -Icurves_lab/src $(shell sdl2-config --cflags)
+INCLUDES := -Isrc -Ithird_party/imgui $(shell sdl2-config --cflags)
 LIBS     := $(shell sdl2-config --libs) -lGL
 
 SRC_DIRS := src src/app src/config \
             src/core/math src/core/character src/core/locomotion \
             src/core/runtime src/core/simulation src/core/telemetry src/core/terrain \
-            src/input src/render src/debug
+            src/render src/debug
 
 SRCS     := $(wildcard $(addsuffix /*.cpp, $(SRC_DIRS)))
 IMGUI    := third_party/imgui/imgui.cpp \
@@ -16,15 +16,9 @@ IMGUI    := third_party/imgui/imgui.cpp \
             third_party/imgui/imgui_impl_sdl2.cpp \
             third_party/imgui/imgui_impl_sdlrenderer2.cpp
 
-CURVES_SRCS := curves_lab/src/Bezier2.cpp \
-               curves_lab/src/CatmullRom2.cpp \
-               curves_lab/src/ArcLength.cpp
-CURVES_OBJS := $(patsubst curves_lab/src/%.cpp, build/curves_lab/%.o, $(CURVES_SRCS))
-
-ALL_SRCS := $(SRCS) $(IMGUI) $(CURVES_SRCS)
+ALL_SRCS := $(SRCS) $(IMGUI)
 OBJS     := $(patsubst src/%.cpp,          build/%.o,             $(SRCS)) \
-            $(patsubst third_party/%.cpp,  build/third_party/%.o, $(IMGUI)) \
-            $(CURVES_OBJS)
+            $(patsubst third_party/%.cpp,  build/third_party/%.o, $(IMGUI))
 TARGET   := build/bobtricks_v4
 
 # ── Headless binary ───────────────────────────────────────────────────────────
@@ -36,7 +30,24 @@ HEADLESS_DIRS := src/config \
 HEADLESS_SRCS := $(wildcard $(addsuffix /*.cpp, $(HEADLESS_DIRS)))
 HEADLESS_BIN  := build/bobtricks_headless
 
-.PHONY: all build build_headless run test clean help
+# ── ASan/UBSan binary (headless only) ────────────────────────────────────────
+ASAN_BIN := build/bobtricks_headless_asan
+
+build_asan: $(ASAN_BIN)
+
+$(ASAN_BIN): $(HEADLESS_SRCS)
+	@mkdir -p $(@D)
+	$(CXX) -std=c++20 -Wall -Wextra -g -fsanitize=address,undefined -Isrc $^ -lm -o $@
+	@echo "ASan build OK → $(ASAN_BIN)"
+
+test_asan: $(ASAN_BIN)
+	@$(ASAN_BIN) --all --quiet
+
+# ── Memory check (Valgrind, headless only) ────────────────────────────────────
+test_mem: $(HEADLESS_BIN)
+	valgrind --leak-check=full --error-exitcode=1 $(HEADLESS_BIN) --all --quiet
+
+.PHONY: all build build_headless build_asan run test test_asan test_mem clean help
 
 all: build
 
@@ -52,10 +63,6 @@ build/%.o: src/%.cpp
 	$(CXX) $(CXXFLAGS) $(INCLUDES) -MMD -MP -c $< -o $@
 
 build/third_party/%.o: third_party/%.cpp
-	@mkdir -p $(@D)
-	$(CXX) $(CXXFLAGS) $(INCLUDES) -MMD -MP -c $< -o $@
-
-build/curves_lab/%.o: curves_lab/src/%.cpp
 	@mkdir -p $(@D)
 	$(CXX) $(CXXFLAGS) $(INCLUDES) -MMD -MP -c $< -o $@
 
@@ -88,5 +95,8 @@ help:
 	@echo "make run                     — compile + run SDL app"
 	@echo "make build_headless          — compile headless binary (no SDL)"
 	@echo "make test                    — run all scenarios, exit 0 if all PASS"
+	@echo "make build_asan              — compile headless with ASan + UBSan"
+	@echo "make test_asan               — build_asan + run all scenarios"
+	@echo "make test_mem                — Valgrind on headless binary"
 	@echo "make analysis/<name>         — compile headless analysis tool"
 	@echo "make clean                   — remove build/"

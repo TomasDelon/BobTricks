@@ -1,7 +1,4 @@
 #include "render/CharacterRenderer.h"
-#include "render/CurveDraw.h"
-
-#include "Bezier2.h"   // curves_lab
 
 #include <cmath>
 
@@ -31,22 +28,9 @@ void CharacterRenderer::render(SDL_Renderer*         renderer,
     const SDL_FPoint tc_s     = camera.worldToScreen(character.torso_center.x,   character.torso_center.y,   ground_y, viewport_w, viewport_h);
     const SDL_FPoint tt_s     = camera.worldToScreen(character.torso_top.x,      character.torso_top.y,      ground_y, viewport_w, viewport_h);
 
-    // Torso spine — quadratic Bézier: pelvis → torso_center (control) → torso_top.
-    // The curve follows the lean of the spine naturally.
-    {
-        const curves::QuadraticBezier2 torso_spline {
-            character.pelvis,
-            character.torso_center,
-            character.torso_top
-        };
-        auto ts_base = [&](Vec2 v){ return camera.worldToScreen(v.x, v.y, ground_y, viewport_w, viewport_h); };
-        SDL_SetRenderDrawColor(renderer, 180, 180, 180, 200);
-        for (float off = -1.f; off <= 1.f; off += 1.f) {
-            render::strokeCurve(renderer, 8,
-                [&](double t){ return torso_spline.evalByBernstein(t); },
-                [&](Vec2 v){ auto p = ts_base(v); p.x += off; return p; });
-        }
-    }
+    // Torso spine — pelvis → torso_top (straight line skeleton).
+    SDL_SetRenderDrawColor(renderer, 180, 180, 180, 200);
+    SDL_RenderDrawLineF(renderer, pelvis_s.x, pelvis_s.y, tt_s.x, tt_s.y);
 
     // Spine nodes
     SDL_SetRenderDrawColor(renderer, 220, 220, 220, 255);
@@ -69,23 +53,12 @@ void CharacterRenderer::render(SDL_Renderer*         renderer,
         const SDL_FPoint fr_s = camera.worldToScreen(
             character.foot_right_eff.x, character.foot_right_eff.y, ground_y, viewport_w, viewport_h);
 
-        // Leg splines — quadratic Bézier: pelvis → knee (control) → foot.
-        // The knee acts as a tangent attractor: the curve bulges toward it
-        // without passing through it, giving a natural muscle-mass silhouette.
-        {
-            const curves::QuadraticBezier2 leg_L { character.pelvis, character.knee_left,  character.foot_left_eff  };
-            const curves::QuadraticBezier2 leg_R { character.pelvis, character.knee_right, character.foot_right_eff };
-            auto ts_base = [&](Vec2 v){ return camera.worldToScreen(v.x, v.y, ground_y, viewport_w, viewport_h); };
-            SDL_SetRenderDrawColor(renderer, 180, 180, 180, 200);
-            for (float off = -0.5f; off <= 0.5f; off += 1.f) {
-                render::strokeCurve(renderer, 12,
-                    [&](double t){ return leg_L.evalByBernstein(t); },
-                    [&](Vec2 v){ auto p = ts_base(v); p.x += off; return p; });
-                render::strokeCurve(renderer, 12,
-                    [&](double t){ return leg_R.evalByBernstein(t); },
-                    [&](Vec2 v){ auto p = ts_base(v); p.x += off; return p; });
-            }
-        }
+        // Leg skeleton — pelvis → knee → foot (straight line segments).
+        SDL_SetRenderDrawColor(renderer, 180, 180, 180, 200);
+        SDL_RenderDrawLineF(renderer, pelvis_s.x, pelvis_s.y, kl_s.x, kl_s.y);
+        SDL_RenderDrawLineF(renderer, kl_s.x,     kl_s.y,     fl_s.x, fl_s.y);
+        SDL_RenderDrawLineF(renderer, pelvis_s.x, pelvis_s.y, kr_s.x, kr_s.y);
+        SDL_RenderDrawLineF(renderer, kr_s.x,     kr_s.y,     fr_s.x, fr_s.y);
 
         // Knee joints
         SDL_SetRenderDrawColor(renderer, 220, 220, 220, 255);
