@@ -2,7 +2,7 @@
 
 #include <SDL2/SDL.h>
 #include <deque>
-#include "core/runtime/Camera2D.h"
+#include "render/Camera2D.h"
 #include "core/character/CMState.h"
 #include "core/character/CharacterState.h"
 #include "core/character/BalanceState.h"

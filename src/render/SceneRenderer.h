@@ -1,7 +1,7 @@
 #pragma once
 
 #include <SDL2/SDL.h>
-#include "core/runtime/Camera2D.h"
+#include "render/Camera2D.h"
 #include "core/terrain/Terrain.h"
 
 // Draws background scene elements (grid, ground/terrain).

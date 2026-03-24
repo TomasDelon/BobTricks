@@ -10,7 +10,7 @@
 #include "core/math/Vec2.h"
 #include "core/character/TrailPoint.h"
 #include "core/runtime/SimulationLoop.h"
-#include "core/runtime/Camera2D.h"
+#include "render/Camera2D.h"
 #include "core/simulation/SimulationCore.h"
 #include "render/SceneRenderer.h"
 #include "render/CharacterRenderer.h"

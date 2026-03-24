@@ -1,7 +1,7 @@
 #pragma once
 
 #include "core/runtime/SimulationLoop.h"
-#include "core/runtime/Camera2D.h"
+#include "render/Camera2D.h"
 #include "core/character/CMState.h"
 #include "core/character/CharacterState.h"
 #include "config/AppConfig.h"
@@ -11,7 +11,7 @@ struct FrameStats {
     float frame_dt_s  = 0.f;
 };
 
-struct SaveRequests {
+struct AppRequests {
     bool sim_loop  = false;
     bool camera    = false;
     bool character = false;
@@ -33,7 +33,7 @@ struct SaveRequests {
 class DebugUI
 {
 public:
-    SaveRequests render(const FrameStats&      stats,
+    AppRequests render(const FrameStats&      stats,
                         SimulationLoop&        simLoop,   SimLoopConfig&   simConfig,
                         Camera2D&              camera,    CameraConfig&    camConfig,
                         CharacterConfig&       charConfig,
@@ -62,7 +62,7 @@ private:
     void renderIPTestPanel  (const CMState& cmState, const CharacterState& charState,
                              const CharacterConfig& charConfig, const StandingConfig& standConfig,
                              const PhysicsConfig& physConfig, SimulationLoop& simLoop,
-                             SaveRequests& req);
+                             AppRequests& req);
 
     // State persisted across frames for the IP test.
     struct IPTestState {
