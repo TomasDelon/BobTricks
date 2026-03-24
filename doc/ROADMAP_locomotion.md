@@ -68,18 +68,18 @@ Cuando `fire` es true, el pie trasero es siempre el que se mueve.
 ### 5.3 Target del paso
 
 ```
-x_target_signed = facing * pelvis.x + k_reach * L + facing * v_x * T_ant
+x_desired = cm.x + facing * (k_step * L + |v_x| * T_ant)
 ```
 
-Luego clamp (en coordenadas mundo):
+Target CM-relativo (no pelvis-relativo). Luego clamp de feasibility:
 ```
 facing > 0:
-    x_land ∈ [front_foot.x + d_min * L,  front_foot.x + d_max_corr * L]
+    x_land ∈ [foot_stance.x + ε,  foot_stance.x + d_max_corr * L]
 facing < 0:
-    x_land ∈ [front_foot.x - d_max_corr * L,  front_foot.x - d_min * L]
+    x_land ∈ [foot_stance.x - d_max_corr * L,  foot_stance.x - ε]
 ```
 
-Finalmente clamp de reach (I_reach — código existente sin cambios).
+Sin I_reach: el spring-damper adapta la altura del CM a cualquier posición del pie.
 
 ### 5.4 Validación matemática completa
 
@@ -95,64 +95,65 @@ k_trigger    = 0.70 L
 
 #### B — Separación de pies en estado estacionario
 
-Definición:  `D = (k_trigger + k_reach) * L + |v| * T_ant`  (avance por paso)
+Definición:  `D = (k_trigger + k_step) * L + |v| * T_ant`  (avance por paso)
 
 Por simetría del ciclo alternante, la separación estacionaria es `D / 2`.
 
 | v (m/s) | D (m) | Separación D/2 | En L  | ∈ [d_min·L, d_max·L]? |
 |---------|-------|----------------|-------|------------------------|
-| 0.5     | 0.543 | 0.272 m        | 0.755 | ✓ (0.75–1.20)          |
-| 1.0     | 0.618 | 0.309 m        | 0.858 | ✓                      |
-| 1.5     | 0.693 | 0.347 m        | 0.963 | ✓                      |
-| 2.0     | 0.768 | 0.384 m        | 1.067 | ✓                      |
+| 0.5     | 0.651 | 0.326 m        | 0.905 | ✓ (0.75–1.20)          |
+| 1.0     | 0.726 | 0.363 m        | 1.008 | ✓                      |
+| 1.5     | 0.801 | 0.401 m        | 1.113 | ✓                      |
+| 2.0     | 0.876 | 0.438 m        | 1.217 | ✓ (límite d_max=1.20)  |
 
-Con L=0.36 m, k_trigger=0.70, k_reach=0.60, T_ant=0.15 s.
+Con L=0.36 m, k_trigger=0.70, k_step=0.90, T_ant=0.15 s.
 
 #### C — Cooldown natural (no hace falta T_paso_minimo)
 
 Al heel-strike, behind_dist del nuevo pie trasero es:
 ```
-behind_dist_after = (k_trigger - k_reach)/2 * L + v * (T_swing - T_ant/2)
-                  = 0.05 L + v * (T_swing - 0.075)
+behind_dist_after = (k_trigger - k_step)/2 * L + v * (T_swing - T_ant/2)
+                  = -0.10 * 0.36/2 + v * (T_swing - 0.075)
+                  = -0.018 + v * (T_swing - 0.075)
 ```
 
 Con v=1 m/s, T_swing≈0.22 s:
 ```
-behind_dist_after = 0.018 + 0.145 = 0.163 m
+behind_dist_after = -0.018 + 0.145 = 0.127 m
 k_trigger * L     = 0.252 m
-0.163 < 0.252  →  no dispara inmediatamente tras heel-strike  ✓
+0.127 < 0.252  →  no dispara inmediatamente tras heel-strike  ✓
 ```
 
 Tiempo hasta el siguiente trigger:
 ```
-wait = (0.252 - 0.163) / 1.0 ≈ 0.09 s   (a v=1 m/s)
+wait = (0.252 - 0.127) / 1.0 ≈ 0.125 s   (a v=1 m/s)
 ```
 
-Período total de un paso: `T_swing + wait ≈ 0.22 + 0.09 = 0.31 s`
-Velocidad resultante: `D / (2 * 0.31) = 0.618 / 0.62 ≈ 1.0 m/s`  ← consistente ✓
+Período total de un paso: `T_swing + wait ≈ 0.22 + 0.125 = 0.345 s`
+Velocidad resultante: `D / (2 * 0.345) = 0.726 / 0.69 ≈ 1.05 m/s`  ← consistente ✓
 
 #### D — Emergency recovery no hace re-trigger infinito
 
 Para que no re-dispare inmediatamente, el pie aterrizado debe estar por delante del CM:
 ```
-Condición:  v * (T_swing - T_ant) < k_reach * L
+Condición:  v * (T_swing - T_ant) < k_step * L
 Con T_swing_min=0.18, T_ant=0.15:
-            v * 0.03 < k_reach * L = 0.216
-            v < 7.2 m/s   ✓  (terminal_v = 1 m/s con move_force=4, friction=4)
+            v * 0.03 < k_step * L = 0.324
+            v < 10.8 m/s   ✓  (terminal_v = 1 m/s con move_force=4, friction=4)
 ```
 
 #### E — Tamaño del paso vs. d_max_correction
 
 ```
-D_max (v=2 m/s) = 0.768 m
+D_max (v=2 m/s) = 0.876 m
 d_max_corr * L  = 1.8 * 0.36 = 0.648 m
 
-D_max/2 = 0.384 m (por paso individual) < 0.648 m  ✓
+D_max/2 = 0.438 m (por paso individual) < 0.648 m  ✓
 
 El paso individual (de un pie) es D/2, que siempre cabe en el reach.
-El target x_desired = stance + D/2 ≈ stance + 0.309 m @v=1:
-  d_min * L  = 0.270 m < 0.309 m < 0.648 m = d_max_corr * L  ✓
-  El clamp no activa en estado estacionario.
+El target x_desired = cm.x + 0.363 m @v=1  (CM-relativo):
+  clamp ∈ [foot_stance.x + ε,  foot_stance.x + 0.648 m]  ✓
+  El clamp no activa en estado estacionario a velocidades normales.
 ```
 
 #### F — Velocidad terminal con nueva config
@@ -167,15 +168,18 @@ Support right = front_foot.x ≈ pelvis.x + D/2 = pelvis.x + 0.31 m
 
 ---
 
-## Parámetros nuevos (WalkConfig)
+## Parámetros (WalkConfig)
 
-| Param       | Significado                                      | Valor |
-|-------------|--------------------------------------------------|-------|
+| Param       | Significado                                         | Valor |
+|-------------|-----------------------------------------------------|-------|
 | `k_trigger` | dispara cuando pie trasero está este factor×L detrás | 0.70 |
-| `k_reach`   | pie aterriza este factor×L adelante de la pelvis  | 0.60 |
-| `T_ant`     | anticipación de velocidad para el target (s)      | 0.15 |
+| `k_step`    | pie aterriza este factor×L adelante del CM           | 0.90 |
+| `T_ant`     | anticipación de velocidad para el target (s)         | 0.15 |
 
-Eliminados: `k_step`, `v_ref`, `k_bal`, `T_paso_minimo`
+Eliminados respecto al diseño original: `v_ref`, `k_bal`, `T_paso_minimo`.
+Nota: la revisión 2 del roadmap usaba `k_reach = 0.60` (pelvis-relativo). El valor
+efectivo en código es `k_step = 0.90` (CM-relativo), ajustado empíricamente para
+obtener un walking estable. La spec en `LOCOMOTION_SPEC.md` refleja el estado real.
 
 ---
 
@@ -269,5 +273,5 @@ E1. Añadir oscilación de y_CM_target durante swing
 | 2 — IK + rodillas + StandingPose | ✅ DONE |
 | 3 — BalanceComputer + DebugUI | ✅ DONE |
 | 4 — StepPlanner (structs y G3) | ✅ DONE |
-| 5 — Walking trigger unificado | 🔄 EN CURSO |
-| 6 — CM bobbing | ⏳ PENDIENTE |
+| 5 — Walking trigger unificado | ✅ DONE |
+| 6 — CM bobbing | ✅ DONE |

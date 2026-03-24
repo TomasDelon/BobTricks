@@ -23,7 +23,7 @@ Tous les régimes suivants font partie du projet complet :
 | Régime | État actuel |
 |---|---|
 | Standing | Implémenté |
-| Walking | Phase 5 en cours (voir `ROADMAP_locomotion.md`) |
+| Walking | Implémenté (phases 1–6 terminées) |
 | Jumping | Planifié |
 | Falling | Planifié |
 | Running | Planifié |
