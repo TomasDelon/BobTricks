@@ -200,68 +200,57 @@ y_CM_target += A * sin(π * phi)                       // sube en mid-swing
 
 ---
 
-## Arquitectura final de StepPlanner
+## API implementada de StepPlanner
 
-### G1 — shouldStep  (nueva firma)
+### G1 — shouldStep
 ```cpp
-bool shouldStep(const Vec2&      pelvis,
-                const FootState& foot_L,
-                const FootState& foot_R,
-                const CMState&   cm,
-                const StepPlan&  plan,
+bool shouldStep(const Vec2&       pelvis,
+                const FootState&  foot_L,
+                const FootState&  foot_R,
+                const CMState&    cm,
+                double            cm_reach,
+                const StepPlan&   plan,
                 const StandingConfig& stand_cfg,
                 const WalkConfig&     walk_cfg,
-                double L,
-                double facing,
-                bool*  out_emergency = nullptr);
+                double            L,
+                double            facing,
+                bool*             out_swing_right = nullptr,
+                bool*             out_emergency   = nullptr,
+                StepTriggerType*  out_trigger     = nullptr);
 ```
-Sin BalanceState, sin trigger_type, sin sim_time, sin last_heel_strike_t.
+`cm_reach` = `cm.x + vx / floor_friction` — punto de parada bajo fricción.
+Sin BalanceState, sin sim_time, sin last_heel_strike_t.
 
-### G2 — planStep  (nueva firma)
+### G2 — planStep
 ```cpp
-StepPlan planStep(bool            swing_right,
-                  bool            emergency,
+StepPlan planStep(bool             swing_right,
+                  bool             emergency,
                   const FootState& foot_swing,
                   const FootState& foot_stance,
                   const CMState&   cm,
-                  const StepConfig&    step_cfg,
+                  const StepConfig&     step_cfg,
                   const StandingConfig& stand_cfg,
-                  const WalkConfig&    walk_cfg,
+                  const WalkConfig&     walk_cfg,
                   const Terrain&   terrain,
-                  double sim_time,
-                  double L,
-                  double facing,
-                  Vec2   pelvis_toeoff);
+                  double           sim_time,
+                  double           L,
+                  double           facing,
+                  Vec2             pelvis_toeoff);
 ```
 
 ### G3 — evalSwingFoot  (sin cambios)
 
 ---
 
-## Orden de implementación
+## Estado de implementación por bloque
 
-### Bloque A — Configuración  (sin cambio visual)
-A1. Actualizar `WalkConfig` en AppConfig.h
-A2. Actualizar config.ini
-A3. Actualizar ConfigIO.cpp (read/write nuevos params)
-
-### Bloque B — StepPlanner G1+G2  (sin cambio visual)
-B1. Actualizar StepPlanner.h (nuevas firmas)
-B2. Reescribir shouldStep en StepPlanner.cpp
-B3. Reescribir planStep en StepPlanner.cpp
-
-### Bloque C — Application.cpp  (**VALIDACIÓN VISUAL**)
-C1. Quitar Falling FSM (o reducirlo a log-only)
-C2. Conectar nuevas firmas de shouldStep/planStep
-→ El personaje debe caminar al mantener Q o D
-
-### Bloque D — DebugUI  (**VALIDACIÓN VISUAL menor**)
-D1. Panel balance: quitar slider de mos_threshold o hacerlo read-only
-D2. Panel step: mostrar behind_dist y emergency flag en vez de trigger_type
-
-### Bloque E — CM bobbing  (**VALIDACIÓN VISUAL**)
-E1. Añadir oscilación de y_CM_target durante swing
-→ El personaje debe oscilar verticalmente al caminar (efecto visual)
+| Bloque | Descripción | Estado |
+|--------|-------------|--------|
+| A | WalkConfig actualizado en AppConfig + ConfigIO | ✅ DONE |
+| B | shouldStep + planStep reescritos | ✅ DONE |
+| C | SimulationCore conectado, sin Falling FSM | ✅ DONE |
+| D | DebugUI: behind_dist + last_trigger (Normal/Emergency) | ✅ DONE |
+| E | CM bobbing durante swing | ✅ DONE |
 
 ---
 
