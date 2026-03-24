@@ -341,6 +341,20 @@ void DebugUI::renderBalancePanel(const CMState& cmState, const CharacterState& c
         const double behind = (charState.pelvis.x - rear_x) * facing;
         ImGui::Text("rear foot      = %s", rear_R ? "R" : "L");
         ImGui::Text("behind_dist    = %.3f m   (%.2f L)", behind, behind / L);
+
+        // last_trigger — colored by type
+        switch (charState.last_trigger) {
+            case StepTriggerType::Normal:
+                ImGui::TextColored({0.2f, 0.9f, 0.2f, 1.f}, "last_trigger   = Normal");
+                break;
+            case StepTriggerType::Emergency:
+                ImGui::TextColored({0.9f, 0.3f, 0.1f, 1.f}, "last_trigger   = Emergency");
+                break;
+            default:
+                ImGui::TextDisabled("last_trigger   = None");
+                break;
+        }
+
         const bool step_active = charState.step_plan.active;
         if (step_active)
             ImGui::TextColored({0.6f, 0.8f, 1.f, 1.f}, "step           = IN FLIGHT (%s)",
