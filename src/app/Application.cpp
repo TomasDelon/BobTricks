@@ -65,6 +65,8 @@ bool Application::init()
 
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
+    // This app does not persist ImGui window layout between runs.
+    ImGui::GetIO().IniFilename = nullptr;
     ImGui::StyleColorsDark();
     ImGui_ImplSDL2_InitForSDLRenderer(m_window, m_renderer);
     ImGui_ImplSDLRenderer2_Init(m_renderer);
@@ -261,7 +263,8 @@ void Application::render()
         m_config.standing,
         m_config.balance,
         m_config.physics,
-        m_config.terrain
+        m_config.terrain,
+        m_config.walk
     );
 
     if (req.step_back)          stepBack();
@@ -277,6 +280,7 @@ void Application::render()
     }
 
     if (req.sim_loop || req.camera || req.character || req.reconstruction
+        || req.walk
         || req.cm || req.balance || req.physics || req.terrain) {
         m_config.sim_loop.time_scale = m_simLoop.getTimeScale();
         m_config.camera.zoom         = m_camera.getZoom();

@@ -43,17 +43,21 @@ void CharacterRenderer::render(SDL_Renderer*         renderer,
     drawFilledCircle(renderer, cm_s.x, cm_s.y, CM_RADIUS);
 
     // Leg chains — pelvis → knee → foot, only after bootstrap has run.
+    // foot_eff is the IK-clamped foot position (always within 2L of pelvis).
+    // Both the shin segment and the foot dot use the same point — no gaps.
+    // The planner should guarantee foot.pos == foot_eff; until it does,
+    // foot_eff is the single source of truth for the rendered leg.
     if (character.feet_initialized) {
         const SDL_FPoint kl_s = camera.worldToScreen(
-            character.knee_left.x,  character.knee_left.y,  ground_y, viewport_w, viewport_h);
+            character.knee_left.x,      character.knee_left.y,      ground_y, viewport_w, viewport_h);
         const SDL_FPoint kr_s = camera.worldToScreen(
-            character.knee_right.x, character.knee_right.y, ground_y, viewport_w, viewport_h);
+            character.knee_right.x,     character.knee_right.y,     ground_y, viewport_w, viewport_h);
         const SDL_FPoint fl_s = camera.worldToScreen(
             character.foot_left_eff.x,  character.foot_left_eff.y,  ground_y, viewport_w, viewport_h);
         const SDL_FPoint fr_s = camera.worldToScreen(
             character.foot_right_eff.x, character.foot_right_eff.y, ground_y, viewport_w, viewport_h);
 
-        // Leg skeleton — pelvis → knee → foot (straight line segments).
+        // Leg skeleton — pelvis → knee → foot (fixed-length bones, no gaps).
         SDL_SetRenderDrawColor(renderer, 180, 180, 180, 200);
         SDL_RenderDrawLineF(renderer, pelvis_s.x, pelvis_s.y, kl_s.x, kl_s.y);
         SDL_RenderDrawLineF(renderer, kl_s.x,     kl_s.y,     fl_s.x, fl_s.y);
@@ -65,8 +69,8 @@ void CharacterRenderer::render(SDL_Renderer*         renderer,
         drawFilledCircle(renderer, kl_s.x, kl_s.y, 3.f);
         drawFilledCircle(renderer, kr_s.x, kr_s.y, 3.f);
 
-        // Foot dots — orange when planted (if highlight enabled), white otherwise
-        const bool hl = cmConfig.show_planted_feet_color;
+        // Foot dots — same position as shin endpoint, orange when planted.
+        const bool hl        = cmConfig.show_planted_feet_color;
         const bool l_planted = (character.foot_left.phase  == FootPhase::Planted);
         const bool r_planted = (character.foot_right.phase == FootPhase::Planted);
         if (hl && l_planted) SDL_SetRenderDrawColor(renderer, 255, 160,  30, 255);

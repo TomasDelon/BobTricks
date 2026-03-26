@@ -16,6 +16,7 @@ struct AppRequests {
     bool camera    = false;
     bool character = false;
     bool cm        = false;
+    bool walk      = false;
     bool balance   = false;
     bool physics   = false;
     bool terrain            = false;
@@ -43,7 +44,8 @@ public:
                         const StandingConfig&  standConfig,
                         BalanceConfig&         balConfig,
                         PhysicsConfig&         physConfig,
-                        TerrainConfig&         terrainConfig);
+                        TerrainConfig&         terrainConfig,
+                        WalkConfig&            walkConfig);
 
 private:
     void renderSimLoopPanel  (const FrameStats& stats, SimulationLoop& simLoop,
@@ -52,7 +54,8 @@ private:
     void renderCharacterPanel(CharacterConfig& config, const StandingConfig& standConfig, bool& saveRequested);
     void renderReconstructionPanel(CharacterReconstructionConfig& config, bool& saveRequested);
     void renderCMKinematicsPanel(const CMState& state);
-    void renderLocomotionPanel  (const CharacterState& charState);
+    void renderLocomotionPanel  (const CharacterState& charState, WalkConfig& walkConfig,
+                                 bool& saveRequested);
     void renderBalancePanel     (const CMState& cmState, const CharacterState& charState,
                                  const CharacterConfig& charConfig, const StandingConfig& standConfig,
                                  BalanceConfig& balConfig, bool& saveBalance);

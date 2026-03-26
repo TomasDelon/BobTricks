@@ -275,6 +275,48 @@ void SimulationCore::step(double dt, const InputFrame& input)
             const double u = (sim_t - plan.t_start) / plan.duration;
             if (u >= 1.0) {
                 swing.pos      = plan.land_target;
+
+                // ── IK safety net ─────────────────────────────────────────
+                // If the target is outside IK reach (prediction error or
+                // extreme terrain), project the foot along the terrain toward
+                // the pelvis until the constraint is satisfied.
+                // y is always kept on the terrain — foot never leaves the ground.
+                {
+                    const Vec2&  P         = character.pelvis;
+                    const double max_reach = 2.0 * L - 1e-4;
+                    const double max_r_sq  = max_reach * max_reach;
+
+                    auto dist2_on_terrain = [&](double x) {
+                        const double dx = x - P.x;
+                        const double dy = m_terrain.height_at(x) - P.y;
+                        return dx*dx + dy*dy;
+                    };
+
+                    if (dist2_on_terrain(swing.pos.x) > max_r_sq) {
+                        // Verify that the pelvis itself is reachable (sanity check).
+                        if (dist2_on_terrain(P.x) <= max_r_sq) {
+                            // Bisect between P.x (feasible) and swing.pos.x (infeasible).
+                            double x_lo = P.x, x_hi = swing.pos.x;
+                            for (int i = 0; i < 8; ++i) {
+                                const double xm = (x_lo + x_hi) * 0.5;
+                                if (dist2_on_terrain(xm) <= max_r_sq) x_lo = xm;
+                                else                                    x_hi = xm;
+                            }
+                            if (g_sim_verbose)
+                                fprintf(stderr,
+                                    "[StepPlanner] ik_safety: foot=(%s)  x_before=%.3f  x_after=%.3f\n",
+                                    plan.move_right ? "R" : "L", swing.pos.x, x_lo);
+                            swing.pos.x = x_lo;
+                            swing.pos.y = m_terrain.height_at(x_lo);
+                        } else {
+                            // Pelvis is also out of reach — degraded state, keep target as-is.
+                            if (g_sim_verbose)
+                                fprintf(stderr,
+                                    "[StepPlanner] ik_safety: pelvis also out of reach, skipping\n");
+                        }
+                    }
+                }
+
                 swing.ground_y = m_terrain.height_at(swing.pos.x);
                 swing.phase    = FootPhase::Planted;
                 plan.active    = false;

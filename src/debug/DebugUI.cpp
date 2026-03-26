@@ -16,7 +16,8 @@ AppRequests DebugUI::render(const FrameStats&      stats,
                              const StandingConfig&  standConfig,
                              BalanceConfig&         balConfig,
                              PhysicsConfig&         physConfig,
-                             TerrainConfig&         terrainConfig)
+                             TerrainConfig&         terrainConfig,
+                             WalkConfig&            walkConfig)
 {
     AppRequests req;
 
@@ -27,7 +28,7 @@ AppRequests DebugUI::render(const FrameStats&      stats,
     renderPhysicsPanel(physConfig, req.physics);
     renderCharacterPanel(charConfig, standConfig, req.character);
     renderCMKinematicsPanel(cmState);
-    renderLocomotionPanel(charState);
+    renderLocomotionPanel(charState, walkConfig, req.walk);
     renderBalancePanel(cmState, charState, charConfig, standConfig, balConfig, req.balance);
     renderReconstructionPanel(reconstructionConfig, req.reconstruction);
     renderCMVisualizationPanel(cmConfig, req.cm, req.clear_trail);
@@ -238,7 +239,8 @@ void DebugUI::renderCMKinematicsPanel(const CMState& state)
                 state.acceleration.length(), static_cast<char>(178));
 }
 
-void DebugUI::renderLocomotionPanel(const CharacterState& charState)
+void DebugUI::renderLocomotionPanel(const CharacterState& charState, WalkConfig& walkConfig,
+                                    bool& saveRequested)
 {
     if (!ImGui::CollapsingHeader("Locomotion", ImGuiTreeNodeFlags_None))
         return;
@@ -253,6 +255,25 @@ void DebugUI::renderLocomotionPanel(const CharacterState& charState)
     ImGui::Text("state      = %s", locoLabel);
     ImGui::Text("facing     = %+.2f", charState.facing);
     ImGui::Text("facing_vel = %+.3f m/s", charState.facing_vel);
+
+    ImGui::Separator();
+    ImGui::TextDisabled("Walk trigger params");
+    float kt = static_cast<float>(walkConfig.k_trigger);
+    if (ImGui::SliderFloat("k_trigger (×L)", &kt, 0.1f, 1.5f, "%.2f"))
+        walkConfig.k_trigger = static_cast<double>(kt);
+    float ks = static_cast<float>(walkConfig.k_step);
+    if (ImGui::SliderFloat("k_step (×L)", &ks, 0.1f, 2.0f, "%.2f"))
+        walkConfig.k_step = static_cast<double>(ks);
+    float ta = static_cast<float>(walkConfig.T_ant);
+    if (ImGui::SliderFloat("T_ant (s)", &ta, 0.0f, 0.5f, "%.3f"))
+        walkConfig.T_ant = static_cast<double>(ta);
+    float rm = static_cast<float>(walkConfig.reach_margin);
+    if (ImGui::SliderFloat("reach_margin (m)", &rm, 0.0f, 0.15f, "%.3f"))
+        walkConfig.reach_margin = static_cast<double>(rm);
+
+    ImGui::Separator();
+    if (ImGui::Button("Save Walk Config"))
+        saveRequested = true;
 }
 
 void DebugUI::renderBalancePanel(const CMState& cmState, const CharacterState& charState,
@@ -336,11 +357,21 @@ void DebugUI::renderBalancePanel(const CMState& cmState, const CharacterState& c
         const double s_L    = facing * charState.foot_left.pos.x;
         const double s_R    = facing * charState.foot_right.pos.x;
         const bool   rear_R = (s_R <= s_L);
-        const double rear_x = rear_R ? charState.foot_right.pos.x
-                                     : charState.foot_left.pos.x;
-        const double behind = (charState.pelvis.x - rear_x) * facing;
+        const Vec2&  rear_foot = rear_R ? charState.foot_right.pos
+                                        : charState.foot_left.pos;
+        const double behind    = (charState.pelvis.x - rear_foot.x) * facing;
+        const double dx_rear   = rear_foot.x - charState.pelvis.x;
+        const double dy_rear   = rear_foot.y - charState.pelvis.y;
+        const double rear_reach = std::sqrt(dx_rear*dx_rear + dy_rear*dy_rear);
+        const double reach_excess = rear_reach - (2.0 * L - 1e-4);
+
         ImGui::Text("rear foot      = %s", rear_R ? "R" : "L");
         ImGui::Text("behind_dist    = %.3f m   (%.2f L)", behind, behind / L);
+        if (reach_excess > 0.005f)
+            ImGui::TextColored({0.9f, 0.5f, 0.1f, 1.f},
+                "rear_reach     = %.4f m  (+%.4f over 2L)", rear_reach, reach_excess);
+        else
+            ImGui::Text("rear_reach     = %.4f m  (%.4f over 2L)", rear_reach, reach_excess);
 
         // last_trigger — colored by type
         switch (charState.last_trigger) {

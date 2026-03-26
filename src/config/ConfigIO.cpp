@@ -123,9 +123,10 @@ bool ConfigIO::load(const std::string& path, AppConfig& config)
             else if (key == "v_ref_bob")        config.step.v_ref_bob        = std::stod(value);
         }
         else if (section == "Walk") {
-            if      (key == "k_trigger") config.walk.k_trigger = std::stod(value);
-            else if (key == "k_step")    config.walk.k_step    = std::stod(value);
-            else if (key == "T_ant")     config.walk.T_ant     = std::stod(value);
+            if      (key == "k_trigger")    config.walk.k_trigger    = std::stod(value);
+            else if (key == "k_step")       config.walk.k_step       = std::stod(value);
+            else if (key == "T_ant")        config.walk.T_ant        = std::stod(value);
+            else if (key == "reach_margin") config.walk.reach_margin = std::stod(value);
         }
     }
 
@@ -233,9 +234,10 @@ bool ConfigIO::save(const std::string& path, const AppConfig& config)
     file << "\n";
 
     file << "[Walk]\n";
-    file << "k_trigger=" << config.walk.k_trigger << "\n";
-    file << "k_step="    << config.walk.k_step    << "\n";
-    file << "T_ant="     << config.walk.T_ant     << "\n";
+    file << "k_trigger="    << config.walk.k_trigger    << "\n";
+    file << "k_step="       << config.walk.k_step       << "\n";
+    file << "T_ant="        << config.walk.T_ant        << "\n";
+    file << "reach_margin=" << config.walk.reach_margin << "\n";
 
     return true;
 }

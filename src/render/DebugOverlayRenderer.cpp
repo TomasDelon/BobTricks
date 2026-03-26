@@ -49,17 +49,18 @@ void DebugOverlayRenderer::drawSupportInterval(SDL_Renderer*       renderer,
 {
     if (!support.left_planted && !support.right_planted) return;  // airborne
 
-    SDL_SetRenderDrawColor(renderer, 30, 160, 30, 220);
+    SDL_SetRenderDrawColor(renderer, 255, 160, 30, 220);
 
     if (support.both_planted()) {
-        // Double support: horizontal segment between the two contacts.
-        const SDL_FPoint pl = camera.worldToScreen(support.x_left,  support.ground_center(), ground_y, vw, vh);
-        const SDL_FPoint pr = camera.worldToScreen(support.x_right, support.ground_center(), ground_y, vw, vh);
+        // Double support: segment connecting the two actual foot contacts.
+        const SDL_FPoint pl = camera.worldToScreen(support.x_left,  support.y_left,  ground_y, vw, vh);
+        const SDL_FPoint pr = camera.worldToScreen(support.x_right, support.y_right, ground_y, vw, vh);
         SDL_RenderDrawLineF(renderer, pl.x, pl.y,     pr.x, pr.y);
         SDL_RenderDrawLineF(renderer, pl.x, pl.y + 1, pr.x, pr.y + 1);
     } else {
-        // Single support: small vertical tick at the stance foot.
-        const SDL_FPoint p = camera.worldToScreen(support.center(), support.ground_center(), ground_y, vw, vh);
+        // Single support: small cross at the stance foot.
+        const double stance_y = support.left_planted ? support.y_left : support.y_right;
+        const SDL_FPoint p = camera.worldToScreen(support.center(), stance_y, ground_y, vw, vh);
         SDL_RenderDrawLineF(renderer, p.x - 4.f, p.y, p.x + 4.f, p.y);
         SDL_RenderDrawLineF(renderer, p.x,        p.y - 5.f, p.x, p.y + 5.f);
     }

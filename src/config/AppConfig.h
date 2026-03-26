@@ -131,6 +131,12 @@ struct WalkConfig {
     // Placing the target relative to CM (not stance foot) avoids leg-reach infeasibility.
     double k_step    = 0.90;  // [×L] base step reach ahead of CM
     double T_ant     = 0.15;  // [s]  velocity look-ahead added to the landing target
+
+    // Rule 3 — IK reach violation trigger.
+    // Fires when the planted rear foot exceeds this absolute distance beyond
+    // max IK reach (2L).  Calibrated above walking noise floor (~0.03 m) and
+    // below the first visible artefact (~0.05 m).
+    double reach_margin = 0.04;  // [m]
 };
 
 struct AppConfig {

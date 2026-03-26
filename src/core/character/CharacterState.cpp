@@ -30,13 +30,19 @@ void updateCharacterState(CharacterState& ch,
     // ── Facing ────────────────────────────────────────────────────────────────
     // facing_vel = smoothed vx, used only for theta (lean angle smoothness).
     // facing direction uses real vx with a deadzone to avoid flipping at rest.
+    //
+    // Frozen during an active step: flipping facing mid-swing would change the
+    // lean direction and, at heel-strike, select the wrong foot for the next
+    // step (shouldStep fires immediately after plan.active → false).
     {
         const double alpha = dt / (rc.facing_tau + dt);
         ch.facing_vel += alpha * (vx - ch.facing_vel);
 
-        if      (vx >  rc.facing_eps) ch.facing =  1.0;
-        else if (vx < -rc.facing_eps) ch.facing = -1.0;
-        // else: keep previous facing
+        if (!ch.step_plan.active) {
+            if      (vx >  rc.facing_eps) ch.facing =  1.0;
+            else if (vx < -rc.facing_eps) ch.facing = -1.0;
+            // else: keep previous facing
+        }
     }
 
     // ── Lean angle from speed ─────────────────────────────────────────────────
