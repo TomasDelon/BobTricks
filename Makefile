@@ -1,6 +1,6 @@
 CXX      := g++
 CXXFLAGS := -std=c++20 -Wall -Wextra -g
-INCLUDES := -Isrc -Ithird_party/imgui $(shell sdl2-config --cflags)
+INCLUDES := -Isrc -Ivendor/imgui $(shell sdl2-config --cflags)
 LIBS     := $(shell sdl2-config --libs) -lGL
 
 SRC_DIRS := src src/app src/config \
@@ -9,16 +9,16 @@ SRC_DIRS := src src/app src/config \
             src/render src/debug
 
 SRCS     := $(wildcard $(addsuffix /*.cpp, $(SRC_DIRS)))
-IMGUI    := third_party/imgui/imgui.cpp \
-            third_party/imgui/imgui_draw.cpp \
-            third_party/imgui/imgui_tables.cpp \
-            third_party/imgui/imgui_widgets.cpp \
-            third_party/imgui/imgui_impl_sdl2.cpp \
-            third_party/imgui/imgui_impl_sdlrenderer2.cpp
+IMGUI    := vendor/imgui/imgui.cpp \
+            vendor/imgui/imgui_draw.cpp \
+            vendor/imgui/imgui_tables.cpp \
+            vendor/imgui/imgui_widgets.cpp \
+            vendor/imgui/imgui_impl_sdl2.cpp \
+            vendor/imgui/imgui_impl_sdlrenderer2.cpp
 
 ALL_SRCS := $(SRCS) $(IMGUI)
-OBJS     := $(patsubst src/%.cpp,          build/%.o,             $(SRCS)) \
-            $(patsubst third_party/%.cpp,  build/third_party/%.o, $(IMGUI))
+OBJS     := $(patsubst src/%.cpp,     build/%.o,        $(SRCS)) \
+            $(patsubst vendor/%.cpp,  build/vendor/%.o, $(IMGUI))
 TARGET   := build/bobtricks_v4
 
 # ── Headless binary ───────────────────────────────────────────────────────────
@@ -30,8 +30,26 @@ HEADLESS_DIRS := src/config \
 HEADLESS_SRCS := $(wildcard $(addsuffix /*.cpp, $(HEADLESS_DIRS)))
 HEADLESS_BIN  := build/bobtricks_headless
 
+ANALYSIS_DIRS := src/config \
+                 src/core/character src/core/locomotion \
+                 src/core/simulation src/core/telemetry src/core/terrain
+ANALYSIS_SRCS := $(wildcard $(addsuffix /*.cpp, $(ANALYSIS_DIRS)))
+
+TEST_CORE_SRCS := src/core/character/CharacterState.cpp \
+                  src/core/locomotion/BalanceComputer.cpp \
+                  src/core/locomotion/LegIK.cpp \
+                  src/core/locomotion/StandingController.cpp \
+                  src/core/locomotion/StepPlanner.cpp \
+                  src/core/simulation/SimVerbosity.cpp \
+                  src/core/simulation/SimulationCore.cpp \
+                  src/core/telemetry/TelemetryRecorder.cpp \
+                  src/core/terrain/Terrain.cpp
+UNIT_TEST_BIN := build/tests/unit/core_unit_tests
+REGRESSION_TEST_BIN := build/tests/regression/headless_regression_tests
+
 # ── ASan/UBSan binary (headless only) ────────────────────────────────────────
 ASAN_BIN := build/bobtricks_headless_asan
+ARCH_CHECK := scripts/check_architecture.sh
 
 build_asan: $(ASAN_BIN)
 
@@ -47,7 +65,9 @@ test_asan: $(ASAN_BIN)
 test_mem: $(HEADLESS_BIN)
 	valgrind --leak-check=full --error-exitcode=1 $(HEADLESS_BIN) --all --quiet
 
-.PHONY: all build build_headless build_asan run test test_asan test_mem clean help
+.PHONY: all build build_headless build_asan run test test_headless test_unit \
+        test_regression test_asan test_mem check_architecture clean help FORCE
+.PRECIOUS: build/analysis/%
 
 all: build
 
@@ -62,7 +82,7 @@ build/%.o: src/%.cpp
 	@mkdir -p $(@D)
 	$(CXX) $(CXXFLAGS) $(INCLUDES) -MMD -MP -c $< -o $@
 
-build/third_party/%.o: third_party/%.cpp
+build/vendor/%.o: vendor/%.cpp
 	@mkdir -p $(@D)
 	$(CXX) $(CXXFLAGS) $(INCLUDES) -MMD -MP -c $< -o $@
 
@@ -73,8 +93,19 @@ run: build
 
 build_headless: $(HEADLESS_BIN)
 
-test: $(HEADLESS_BIN)
+test: test_unit test_regression test_headless
+
+test_headless: $(HEADLESS_BIN)
 	@$(HEADLESS_BIN) --all --quiet
+
+test_unit: $(UNIT_TEST_BIN)
+	@./$(UNIT_TEST_BIN)
+
+test_regression: $(REGRESSION_TEST_BIN)
+	@./$(REGRESSION_TEST_BIN)
+
+check_architecture:
+	@./$(ARCH_CHECK)
 
 $(HEADLESS_BIN): $(HEADLESS_SRCS)
 	@mkdir -p $(@D)
@@ -83,9 +114,28 @@ $(HEADLESS_BIN): $(HEADLESS_SRCS)
 
 # ── Headless analysis tools ───────────────────────────────────────────────────
 # No SDL, no ImGui. Shares headers from src/ via -Isrc.
-# Usage:  make analysis/test_ip_dynamics  &&  ./analysis/test_ip_dynamics > out.csv
-analysis/%: analysis/%.cpp
-	$(CXX) -std=c++20 -O2 -Isrc $< -lm -o $@
+# Usage:  make analysis/test_ip_dynamics  &&  ./build/analysis/test_ip_dynamics > out.csv
+analysis/%: FORCE build/analysis/%
+	@true
+
+build/analysis/%: analysis/%.cpp
+	@mkdir -p $(@D)
+	$(CXX) -std=c++20 -O2 -Isrc $< $(ANALYSIS_SRCS) -lm -o $@
+
+$(UNIT_TEST_BIN): tests/unit/test_core_math.cpp tests/TestSupport.h \
+                  src/core/locomotion/LegIK.cpp
+	@mkdir -p $(@D)
+	$(CXX) -std=c++20 -Wall -Wextra -O2 -Isrc -I. \
+	    tests/unit/test_core_math.cpp src/core/locomotion/LegIK.cpp -lm -o $@
+
+$(REGRESSION_TEST_BIN): tests/regression/test_headless_scenarios.cpp \
+                        tests/TestSupport.h src/headless/ScenarioLibrary.cpp \
+                        src/headless/ScenarioRunner.cpp $(TEST_CORE_SRCS)
+	@mkdir -p $(@D)
+	$(CXX) -std=c++20 -Wall -Wextra -O2 -Isrc -I. \
+	    tests/regression/test_headless_scenarios.cpp \
+	    src/headless/ScenarioLibrary.cpp src/headless/ScenarioRunner.cpp \
+	    $(TEST_CORE_SRCS) -lm -o $@
 
 clean:
 	rm -rf build/
@@ -94,9 +144,13 @@ help:
 	@echo "make build                   — compile SDL app"
 	@echo "make run                     — compile + run SDL app"
 	@echo "make build_headless          — compile headless binary (no SDL)"
-	@echo "make test                    — run all scenarios, exit 0 if all PASS"
+	@echo "make test                    — run unit + regression + headless scenario tests"
+	@echo "make test_unit               — run low-level unit tests"
+	@echo "make test_regression         — run regression tests on named scenarios"
+	@echo "make test_headless           — run all headless scenarios"
 	@echo "make build_asan              — compile headless with ASan + UBSan"
 	@echo "make test_asan               — build_asan + run all scenarios"
 	@echo "make test_mem                — Valgrind on headless binary"
-	@echo "make analysis/<name>         — compile headless analysis tool"
+	@echo "make check_architecture      — verify repo invariants (core SDL-free, etc.)"
+	@echo "make analysis/<name>         — compile tool to build/analysis/<name>"
 	@echo "make clean                   — remove build/"

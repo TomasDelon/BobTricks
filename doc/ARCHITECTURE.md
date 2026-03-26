@@ -16,7 +16,7 @@ src/core/                    domaine sans SDL et sans ImGui
 ├── simulation/              SimulationCore, SimState, InputFrame, SimVerbosity
 ├── telemetry/               TelemetryRecorder, TelemetryRow
 ├── terrain/                 Terrain
-├── curves/                  ← prévu : modules promus depuis curves_lab
+├── curves/                  ← prévu : modules promus depuis experiments/curves_lab
 └── analysis/                ← prévu : fonctions pures sur SimState / TelemetryRow
 
 src/config/                  AppConfig (structs de paramètres), ConfigIO
@@ -29,11 +29,10 @@ src/debug/                   DebugUI (widgets ImGui)
 
 tests/
 ├── unit/                    tests isolés de fonctions et modules
-├── scenario/                tests comportementaux à base de scénarios
 └── regression/              sorties de télémétrie comparées à des plages attendues
 
-curves_lab/                  incubateur temporaire — pas dépendance stable
-third_party/imgui/           externe, non modifié
+experiments/curves_lab/      bac à sable séparé — hors base de production
+vendor/imgui/                externe, non modifié
 ```
 
 Les éléments marqués « prévu » appartiennent au plan directeur, mais ne sont
@@ -57,6 +56,8 @@ tests/           dépend de core + config + headless (sans SDL, sans ImGui)
 Le caractère SDL-free de `src/core/` est déjà un engagement d'architecture. La
 vérification automatique associée doit rester ou être réintroduite si elle
 disparaît pendant un refactor.
+
+Aujourd'hui, cette vérification est fournie par `make check_architecture`.
 
 ## Trois couches d'entrée
 
@@ -170,8 +171,10 @@ simulation.
 - `Camera2D` est dans `src/render/` (déplacé depuis `src/core/runtime/` au Bloque 0).
 - `SimulationLoop` vit dans `src/core/runtime/`. C'est de l'orchestration, pas
   du domaine. Sa position est provisoire ; aucun déplacement immédiat n'est requis.
-- `curves_lab/` est un incubateur temporaire, exclu du build principal et du
+- `experiments/curves_lab/` est un bac à sable isolé, exclu du build principal et du
   build headless. Le render du personnage utilise des lignes droites (squelette).
   Lorsqu'un module de courbes devient une dépendance fonctionnelle réelle
   (trajectoire de swing, render de pose), il migre vers `src/core/curves/` avec
   inclusion dans le build headless et tests associés.
+- Les outils d'analyse ad hoc vivent en `analysis/*.cpp`, mais leurs binaires
+  sont générés sous `build/analysis/` pour éviter de polluer l'arbre source.

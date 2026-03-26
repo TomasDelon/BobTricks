@@ -12,7 +12,11 @@ headless via des scénarios déterministes.
 make build           # compile l'application SDL
 make run             # compile puis lance l'application SDL
 make build_headless  # compile le binaire headless (sans SDL)
-make test            # exécute les scénarios headless actuels
+make test            # exécute unitaires + régression + scénarios headless
+make test_unit
+make test_regression
+make test_headless
+make check_architecture
 make clean
 ```
 
@@ -38,15 +42,17 @@ Le README sera mis à jour dès que ces cibles Makefile existeront réellement.
   transporte le contrôle du shell. On ne les mélange pas.
 - Le mode headless est un chemin de validation de premier rang, pas un outil secondaire.
 - `make test` est la porte de qualité minimale avant tout changement significatif.
+- `make check_architecture` protège les invariants de dépôt avant push.
 
 ## Boucle de validation
 
 1. Définir le comportement attendu avant d'implémenter.
 2. Implémenter le changement.
 3. Exécuter `make test` — il doit passer.
-4. Pour les changements qui affectent SDL / render / UI : valider aussi
+4. Exécuter `make check_architecture` — il doit passer.
+5. Pour les changements qui affectent SDL / render / UI : valider aussi
    manuellement dans l'application SDL.
-5. Si le comportement observé contredit l'attendu, investiguer avant de clôturer.
+6. Si le comportement observé contredit l'attendu, investiguer avant de clôturer.
 
 ## Documents clés
 
@@ -56,3 +62,5 @@ Le README sera mis à jour dès que ces cibles Makefile existeront réellement.
 - `doc/LOCOMOTION_SPEC.md` — spécification technique par régime
 - `doc/TESTING_AND_VALIDATION.md` — types de tests, commandes, format des scénarios
 - `doc/ROADMAP_locomotion.md` — état d'avancement des phases de locomotion
+- `doc/CONTRIBUTING.md` — workflow minimal avant commit/push
+- `experiments/` — prototypes isolés, hors base de production

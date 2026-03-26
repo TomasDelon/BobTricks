@@ -36,7 +36,7 @@ Objectif : établir la ligne de base réelle avant tout autre travail.
 - [x] `make test_mem` (Valgrind) créé et vert sur le binaire headless
 - [x] `src/input` retiré du Makefile (répertoire inexistant)
 - [x] État exact de la phase 5 de locomotion documenté dans `ROADMAP_locomotion.md`
-- [x] Décision sur `curves_lab` prise et documentée : incubateur temporaire, exclu du build principal
+- [x] Décision sur `curves_lab` prise et documentée : isolé hors base de production
 
 ---
 
@@ -57,7 +57,7 @@ travail.
 - [ ] `CLAUDE.md`
 - [ ] Scaffold Doxygen minimal : `Doxyfile`, cible `make docs` fonctionnelle,
   page racine
-- [ ] Structure `tests/unit/`, `tests/scenario/`, `tests/regression/` créée
+- [x] Structure `tests/unit/` et `tests/regression/` créée
 - [ ] `doc/ARCHITECTURE_HEADLESS.md` archivé dans `doc/archive/`
 
 ---
@@ -72,7 +72,7 @@ Objectif : corriger les classements incorrects sans changer le comportement.
 - [ ] `LocomotionMode` et `PostureMode` introduits comme types explicites
 - [ ] `SimulationLoop` documenté comme orchestration provisoire dans
   `ARCHITECTURE.md`
-- [ ] Décision `curves_lab` exécutée
+- [x] Décision `curves_lab` exécutée via `experiments/curves_lab/`
 
 ---
 
@@ -81,8 +81,8 @@ Objectif : corriger les classements incorrects sans changer le comportement.
 Objectif : rendre les tests expressifs pour tous les régimes à venir.
 
 - [ ] `DetailedScenarioInit` et helpers de validation de cohérence
-- [ ] Tests unitaires dans `tests/unit/`
-- [ ] Au moins un test de régression walking dans `tests/regression/`
+- [x] Tests unitaires dans `tests/unit/`
+- [x] Au moins un test de régression walking dans `tests/regression/`
 - [ ] Fonctions d'analyse de base dans `src/core/analysis/`
 - [ ] Helper de sérialisation de snapshot `SimState`
 - [ ] `VALIDATION_MATRIX` dans `TESTING_AND_VALIDATION.md`

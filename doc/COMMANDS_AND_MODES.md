@@ -9,9 +9,13 @@
 | `make build` | Compile le binaire SDL (`build/bobtricks_v4`) |
 | `make run` | Compile et lance l'application SDL |
 | `make build_headless` | Compile le binaire headless (`build/bobtricks_headless`) |
-| `make test` | Lance `bobtricks_headless --all --quiet` ; exit 0 si tout passe |
+| `make test` | Lance tests unitaires, tests de régression et scénarios headless |
+| `make test_unit` | Lance les tests unitaires bas niveau |
+| `make test_regression` | Lance les tests de régression déterministes |
+| `make test_headless` | Lance `bobtricks_headless --all --quiet` |
+| `make check_architecture` | Vérifie les invariants de dépôt (`src/core/` sans SDL/ImGui, etc.) |
 | `make clean` | Supprime `build/` |
-| `make analysis/<nom>` | Compile un outil d'analyse headless depuis `analysis/<nom>.cpp` |
+| `make analysis/<nom>` | Compile un outil d'analyse headless vers `build/analysis/<nom>` |
 
 ### Prévues par le plan directeur (Bloque 1)
 
@@ -154,6 +158,9 @@ Accessible uniquement en mode SDL. Les panels disponibles :
 
 Toutes les modifications de config depuis ImGui peuvent être sauvegardées vers
 `data/config.ini` via le bouton Save du panel concerné.
+
+`imgui.ini` n'est plus nécessaire dans le flux normal : l'application désactive
+la persistance automatique du layout ImGui.
 
 ---
 

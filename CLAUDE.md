@@ -48,8 +48,8 @@ src/app/           Application (shell SDL), main.cpp
 src/render/        SceneRenderer, CharacterRenderer, DebugOverlayRenderer, Camera2D
 src/debug/         DebugUI (ImGui)
 
-curves_lab/        incubateur temporaire — exclu du build principal et headless
-third_party/imgui/ externe, non modifié
+experiments/curves_lab/  bac à sable séparé — exclu du build principal et headless
+vendor/imgui/            externe, non modifié
 ```
 
 Règles de dépendance dures :
@@ -116,7 +116,7 @@ par `AppConfig`.
 
 - Écrire la spec dans `LOCOMOTION_SPEC.md` avant d'implémenter un régime
 - `make test` vert = prérequis au commit
-- Pas de splines / curves_lab dans le code de production tant qu'il n'y a
+- Pas de splines / experiments/curves_lab dans le code de production tant qu'il n'y a
   pas de dépendance fonctionnelle réelle (swing trajectory, pose render)
 - Le render du personnage est un squelette de lignes — pas de silhouette pour l'instant
 - Pas de `Co-Authored-By` Claude dans les commits

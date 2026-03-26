@@ -9,6 +9,13 @@ La validation repose sur deux piliers complémentaires :
 2. **Validation visuelle manuelle** — comportement SDL, overlays, feel du
    personnage. Non automatisable ; documentée ici comme procédure.
 
+Avant un push, la porte de qualité minimale devient :
+
+```sh
+make test
+make check_architecture
+```
+
 `make test` couvre le pilier 1. Le pilier 2 est une étape obligatoire pour tout
 changement qui affecte le rendu, la pose ou le comportement visible.
 
@@ -20,9 +27,10 @@ changement qui affecte le rendu, la pose ou le comportement visible.
 |---|---|---|---|
 | Build propre | Compilation sans warnings | `make build` | ✅ |
 | Build headless | Core + config sans SDL | `make build_headless` | ✅ |
-| Scénarios comportementaux | Comportement locomoteur quantitatif | `make test` | ✅ |
-| Tests unitaires | Fonctions mathématiques et modules isolés | `make test` | ✅ (prévu Bloque 3) |
-| Tests de régression | Non-régression sur sorties de télémétrie | `make test` | ✅ (prévu Bloque 3) |
+| Scénarios comportementaux | Comportement locomoteur quantitatif | `make test_headless` | ✅ |
+| Invariants d'architecture | `src/core/` sans SDL/ImGui, hygiène dépôt | `make check_architecture` | ✅ |
+| Tests unitaires | Fonctions mathématiques et modules isolés | `make test_unit` | ✅ |
+| Tests de régression | Non-régression sur sorties de télémétrie | `make test_regression` | ✅ |
 | Mémoire (Valgrind) | Fuites sur le binaire headless | `make test_mem` | ✅ (prévu Bloque 0) |
 | Sanitizers (ASan/UBSan) | UB et accès mémoire invalides | `make build_asan` + `make test` | ✅ (prévu Bloque 0) |
 | API docs | Génération Doxygen sans erreurs | `make docs` | ✅ (prévu Bloque 1) |
@@ -53,8 +61,7 @@ assertions sur le `TelemetryRecorder`.
 
 ### Ajouter un scénario
 
-1. Ajouter une entrée dans `src/headless/ScenarioLibrary.cpp`
-   (ou `tests/scenario/` quand ce répertoire existera).
+1. Ajouter une entrée dans `src/headless/ScenarioLibrary.cpp`.
 2. Définir le `ScenarioDef` : nom, durée, `ScenarioInit`, `input_fn`,
    `setup_asserts`.
 3. Vérifier que `make test` passe avec le nouveau scénario.
@@ -101,9 +108,7 @@ awk -F, '$16 != "None" {print NR, $1, $16}' out.csv
 awk -F, 'NR>1 && $4 < 0 {print "FAIL ligne", NR, "cm_y=", $4}' out.csv
 ```
 
-## Tests unitaires (prévu Bloque 3)
-
-Structure cible : `tests/unit/`
+## Tests unitaires
 
 Les tests unitaires couvrent des fonctions isolées avec des entrées précises et
 des résultats attendus. Ils n'instancient pas `SimulationCore` et ne nécessitent
@@ -117,9 +122,7 @@ Candidats prioritaires :
 - `StepPlanner::planStep` : configurations données → target dans les plages attendues
 - Fonctions de `src/core/analysis/`
 
-## Tests de régression (prévu Bloque 3)
-
-Structure cible : `tests/regression/`
+## Tests de régression
 
 Un test de régression lance un scénario, capture les sorties de télémétrie et
 les compare à des plages de référence. Les plages sont suffisamment larges pour

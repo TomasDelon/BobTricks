@@ -28,21 +28,21 @@ Este laboratorio está pensado para futuras integraciones en:
 
 ## Compilación independiente
 
-Desde la raíz de `BobTricks_V4`:
+Desde la raíz de `BobTricks`:
 
 ```bash
 g++ -std=c++20 \
-  curves_lab/src/Bezier2.cpp \
-  curves_lab/src/CatmullRom2.cpp \
-  curves_lab/src/ArcLength.cpp \
-  curves_lab/tests/test_curves.cpp \
+  experiments/curves_lab/src/Bezier2.cpp \
+  experiments/curves_lab/src/CatmullRom2.cpp \
+  experiments/curves_lab/src/ArcLength.cpp \
+  experiments/curves_lab/tests/test_curves.cpp \
   -I src \
-  -I curves_lab/src \
+  -I experiments/curves_lab/src \
   -O2 \
   -lm \
-  -o curves_lab/tests/test_curves
+  -o experiments/curves_lab/tests/test_curves
 
-./curves_lab/tests/test_curves
+./experiments/curves_lab/tests/test_curves
 ```
 
 No requiere SDL, ImGui, Box2D ni modificaciones del `Makefile`.
