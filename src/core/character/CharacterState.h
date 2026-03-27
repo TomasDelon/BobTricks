@@ -3,62 +3,89 @@
 #include "core/math/Vec2.h"
 #include "core/character/CMState.h"
 #include "core/character/FootState.h"
-#include "core/character/SupportState.h"
-#include "core/character/BalanceState.h"
-#include "core/character/StepPlan.h"
-#include "core/locomotion/StepTriggerType.h"
 #include "config/AppConfig.h"
 
-enum class LocomotionState {
-    Standing,    // both feet planted, geometry valid, CM recoverable
-    Walking,     // intentional step sequence in progress
-    Airborne,    // CM above spring contact threshold
-    // NOTE: Falling was removed — the step planner always runs its own recovery.
-    // There is no terminal unrecoverable state in the current architecture.
-};
+/** @brief Régime locomoteur courant du personnage. */
+enum class LocomotionState { Standing, Walking, Airborne };
 
+/**
+ * @brief État dérivé complet du personnage reconstruit autour du centre de masse.
+ *
+ * Cette structure rassemble la pose visualisable, les états des membres, les
+ * filtres persistants et plusieurs champs de debug/telemetry.
+ */
 struct CharacterState {
     LocomotionState locomotion_state = LocomotionState::Standing;
 
-    // Facing — persistent across frames
-    double facing_vel = 0.0;   // smoothed vx (exponential filter)
-    double facing     = 1.0;   // +1 = right, -1 = left
+    double facing = 1.0;   // +1 = right, -1 = left
+    double theta  = 0.0;   // filtered lean angle (rad) — used for spine reconstruction
+    double filtered_slope = 0.0;  // low-pass terrain slope used by lean target
 
-    // Derived pose — reconstructed each frame, not authoritative physics
+    // Derived pose — reconstructed each frame from CM
     Vec2 pelvis       = {0.0, 0.0};
     Vec2 torso_center = {0.0, 0.0};
     Vec2 torso_top    = {0.0, 0.0};
+    Vec2 head_center  = {0.0, 0.0};
+    Vec2 shoulder_left  = {0.0, 0.0};
+    Vec2 shoulder_right = {0.0, 0.0};
+    Vec2 elbow_left     = {0.0, 0.0};
+    Vec2 elbow_right    = {0.0, 0.0};
+    Vec2 hand_left      = {0.0, 0.0};
+    Vec2 hand_right     = {0.0, 0.0};
+    bool hand_left_pinned  = false;
+    bool hand_right_pinned = false;
+    Vec2 hand_left_target  = {0.0, 0.0};
+    Vec2 hand_right_target = {0.0, 0.0};
+    Vec2 eye_left     = {0.0, 0.0};
+    Vec2 eye_right    = {0.0, 0.0};
+    double head_radius = 0.0;
+    double head_tilt   = 0.0;
+    double arm_phase   = 0.0;
+    double arm_phase_velocity = 0.0;
+    bool   arm_pose_initialized = false;
+    double arm_pose_facing      = 1.0;
 
-    // Legs
-    bool      feet_initialized = false;  // true after bootstrap; guards foot rendering
-    Vec2      knee_left      = {0.0, 0.0};
-    Vec2      knee_right     = {0.0, 0.0};
-    Vec2      foot_left_eff  = {0.0, 0.0};  // clamped foot used by IK/renderer
-    Vec2      foot_right_eff = {0.0, 0.0};
+    // Feet and legs
+    bool      feet_initialized = false;
+    Vec2      knee_left        = {0.0, 0.0};
+    Vec2      knee_right       = {0.0, 0.0};
     FootState foot_left;
     FootState foot_right;
 
-    // Support, balance, step
-    SupportState support;
-    BalanceState  balance;
-    StepPlan      step_plan;
+    // Auto-stepping
+    double step_cooldown = 0.0;  // [s] prevents immediate re-trigger after a step
+    bool   recovery_followthrough_active = false;
+    double recovery_followthrough_dir    = 0.0;  // +1 / -1 while a corrective swing should carry CM along
+    double downhill_crouch               = 0.0;  // [0,1] filtered downhill crouch / reach state
 
-    // Walking state — per-tick event flags (reset each tick by SimulationCore)
-    double          last_heel_strike_t    = -1.0;                // sim_time of last heel-strike (-1 = never)
-    StepTriggerType last_trigger          = StepTriggerType::None;  // trigger intent this tick (set even if infeasible)
-    bool            heel_strike_this_tick = false;               // true on the tick a swing foot lands
+    // Persistent terrain-reference samples. These are stored in left/right world
+    // order so the reference can slide continuously even when facing changes.
+    bool   ground_reference_initialized = false;
+    double ground_left_x                = 0.0;
+    double ground_right_x               = 0.0;
+
+    // Debug / telemetry
+    bool   debug_on_floor    = false;
+    double debug_cm_target_y = 0.0;
+    double debug_ref_ground  = 0.0;  // smoothed ground reference (±L average)
+    double debug_ref_slope   = 0.0;
+    double debug_h_ip        = 0.0;
+    double debug_speed_drop  = 0.0;
+    double debug_slope_drop  = 0.0;
+    double debug_cm_offset   = 0.0;
+    // Ground-reference terrain sample endpoints after clamping each sample range
+    // against the pelvis-centered reach disk.
+    Vec2   debug_ground_back = {0.0, 0.0};
+    Vec2   debug_ground_fwd  = {0.0, 0.0};
 };
 
-// Call at the END of stepSimulation, after integration and hard clamp.
-void updateCharacterState(CharacterState& character,
-                          const CMState&  cm,
+/**
+ * @brief Reconstruit la pose du tronc à partir de l'état du centre de masse.
+ */
+void updateCharacterState(CharacterState&       character,
+                          const CMState&        cm,
                           const CharacterConfig& config,
                           const CharacterReconstructionConfig& reconstruction,
-                          bool on_floor,
-                          double dt);
-
-// Derives SupportState from the two FootStates.
-// Rule: support is always derived from planted feet, never from desired targets.
-void updateSupportState(SupportState& support,
-                        const FootState& foot_L,
-                        const FootState& foot_R);
+                          bool   on_floor,
+                          double dt,
+                          double terrain_slope);

@@ -36,6 +36,8 @@ ANALYSIS_DIRS := src/config \
 ANALYSIS_SRCS := $(wildcard $(addsuffix /*.cpp, $(ANALYSIS_DIRS)))
 
 TEST_CORE_SRCS := src/core/character/CharacterState.cpp \
+                  src/core/character/ArmController.cpp \
+                  src/core/character/HeadController.cpp \
                   src/core/locomotion/BalanceComputer.cpp \
                   src/core/locomotion/LegIK.cpp \
                   src/core/locomotion/StandingController.cpp \
@@ -72,6 +74,7 @@ test_mem: $(HEADLESS_BIN)
 all: build
 
 build: $(TARGET)
+	@echo "make pass"
 
 $(TARGET): $(OBJS)
 	@mkdir -p $(@D)
@@ -92,8 +95,10 @@ run: build
 	./$(TARGET)
 
 build_headless: $(HEADLESS_BIN)
+	@echo "make pass"
 
 test: test_unit test_regression test_headless
+	@echo "make pass"
 
 test_headless: $(HEADLESS_BIN)
 	@$(HEADLESS_BIN) --all --quiet
@@ -123,10 +128,19 @@ build/analysis/%: analysis/%.cpp
 	$(CXX) -std=c++20 -O2 -Isrc $< $(ANALYSIS_SRCS) -lm -o $@
 
 $(UNIT_TEST_BIN): tests/unit/test_core_math.cpp tests/TestSupport.h \
+                  src/core/math/Bezier.cpp \
+                  src/core/math/StrokePath.cpp \
+                  src/core/character/ArmController.cpp \
+                  src/core/character/HeadController.cpp \
                   src/core/locomotion/LegIK.cpp
 	@mkdir -p $(@D)
 	$(CXX) -std=c++20 -Wall -Wextra -O2 -Isrc -I. \
-	    tests/unit/test_core_math.cpp src/core/locomotion/LegIK.cpp -lm -o $@
+	    tests/unit/test_core_math.cpp \
+	    src/core/math/Bezier.cpp \
+	    src/core/math/StrokePath.cpp \
+	    src/core/character/ArmController.cpp \
+	    src/core/character/HeadController.cpp \
+	    src/core/locomotion/LegIK.cpp -lm -o $@
 
 $(REGRESSION_TEST_BIN): tests/regression/test_headless_scenarios.cpp \
                         tests/TestSupport.h src/headless/ScenarioLibrary.cpp \

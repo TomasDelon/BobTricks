@@ -1,5 +1,6 @@
 #include "config/ConfigIO.h"
 
+#include <cstdio>
 #include <fstream>
 #include <string>
 
@@ -23,8 +24,10 @@ bool ConfigIO::load(const std::string& path, AppConfig& config)
 
     std::string section;
     std::string line;
+    int line_no = 0;
 
     while (std::getline(file, line)) {
+        ++line_no;
         line = trim(line);
         if (line.empty() || line[0] == ';' || line[0] == '#') continue;
 
@@ -38,95 +41,150 @@ bool ConfigIO::load(const std::string& path, AppConfig& config)
 
         const std::string key   = trim(line.substr(0, eq));
         const std::string value = trim(line.substr(eq + 1));
+        bool handled = false;
 
         if (section == "SimLoop") {
-            if      (key == "max_fps")    config.sim_loop.max_fps    = std::stoi(value);
-            else if (key == "fixed_dt_s") config.sim_loop.fixed_dt_s = std::stod(value);
-            else if (key == "time_scale") config.sim_loop.time_scale = std::stod(value);
+            if      (key == "max_fps")    { config.sim_loop.max_fps    = std::stoi(value); handled = true; }
+            else if (key == "fixed_dt_s") { config.sim_loop.fixed_dt_s = std::stod(value); handled = true; }
+            else if (key == "time_scale") { config.sim_loop.time_scale = std::stod(value); handled = true; }
         }
         else if (section == "Camera") {
-            if      (key == "zoom")     config.camera.zoom     = std::stod(value);
-            else if (key == "follow_x") config.camera.follow_x = (value == "1" || value == "true");
-            else if (key == "follow_y") config.camera.follow_y = (value == "1" || value == "true");
-            else if (key == "smooth_x") config.camera.smooth_x = std::stod(value);
-            else if (key == "smooth_y") config.camera.smooth_y = std::stod(value);
+            if      (key == "zoom")     { config.camera.zoom     = std::stod(value); handled = true; }
+            else if (key == "follow_x") { config.camera.follow_x = (value == "1" || value == "true"); handled = true; }
+            else if (key == "follow_y") { config.camera.follow_y = (value == "1" || value == "true"); handled = true; }
+            else if (key == "smooth_x") { config.camera.smooth_x = std::stod(value); handled = true; }
+            else if (key == "smooth_y") { config.camera.smooth_y = std::stod(value); handled = true; }
         }
         else if (section == "Character") {
-            if      (key == "body_height_m")   config.character.body_height_m   = std::stod(value);
-            else if (key == "body_mass_kg")    config.character.body_mass_kg    = std::stod(value);
-            else if (key == "cm_pelvis_ratio") config.character.cm_pelvis_ratio = std::stod(value);
+            if      (key == "body_height_m")   { config.character.body_height_m   = std::stod(value); handled = true; }
+            else if (key == "cm_pelvis_ratio") { config.character.cm_pelvis_ratio = std::stod(value); handled = true; }
+            else if (key == "show_pelvis_reach_disk") { config.character.show_pelvis_reach_disk = (value == "1" || value == "true"); handled = true; }
         }
         else if (section == "Reconstruction") {
-            if      (key == "facing_tau")    config.reconstruction.facing_tau    = std::stod(value);
-            else if (key == "facing_eps")    config.reconstruction.facing_eps    = std::stod(value);
-            else if (key == "walk_eps")      config.reconstruction.walk_eps      = std::stod(value);
-            else if (key == "theta_max_deg") config.reconstruction.theta_max_deg = std::stod(value);
-            else if (key == "v_ref")         config.reconstruction.v_ref         = std::stod(value);
+            if      (key == "facing_eps")        { config.reconstruction.facing_eps        = std::stod(value); handled = true; }
+            else if (key == "walk_eps")          { config.reconstruction.walk_eps          = std::stod(value); handled = true; }
+            else if (key == "theta_max_deg")     { config.reconstruction.theta_max_deg     = std::stod(value); handled = true; }
+            else if (key == "v_ref")             { config.reconstruction.v_ref             = std::stod(value); handled = true; }
+            else if (key == "tau_lean")          { config.reconstruction.tau_lean          = std::stod(value); handled = true; }
+            else if (key == "tau_slope")         { config.reconstruction.tau_slope         = std::stod(value); handled = true; }
+            else if (key == "slope_lean_factor") { config.reconstruction.slope_lean_factor = std::stod(value); handled = true; }
+        }
+        else if (section == "Head") {
+            if      (key == "center_offset_L")  { config.head.center_offset_L  = std::stod(value); handled = true; }
+            else if (key == "radius_L")         { config.head.radius_L         = std::stod(value); handled = true; }
+            else if (key == "eye_height_ratio") { config.head.eye_height_ratio = std::stod(value); handled = true; }
+            else if (key == "eye_spacing")      { config.head.eye_spacing      = std::stod(value); handled = true; }
+            else if (key == "max_tilt_deg")     { config.head.max_tilt_deg     = std::stod(value); handled = true; }
+            else if (key == "tau_tilt")         { config.head.tau_tilt         = std::stod(value); handled = true; }
+            else if (key == "show_eye_marker")  { config.head.show_eye_marker  = (value == "1" || value == "true"); handled = true; }
+            else if (key == "show_gaze_ray")    { config.head.show_gaze_ray    = (value == "1" || value == "true"); handled = true; }
+            else if (key == "show_gaze_target") { config.head.show_gaze_target = (value == "1" || value == "true"); handled = true; }
+        }
+        else if (section == "Arms") {
+            if      (key == "upper_arm_L")                 { config.arms.upper_arm_L                 = std::stod(value); handled = true; }
+            else if (key == "fore_arm_L")                  { config.arms.fore_arm_L                  = std::stod(value); handled = true; }
+            else if (key == "walk_hand_reach_reduction_L") { config.arms.walk_hand_reach_reduction_L = std::stod(value); handled = true; }
+            else if (key == "walk_front_hand_start_deg")   { config.arms.walk_front_hand_start_deg   = std::stod(value); handled = true; }
+            else if (key == "walk_front_hand_end_deg")     { config.arms.walk_front_hand_end_deg     = std::stod(value); handled = true; }
+            else if (key == "walk_back_hand_start_deg")    { config.arms.walk_back_hand_start_deg    = std::stod(value); handled = true; }
+            else if (key == "walk_back_hand_end_deg")      { config.arms.walk_back_hand_end_deg      = std::stod(value); handled = true; }
+            else if (key == "walk_hand_phase_speed_scale") { config.arms.walk_hand_phase_speed_scale = std::stod(value); handled = true; }
+            else if (key == "walk_hand_speed_arc_gain")    { config.arms.walk_hand_speed_arc_gain    = std::stod(value); handled = true; }
+            else if (key == "walk_hand_phase_response")    { config.arms.walk_hand_phase_response    = std::stod(value); handled = true; }
+            else if (key == "walk_hand_phase_friction")    { config.arms.walk_hand_phase_friction    = std::stod(value); handled = true; }
+            else if (key == "show_debug_reach_circles")    { config.arms.show_debug_reach_circles    = (value == "1" || value == "true"); handled = true; }
+            else if (key == "show_debug_swing_points")     { config.arms.show_debug_swing_points     = (value == "1" || value == "true"); handled = true; }
+            else if (key == "show_debug_swing_arcs")       { config.arms.show_debug_swing_arcs       = (value == "1" || value == "true"); handled = true; }
+        }
+        else if (section == "SplineRender") {
+            if      (key == "enabled")              { config.spline_render.enabled              = (value == "1" || value == "true"); handled = true; }
+            else if (key == "draw_under_legacy")    { config.spline_render.draw_under_legacy    = (value == "1" || value == "true"); handled = true; }
+            else if (key == "stroke_width_px")      { config.spline_render.stroke_width_px      = std::stof(value); handled = true; }
+            else if (key == "samples_per_curve")    { config.spline_render.samples_per_curve    = std::stoi(value); handled = true; }
+            else if (key == "show_test_curve")      { config.spline_render.show_test_curve      = (value == "1" || value == "true"); handled = true; }
+            else if (key == "show_control_polygon") { config.spline_render.show_control_polygon = (value == "1" || value == "true"); handled = true; }
+            else if (key == "show_sample_points")   { config.spline_render.show_sample_points   = (value == "1" || value == "true"); handled = true; }
         }
         else if (section == "CM") {
-            if      (key == "show_ground_reference") config.cm.show_ground_reference = (value == "1" || value == "true");
-            else if (key == "show_projection_line") config.cm.show_projection_line = (value == "1" || value == "true");
-            else if (key == "show_projection_dot")  config.cm.show_projection_dot  = (value == "1" || value == "true");
-            else if (key == "show_target_height_tick") config.cm.show_target_height_tick = (value == "1" || value == "true");
-            else if (key == "velocity_components")  config.cm.velocity_components  = std::stoi(value);
-            else if (key == "accel_components")     config.cm.accel_components     = std::stoi(value);
-            else if (key == "show_trail")                config.cm.show_trail               = (value == "1" || value == "true");
-            else if (key == "trail_duration")            config.cm.trail_duration           = std::stod(value);
-            else if (key == "show_xcom_line")            config.cm.show_xcom_line           = (value == "1" || value == "true");
-            else if (key == "show_support_line")         config.cm.show_support_line        = (value == "1" || value == "true");
-            else if (key == "show_planted_feet_color")   config.cm.show_planted_feet_color  = (value == "1" || value == "true");
+            if      (key == "show_ground_reference")   { config.cm.show_ground_reference   = (value == "1" || value == "true"); handled = true; }
+            else if (key == "show_projection_line")    { config.cm.show_projection_line    = (value == "1" || value == "true"); handled = true; }
+            else if (key == "show_projection_dot")     { config.cm.show_projection_dot     = (value == "1" || value == "true"); handled = true; }
+            else if (key == "show_target_height_tick") { config.cm.show_target_height_tick = (value == "1" || value == "true"); handled = true; }
+            else if (key == "velocity_components")     { config.cm.velocity_components     = std::stoi(value); handled = true; }
+            else if (key == "accel_components")        { config.cm.accel_components        = std::stoi(value); handled = true; }
+            else if (key == "show_trail")              { config.cm.show_trail              = (value == "1" || value == "true"); handled = true; }
+            else if (key == "trail_duration")          { config.cm.trail_duration          = std::stod(value); handled = true; }
+            else if (key == "show_xcom_line")          { config.cm.show_xcom_line          = (value == "1" || value == "true"); handled = true; }
+            else if (key == "show_support_line")       { config.cm.show_support_line       = (value == "1" || value == "true"); handled = true; }
         }
         else if (section == "Physics") {
-            if      (key == "gravity_enabled")        config.physics.gravity_enabled        = (value == "1" || value == "true");
-            else if (key == "gravity")                config.physics.gravity                = std::stod(value);
-            else if (key == "air_friction_enabled")   config.physics.air_friction_enabled   = (value == "1" || value == "true");
-            else if (key == "air_friction")           config.physics.air_friction           = std::stod(value);
-            else if (key == "floor_friction_enabled") config.physics.floor_friction_enabled = (value == "1" || value == "true");
-            else if (key == "floor_friction")         config.physics.floor_friction         = std::stod(value);
-            else if (key == "spring_enabled")         config.physics.spring_enabled         = (value == "1" || value == "true");
-            else if (key == "spring_stiffness")       config.physics.spring_stiffness       = std::stod(value);
-            else if (key == "spring_damping")         config.physics.spring_damping         = std::stod(value);
-            else if (key == "move_force")             config.physics.move_force             = std::stod(value);
-            else if (key == "jump_impulse")           config.physics.jump_impulse           = std::stod(value);
+            if      (key == "gravity_enabled") { config.physics.gravity_enabled  = (value == "1" || value == "true"); handled = true; }
+            else if (key == "gravity")         { config.physics.gravity          = std::stod(value); handled = true; }
+            else if (key == "accel")           { config.physics.accel            = std::stod(value); handled = true; }
+            else if (key == "walk_max_speed")  { config.physics.walk_max_speed   = std::stod(value); handled = true; }
+            else if (key == "floor_friction")  { config.physics.floor_friction   = std::stod(value); handled = true; }
+            else if (key == "hold_speed")      { config.physics.hold_speed       = std::stod(value); handled = true; }
+            else if (key == "stop_speed")      { config.physics.stop_speed       = std::stod(value); handled = true; }
+            else if (key == "spring_enabled")  { config.physics.spring_enabled   = (value == "1" || value == "true"); handled = true; }
+            else if (key == "vy_max")          { config.physics.vy_max           = std::stod(value); handled = true; }
+            else if (key == "d_soft")          { config.physics.d_soft           = std::stod(value); handled = true; }
+            else if (key == "vy_tau")          { config.physics.vy_tau           = std::stod(value); handled = true; }
+            else if (key == "jump_impulse")    { config.physics.jump_impulse     = std::stod(value); handled = true; }
+        }
+        else if (section == "TerrainSampling") {
+            if      (key == "w_back")    { config.terrain_sampling.w_back    = std::stod(value); handled = true; }
+            else if (key == "w_fwd")     { config.terrain_sampling.w_fwd     = std::stod(value); handled = true; }
+            else if (key == "t_look")    { config.terrain_sampling.t_look    = std::stod(value); handled = true; }
+            else if (key == "tau_slide") { config.terrain_sampling.tau_slide = std::stod(value); handled = true; }
         }
         else if (section == "Terrain") {
-            if      (key == "enabled")     config.terrain.enabled     = (value == "1" || value == "true");
-            else if (key == "seed")        config.terrain.seed        = std::stoi(value);
-            else if (key == "seg_min")     config.terrain.seg_min     = std::stod(value);
-            else if (key == "seg_max")     config.terrain.seg_max     = std::stod(value);
-            else if (key == "angle_small") config.terrain.angle_small = std::stod(value);
-            else if (key == "angle_large") config.terrain.angle_large = std::stod(value);
-            else if (key == "large_prob")  config.terrain.large_prob  = std::stod(value);
-            else if (key == "slope_max")   config.terrain.slope_max   = std::stod(value);
-            else if (key == "height_min")  config.terrain.height_min  = std::stod(value);
-            else if (key == "height_max")  config.terrain.height_max  = std::stod(value);
+            if      (key == "enabled")     { config.terrain.enabled     = (value == "1" || value == "true"); handled = true; }
+            else if (key == "seed")        { config.terrain.seed        = std::stoi(value); handled = true; }
+            else if (key == "seg_min")     { config.terrain.seg_min     = std::stod(value); handled = true; }
+            else if (key == "seg_max")     { config.terrain.seg_max     = std::stod(value); handled = true; }
+            else if (key == "angle_small") { config.terrain.angle_small = std::stod(value); handled = true; }
+            else if (key == "angle_large") { config.terrain.angle_large = std::stod(value); handled = true; }
+            else if (key == "large_prob")  { config.terrain.large_prob  = std::stod(value); handled = true; }
+            else if (key == "slope_max")   { config.terrain.slope_max   = std::stod(value); handled = true; }
+            else if (key == "height_min")  { config.terrain.height_min  = std::stod(value); handled = true; }
+            else if (key == "height_max")  { config.terrain.height_max  = std::stod(value); handled = true; }
         }
         else if (section == "Standing") {
-            if      (key == "d_pref")   config.standing.d_pref   = std::stod(value);
-            else if (key == "d_min")    config.standing.d_min    = std::stod(value);
-            else if (key == "d_max")    config.standing.d_max    = std::stod(value);
-            else if (key == "k_leg")    config.standing.k_leg    = std::stod(value);
-            else if (key == "eps_v")    config.standing.eps_v    = std::stod(value);
-            else if (key == "k_crouch") config.standing.k_crouch = std::stod(value);
-        }
-        else if (section == "Balance") {
-            if      (key == "h_ref_override")     config.balance.h_ref_override     = std::stod(value);
-            else if (key == "mos_step_threshold") config.balance.mos_step_threshold = std::stod(value);
+            if      (key == "d_pref")   { config.standing.d_pref   = std::stod(value); handled = true; }
+            else if (key == "d_min")    { config.standing.d_min    = std::stod(value); handled = true; }
+            else if (key == "d_max")    { config.standing.d_max    = std::stod(value); handled = true; }
+            else if (key == "eps_v")    { config.standing.eps_v    = std::stod(value); handled = true; }
         }
         else if (section == "Step") {
-            if      (key == "h_clear_ratio")    config.step.h_clear_ratio    = std::stod(value);
-            else if (key == "T_min")            config.step.T_min            = std::stod(value);
-            else if (key == "T_max")            config.step.T_max            = std::stod(value);
-            else if (key == "dist_coeff")       config.step.dist_coeff       = std::stod(value);
-            else if (key == "d_max_correction") config.step.d_max_correction = std::stod(value);
-            else if (key == "k_bob")            config.step.k_bob            = std::stod(value);
-            else if (key == "v_ref_bob")        config.step.v_ref_bob        = std::stod(value);
+            if (key == "h_clear_ratio") { config.step.h_clear_ratio = std::stod(value); handled = true; }
         }
         else if (section == "Walk") {
-            if      (key == "k_trigger")    config.walk.k_trigger    = std::stod(value);
-            else if (key == "k_step")       config.walk.k_step       = std::stod(value);
-            else if (key == "T_ant")        config.walk.T_ant        = std::stod(value);
-            else if (key == "reach_margin") config.walk.reach_margin = std::stod(value);
+            if      (key == "eps_step")            { config.walk.eps_step            = std::stod(value); handled = true; }
+            else if (key == "xcom_scale")          { config.walk.xcom_scale          = std::stod(value); handled = true; }
+            else if (key == "d_rear_max")          { config.walk.d_rear_max          = std::stod(value); handled = true; }
+            else if (key == "max_step_L")          { config.walk.max_step_L          = std::stod(value); handled = true; }
+            else if (key == "max_speed_drop")      { config.walk.max_speed_drop      = std::stod(value); handled = true; }
+            else if (key == "max_slope_drop")      { config.walk.max_slope_drop      = std::stod(value); handled = true; }
+            else if (key == "downhill_crouch_max") { config.walk.downhill_crouch_max = std::stod(value); handled = true; }
+            else if (key == "downhill_crouch_tau") { config.walk.downhill_crouch_tau = std::stod(value); handled = true; }
+            else if (key == "downhill_relax_tau")  { config.walk.downhill_relax_tau  = std::stod(value); handled = true; }
+            else if (key == "downhill_step_bonus") { config.walk.downhill_step_bonus = std::stod(value); handled = true; }
+            else if (key == "step_speed")          { config.walk.step_speed          = std::stod(value); handled = true; }
+            else if (key == "stability_margin")    { config.walk.stability_margin    = std::stod(value); handled = true; }
+            else if (key == "double_support_time") { config.walk.double_support_time = std::stod(value); handled = true; }
+            else if (key == "cm_height_offset")    { config.walk.cm_height_offset    = std::stod(value); handled = true; }
+            else if (key == "leg_flex_coeff")      { config.walk.leg_flex_coeff      = std::stod(value); handled = true; }
+            else if (key == "bob_scale")           { config.walk.bob_scale           = std::stod(value); handled = true; }
+            else if (key == "bob_amp")             { config.walk.bob_amp             = std::stod(value); handled = true; }
+            else if (key == "h_clear_slope_factor"){ config.walk.h_clear_slope_factor= std::stod(value); handled = true; }
+            else if (key == "h_clear_speed_factor"){ config.walk.h_clear_speed_factor= std::stod(value); handled = true; }
+            else if (key == "h_clear_min_ratio")   { config.walk.h_clear_min_ratio   = std::stod(value); handled = true; }
+        }
+
+        if (!handled) {
+            std::fprintf(stderr,
+                         "[ConfigIO] Ignoring unknown key '%s' in section [%s] at line %d\n",
+                         key.c_str(), section.c_str(), line_no);
         }
     }
 
@@ -138,63 +196,102 @@ bool ConfigIO::save(const std::string& path, const AppConfig& config)
     std::ofstream file(path);
     if (!file.is_open()) return false;
 
-    file << "; BobTricks V4 — configuration file\n\n";
+    file << "; BobTricks — configuration file\n\n";
 
     file << "[SimLoop]\n";
     file << "max_fps="    << config.sim_loop.max_fps    << "\n";
     file << "fixed_dt_s=" << config.sim_loop.fixed_dt_s << "\n";
-    file << "time_scale=" << config.sim_loop.time_scale << "\n";
-    file << "\n";
+    file << "time_scale=" << config.sim_loop.time_scale << "\n\n";
 
     file << "[Camera]\n";
     file << "zoom="     << config.camera.zoom                     << "\n";
     file << "follow_x=" << (config.camera.follow_x ? "1" : "0")  << "\n";
     file << "follow_y=" << (config.camera.follow_y ? "1" : "0")  << "\n";
     file << "smooth_x=" << config.camera.smooth_x                 << "\n";
-    file << "smooth_y=" << config.camera.smooth_y                 << "\n";
-    file << "\n";
+    file << "smooth_y=" << config.camera.smooth_y                 << "\n\n";
 
     file << "[Character]\n";
     file << "body_height_m="   << config.character.body_height_m   << "\n";
-    file << "body_mass_kg="    << config.character.body_mass_kg    << "\n";
     file << "cm_pelvis_ratio=" << config.character.cm_pelvis_ratio << "\n";
-    file << "\n";
+    file << "show_pelvis_reach_disk=" << (config.character.show_pelvis_reach_disk ? "1" : "0") << "\n\n";
 
     file << "[Reconstruction]\n";
-    file << "facing_tau="    << config.reconstruction.facing_tau    << "\n";
-    file << "facing_eps="    << config.reconstruction.facing_eps    << "\n";
-    file << "walk_eps="      << config.reconstruction.walk_eps      << "\n";
-    file << "theta_max_deg=" << config.reconstruction.theta_max_deg << "\n";
-    file << "v_ref="         << config.reconstruction.v_ref         << "\n";
-    file << "\n";
+    file << "facing_eps="        << config.reconstruction.facing_eps        << "\n";
+    file << "walk_eps="          << config.reconstruction.walk_eps          << "\n";
+    file << "theta_max_deg="     << config.reconstruction.theta_max_deg     << "\n";
+    file << "v_ref="             << config.reconstruction.v_ref             << "\n";
+    file << "tau_lean="          << config.reconstruction.tau_lean          << "\n";
+    file << "tau_slope="         << config.reconstruction.tau_slope         << "\n";
+    file << "slope_lean_factor=" << config.reconstruction.slope_lean_factor << "\n\n";
+
+    file << "[Head]\n";
+    file << "center_offset_L="  << config.head.center_offset_L  << "\n";
+    file << "radius_L="         << config.head.radius_L         << "\n";
+    file << "eye_height_ratio=" << config.head.eye_height_ratio << "\n";
+    file << "eye_spacing="      << config.head.eye_spacing      << "\n";
+    file << "max_tilt_deg="     << config.head.max_tilt_deg     << "\n";
+    file << "tau_tilt="         << config.head.tau_tilt         << "\n";
+    file << "show_eye_marker="  << (config.head.show_eye_marker ? "1" : "0") << "\n";
+    file << "show_gaze_ray="    << (config.head.show_gaze_ray ? "1" : "0") << "\n";
+    file << "show_gaze_target=" << (config.head.show_gaze_target ? "1" : "0") << "\n\n";
+
+    file << "[Arms]\n";
+    file << "upper_arm_L="                 << config.arms.upper_arm_L                 << "\n";
+    file << "fore_arm_L="                  << config.arms.fore_arm_L                  << "\n";
+    file << "walk_hand_reach_reduction_L=" << config.arms.walk_hand_reach_reduction_L << "\n";
+    file << "walk_front_hand_start_deg="   << config.arms.walk_front_hand_start_deg   << "\n";
+    file << "walk_front_hand_end_deg="     << config.arms.walk_front_hand_end_deg     << "\n";
+    file << "walk_back_hand_start_deg="    << config.arms.walk_back_hand_start_deg    << "\n";
+    file << "walk_back_hand_end_deg="      << config.arms.walk_back_hand_end_deg      << "\n";
+    file << "walk_hand_phase_speed_scale=" << config.arms.walk_hand_phase_speed_scale << "\n";
+    file << "walk_hand_speed_arc_gain="    << config.arms.walk_hand_speed_arc_gain    << "\n";
+    file << "walk_hand_phase_response="    << config.arms.walk_hand_phase_response    << "\n";
+    file << "walk_hand_phase_friction="    << config.arms.walk_hand_phase_friction    << "\n";
+    file << "show_debug_reach_circles="    << (config.arms.show_debug_reach_circles ? "1" : "0") << "\n";
+    file << "show_debug_swing_points="     << (config.arms.show_debug_swing_points ? "1" : "0") << "\n";
+    file << "show_debug_swing_arcs="       << (config.arms.show_debug_swing_arcs ? "1" : "0") << "\n\n";
+
+    file << "[SplineRender]\n";
+    file << "enabled="              << (config.spline_render.enabled ? "1" : "0") << "\n";
+    file << "draw_under_legacy="    << (config.spline_render.draw_under_legacy ? "1" : "0") << "\n";
+    file << "stroke_width_px="      << config.spline_render.stroke_width_px << "\n";
+    file << "samples_per_curve="    << config.spline_render.samples_per_curve << "\n";
+    file << "show_test_curve="      << (config.spline_render.show_test_curve ? "1" : "0") << "\n";
+    file << "show_control_polygon=" << (config.spline_render.show_control_polygon ? "1" : "0") << "\n";
+    file << "show_sample_points="   << (config.spline_render.show_sample_points ? "1" : "0") << "\n\n";
 
     file << "[CM]\n";
-    file << "show_ground_reference=" << (config.cm.show_ground_reference ? "1" : "0") << "\n";
-    file << "show_projection_line=" << (config.cm.show_projection_line ? "1" : "0") << "\n";
-    file << "show_projection_dot="  << (config.cm.show_projection_dot  ? "1" : "0") << "\n";
+    file << "show_ground_reference="   << (config.cm.show_ground_reference   ? "1" : "0") << "\n";
+    file << "show_projection_line="    << (config.cm.show_projection_line    ? "1" : "0") << "\n";
+    file << "show_projection_dot="     << (config.cm.show_projection_dot     ? "1" : "0") << "\n";
     file << "show_target_height_tick=" << (config.cm.show_target_height_tick ? "1" : "0") << "\n";
-    file << "velocity_components="  << config.cm.velocity_components                << "\n";
-    file << "accel_components="     << config.cm.accel_components                   << "\n";
-    file << "show_trail="                << (config.cm.show_trail ? "1" : "0")              << "\n";
-    file << "trail_duration="           << config.cm.trail_duration                        << "\n";
-    file << "show_xcom_line="           << (config.cm.show_xcom_line ? "1" : "0")          << "\n";
-    file << "show_support_line="        << (config.cm.show_support_line ? "1" : "0")       << "\n";
-    file << "show_planted_feet_color="  << (config.cm.show_planted_feet_color ? "1" : "0") << "\n";
+    file << "velocity_components="     << config.cm.velocity_components     << "\n";
+    file << "accel_components="        << config.cm.accel_components        << "\n";
+    file << "show_trail="              << (config.cm.show_trail              ? "1" : "0") << "\n";
+    file << "trail_duration="          << config.cm.trail_duration          << "\n";
+    file << "show_xcom_line="          << (config.cm.show_xcom_line          ? "1" : "0") << "\n";
+    file << "show_support_line="       << (config.cm.show_support_line       ? "1" : "0") << "\n";
     file << "\n";
 
     file << "[Physics]\n";
-    file << "gravity_enabled="        << (config.physics.gravity_enabled        ? "1" : "0") << "\n";
-    file << "gravity="                << config.physics.gravity                              << "\n";
-    file << "air_friction_enabled="   << (config.physics.air_friction_enabled   ? "1" : "0") << "\n";
-    file << "air_friction="           << config.physics.air_friction                         << "\n";
-    file << "floor_friction_enabled=" << (config.physics.floor_friction_enabled ? "1" : "0") << "\n";
-    file << "floor_friction="         << config.physics.floor_friction                       << "\n";
-    file << "spring_enabled="         << (config.physics.spring_enabled         ? "1" : "0") << "\n";
-    file << "spring_stiffness="       << config.physics.spring_stiffness                     << "\n";
-    file << "spring_damping="         << config.physics.spring_damping                       << "\n";
-    file << "move_force="             << config.physics.move_force                           << "\n";
-    file << "jump_impulse="           << config.physics.jump_impulse                         << "\n";
-    file << "\n";
+    file << "gravity_enabled="  << (config.physics.gravity_enabled  ? "1" : "0") << "\n";
+    file << "gravity="          << config.physics.gravity          << "\n";
+    file << "accel="            << config.physics.accel            << "\n";
+    file << "walk_max_speed="   << config.physics.walk_max_speed   << "\n";
+    file << "floor_friction="   << config.physics.floor_friction   << "\n";
+    file << "hold_speed="       << config.physics.hold_speed       << "\n";
+    file << "stop_speed="       << config.physics.stop_speed       << "\n";
+    file << "spring_enabled=" << (config.physics.spring_enabled ? "1" : "0") << "\n";
+    file << "vy_max="        << config.physics.vy_max        << "\n";
+    file << "d_soft="        << config.physics.d_soft        << "\n";
+    file << "vy_tau="        << config.physics.vy_tau        << "\n";
+    file << "jump_impulse="     << config.physics.jump_impulse     << "\n\n";
+
+    file << "[TerrainSampling]\n";
+    file << "w_back="     << config.terrain_sampling.w_back     << "\n";
+    file << "w_fwd="      << config.terrain_sampling.w_fwd      << "\n";
+    file << "t_look="     << config.terrain_sampling.t_look     << "\n";
+    file << "tau_slide="  << config.terrain_sampling.tau_slide  << "\n\n";
 
     file << "[Terrain]\n";
     file << "enabled="     << (config.terrain.enabled ? "1" : "0") << "\n";
@@ -206,38 +303,38 @@ bool ConfigIO::save(const std::string& path, const AppConfig& config)
     file << "large_prob="  << config.terrain.large_prob  << "\n";
     file << "slope_max="   << config.terrain.slope_max   << "\n";
     file << "height_min="  << config.terrain.height_min  << "\n";
-    file << "height_max="  << config.terrain.height_max  << "\n";
-    file << "\n";
+    file << "height_max="  << config.terrain.height_max  << "\n\n";
 
     file << "[Standing]\n";
-    file << "d_pref="   << config.standing.d_pref   << "\n";
-    file << "d_min="    << config.standing.d_min    << "\n";
+    file << "d_pref=" << config.standing.d_pref << "\n";
+    file << "d_min="  << config.standing.d_min  << "\n";
     file << "d_max="    << config.standing.d_max    << "\n";
-    file << "k_leg="    << config.standing.k_leg    << "\n";
-    file << "eps_v="    << config.standing.eps_v    << "\n";
-    file << "k_crouch=" << config.standing.k_crouch << "\n";
-    file << "\n";
-
-    file << "[Balance]\n";
-    file << "h_ref_override="     << config.balance.h_ref_override     << "\n";
-    file << "mos_step_threshold=" << config.balance.mos_step_threshold << "\n";
-    file << "\n";
+    file << "eps_v="    << config.standing.eps_v    << "\n\n";
 
     file << "[Step]\n";
-    file << "h_clear_ratio="    << config.step.h_clear_ratio    << "\n";
-    file << "T_min="            << config.step.T_min            << "\n";
-    file << "T_max="            << config.step.T_max            << "\n";
-    file << "dist_coeff="       << config.step.dist_coeff       << "\n";
-    file << "d_max_correction=" << config.step.d_max_correction << "\n";
-    file << "k_bob="            << config.step.k_bob            << "\n";
-    file << "v_ref_bob="        << config.step.v_ref_bob        << "\n";
-    file << "\n";
+    file << "h_clear_ratio=" << config.step.h_clear_ratio << "\n\n";
 
     file << "[Walk]\n";
-    file << "k_trigger="    << config.walk.k_trigger    << "\n";
-    file << "k_step="       << config.walk.k_step       << "\n";
-    file << "T_ant="        << config.walk.T_ant        << "\n";
-    file << "reach_margin=" << config.walk.reach_margin << "\n";
+    file << "eps_step="            << config.walk.eps_step            << "\n";
+    file << "xcom_scale="          << config.walk.xcom_scale          << "\n";
+    file << "d_rear_max="          << config.walk.d_rear_max          << "\n";
+    file << "max_step_L="          << config.walk.max_step_L          << "\n";
+    file << "max_speed_drop="      << config.walk.max_speed_drop      << "\n";
+    file << "max_slope_drop="      << config.walk.max_slope_drop      << "\n";
+    file << "downhill_crouch_max=" << config.walk.downhill_crouch_max << "\n";
+    file << "downhill_crouch_tau=" << config.walk.downhill_crouch_tau << "\n";
+    file << "downhill_relax_tau="  << config.walk.downhill_relax_tau  << "\n";
+    file << "downhill_step_bonus=" << config.walk.downhill_step_bonus << "\n";
+    file << "step_speed="          << config.walk.step_speed          << "\n";
+    file << "stability_margin="           << config.walk.stability_margin           << "\n";
+    file << "double_support_time=" << config.walk.double_support_time << "\n";
+    file << "cm_height_offset="    << config.walk.cm_height_offset    << "\n";
+    file << "leg_flex_coeff="      << config.walk.leg_flex_coeff      << "\n";
+    file << "bob_scale="           << config.walk.bob_scale           << "\n";
+    file << "bob_amp="             << config.walk.bob_amp             << "\n";
+    file << "h_clear_slope_factor="<< config.walk.h_clear_slope_factor<< "\n";
+    file << "h_clear_speed_factor="<< config.walk.h_clear_speed_factor<< "\n";
+    file << "h_clear_min_ratio="   << config.walk.h_clear_min_ratio   << "\n";
 
     return true;
 }

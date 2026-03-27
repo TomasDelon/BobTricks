@@ -2,13 +2,11 @@
 
 #include "core/math/Vec2.h"
 
+/** @brief Plan de pas élémentaire utilisé par les anciennes interfaces de marche. */
 struct StepPlan {
-    bool   active         = false;
-    bool   move_right     = false;    // true = pie derecho en vuelo
-    Vec2   takeoff_pos    = {0.0, 0.0};  // posición del pie al inicio del swing (fija)
-    double takeoff_ground = 0.0;         // terrain.height_at(takeoff) al despegue
-    Vec2   land_target    = {0.0, 0.0};
-    double t_start        = 0.0;      // sim_time al inicio del swing
-    double duration       = 0.25;     // T_swing (s)
-    double clearance      = 0.0;      // h_clear — altura máxima del arco (m)
+    bool   active       = false;
+    bool   move_right   = false;     // true = pie derecho en vuelo
+    Vec2   takeoff_pos  = {0.0, 0.0};
+    Vec2   land_target  = {0.0, 0.0};
+    double swing_t      = 0.0;       // progreso del swing [0, 1], avanza a step_speed × dt
 };

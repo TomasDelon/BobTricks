@@ -3,9 +3,16 @@
 #include <cstdint>
 #include <functional>
 
+/**
+ * @brief Boucle de simulation fixe avec accumulateur.
+ *
+ * Cette classe reçoit un delta temps réel et décide combien de pas fixes du
+ * noyau doivent être exécutés pendant une frame.
+ */
 class SimulationLoop
 {
 public:
+    /** @brief Paramètres de la boucle fixe. */
     struct Config {
         double fixed_dt_s       = 1.0 / 60.0;
         double max_frame_dt_s   = 0.25;
@@ -15,6 +22,7 @@ public:
     SimulationLoop() = default;
     explicit SimulationLoop(const Config& config);
 
+    /** @brief Réinitialise l'accumulateur et les compteurs. */
     void reset();
 
     void setPaused(bool paused);
@@ -30,6 +38,9 @@ public:
     std::uint64_t getTotalStepCount()   const;
     double        getSimulationTime()   const;
 
+    /**
+     * @brief Exécute une frame et retourne le nombre de pas fixes produits.
+     */
     std::uint32_t runFrame(double real_dt_s, const std::function<void(double)>& step_fn);
 
 private:

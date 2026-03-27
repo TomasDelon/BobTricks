@@ -3,16 +3,30 @@
 #include <optional>
 #include "core/math/Vec2.h"
 
-// A single frame of player/scripted input, decoupled from SDL.
-//
-// SDLViewerApp builds this from keyboard state + mouse drag each frame.
-// ScenarioRunner builds this from a scripted timeline.
-// SimulationCore::step() takes one of these — it never touches SDL directly.
+/**
+ * @brief Entrées consommées par `SimulationCore` pendant un pas fixe.
+ */
 struct InputFrame {
-    bool key_left  = false;   // accelerate left  (AZERTY: Q)
-    bool key_right = false;   // accelerate right (AZERTY: D)
-    bool jump      = false;   // one-shot jump impulse (AZERTY: SPACE)
+    bool key_left  = false;
+    bool key_right = false;
+    bool jump      = false;
 
-    // If set, overrides CM velocity at the start of the step (drag-set in UI).
+    // Right-drag: overrides CM velocity at start of step.
     std::optional<Vec2> set_velocity;
+
+    // Optional world-space gaze target used by upper-body kinematics.
+    std::optional<Vec2> gaze_target_world;
+
+    // Left-drag: drag feet to a world position.
+    // SimulationCore applies the circle constraint after positioning.
+    bool              foot_left_drag  = false;
+    Vec2              foot_left_pos   = {0.0, 0.0};   // world target
+    bool              foot_right_drag = false;
+    Vec2              foot_right_pos  = {0.0, 0.0};   // world target
+
+    // Left-drag: override hand IK target to a world position.
+    bool              hand_left_drag  = false;
+    Vec2              hand_left_pos   = {0.0, 0.0};   // world target
+    bool              hand_right_drag = false;
+    Vec2              hand_right_pos  = {0.0, 0.0};   // world target
 };

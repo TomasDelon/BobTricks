@@ -2,6 +2,7 @@
 
 #include <cmath>
 
+/** @brief État du polygone de support sagittal réduit à deux appuis ponctuels. */
 struct SupportState {
     // Intervalo de soporte en 1D (sagital).
     // Derivado de pos.x de los pies plantados — nunca de targets.

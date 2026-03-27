@@ -1,7 +1,6 @@
 #pragma once
 
-// Type of trigger that fired in shouldStep().
-// Stored in CharacterState::last_trigger for telemetry.
+/** @brief Type de déclencheur ayant provoqué une demande de pas. */
 enum class StepTriggerType {
     None,       // no trigger — step not requested this tick
     Normal,     // rear foot too far behind pelvis at walking speed
