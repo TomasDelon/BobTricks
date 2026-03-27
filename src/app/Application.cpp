@@ -17,6 +17,8 @@ static constexpr const char* CONFIG_PATH = "data/config.ini";
 static constexpr double      GROUND_Y    = World::GROUND_Y;
 static constexpr double      ZOOM_STEP   = 1.1;
 static constexpr float  CM_HIT_RADIUS_PX    = 20.f;
+static constexpr float  FOOT_HIT_RADIUS_PX  = 15.f;
+static constexpr float  HAND_HIT_RADIUS_PX  = 15.f;
 static constexpr double ACCEL_DISPLAY_SCALE = 1.0 / 9.81;
 
 bool Application::init()
@@ -145,8 +147,26 @@ void Application::stepSimulation(double dt)
     input.key_right      = m_key_right;
     input.jump           = m_jump_requested;
     input.set_velocity   = m_pending_set_velocity;
+    input.gaze_target_world = m_gaze_target_world;
     m_jump_requested     = false;
     m_pending_set_velocity.reset();
+
+    if (m_dragging_foot_left) {
+        input.foot_left_drag = true;
+        input.foot_left_pos  = m_foot_drag_world;
+    }
+    if (m_dragging_foot_right) {
+        input.foot_right_drag = true;
+        input.foot_right_pos  = m_foot_drag_world;
+    }
+    if (m_dragging_hand_left) {
+        input.hand_left_drag = true;
+        input.hand_left_pos  = m_hand_drag_world;
+    }
+    if (m_dragging_hand_right) {
+        input.hand_right_drag = true;
+        input.hand_right_pos  = m_hand_drag_world;
+    }
 
     m_core->step(dt, input);
 
@@ -191,38 +211,181 @@ void Application::handleEvent(const SDL_Event& event)
         m_config.camera.zoom = m_camera.getZoom();
     }
 
-    // Left drag → pan
+    // Left-click: hand/foot drag takes priority over camera pan
     if (event.type == SDL_MOUSEBUTTONDOWN
         && event.button.button == SDL_BUTTON_LEFT
         && !io.WantCaptureMouse)
-        m_is_panning = true;
-    if (event.type == SDL_MOUSEBUTTONUP && event.button.button == SDL_BUTTON_LEFT)
-        m_is_panning = false;
-    if (event.type == SDL_MOUSEMOTION && m_is_panning && !io.WantCaptureMouse) {
-        const float dx = m_config.camera.follow_x ? 0.f : static_cast<float>(event.motion.xrel);
-        const float dy = m_config.camera.follow_y ? 0.f : static_cast<float>(event.motion.yrel);
-        if (dx != 0.f || dy != 0.f)
-            m_camera.panByScreenDelta(dx, dy);
+    {
+        int vw = 0, vh = 0;
+        SDL_GetRendererOutputSize(m_renderer, &vw, &vh);
+        m_gaze_target_world = m_camera.screenToWorld(
+            static_cast<float>(event.button.x),
+            static_cast<float>(event.button.y),
+            GROUND_Y, vw, vh);
+
+        const SimState& s = m_core->state();
+        bool grabbed_body_part = false;
+        if (s.character.feet_initialized) {
+            const float mx = static_cast<float>(event.button.x);
+            const float my = static_cast<float>(event.button.y);
+            const SDL_FPoint lh_s = m_camera.worldToScreen(
+                s.character.hand_left.x, s.character.hand_left.y,
+                GROUND_Y, vw, vh);
+            const SDL_FPoint rh_s = m_camera.worldToScreen(
+                s.character.hand_right.x, s.character.hand_right.y,
+                GROUND_Y, vw, vh);
+            const SDL_FPoint lf_s = m_camera.worldToScreen(
+                s.character.foot_left.pos.x, s.character.foot_left.pos.y,
+                GROUND_Y, vw, vh);
+            const SDL_FPoint rf_s = m_camera.worldToScreen(
+                s.character.foot_right.pos.x, s.character.foot_right.pos.y,
+                GROUND_Y, vw, vh);
+            const float dlh = std::sqrt((mx-lh_s.x)*(mx-lh_s.x)+(my-lh_s.y)*(my-lh_s.y));
+            const float drh = std::sqrt((mx-rh_s.x)*(mx-rh_s.x)+(my-rh_s.y)*(my-rh_s.y));
+            const float dl = std::sqrt((mx-lf_s.x)*(mx-lf_s.x)+(my-lf_s.y)*(my-lf_s.y));
+            const float dr = std::sqrt((mx-rf_s.x)*(mx-rf_s.x)+(my-rf_s.y)*(my-rf_s.y));
+            float best_d = HAND_HIT_RADIUS_PX;
+            enum class DragPart { None, HandLeft, HandRight, FootLeft, FootRight };
+            DragPart picked = DragPart::None;
+            if (dlh <= best_d) {
+                best_d = dlh;
+                picked = DragPart::HandLeft;
+            }
+            if (drh <= best_d) {
+                best_d = drh;
+                picked = DragPart::HandRight;
+            }
+            if (dl <= std::min(best_d, FOOT_HIT_RADIUS_PX)) {
+                best_d = dl;
+                picked = DragPart::FootLeft;
+            }
+            if (dr <= std::min(best_d, FOOT_HIT_RADIUS_PX)) {
+                picked = DragPart::FootRight;
+            }
+
+            const Vec2 mouse_world = m_camera.screenToWorld(mx, my, GROUND_Y, vw, vh);
+            if (picked == DragPart::HandLeft) {
+                m_dragging_hand_left = true;
+                m_hand_drag_world = mouse_world;
+                grabbed_body_part = true;
+            } else if (picked == DragPart::HandRight) {
+                m_dragging_hand_right = true;
+                m_hand_drag_world = mouse_world;
+                grabbed_body_part = true;
+            } else if (picked == DragPart::FootLeft) {
+                m_dragging_foot_left = true;
+                m_foot_drag_world = mouse_world;
+                grabbed_body_part = true;
+            } else if (picked == DragPart::FootRight) {
+                m_dragging_foot_right = true;
+                m_foot_drag_world = mouse_world;
+                grabbed_body_part = true;
+            }
+        }
+        if (!grabbed_body_part)
+            m_is_panning = true;
+    }
+    if (event.type == SDL_MOUSEBUTTONUP && event.button.button == SDL_BUTTON_LEFT) {
+        m_is_panning          = false;
+        m_dragging_foot_left  = false;
+        m_dragging_foot_right = false;
+        m_dragging_hand_left  = false;
+        m_dragging_hand_right = false;
+    }
+    if (event.type == SDL_MOUSEMOTION && !io.WantCaptureMouse) {
+        int vw = 0, vh = 0;
+        SDL_GetRendererOutputSize(m_renderer, &vw, &vh);
+        m_gaze_target_world = m_camera.screenToWorld(
+            static_cast<float>(event.motion.x),
+            static_cast<float>(event.motion.y),
+            GROUND_Y, vw, vh);
+        if (m_dragging_foot_left || m_dragging_foot_right) {
+            m_foot_drag_world = m_camera.screenToWorld(
+                static_cast<float>(event.motion.x),
+                static_cast<float>(event.motion.y),
+                GROUND_Y, vw, vh);
+        } else if (m_dragging_hand_left || m_dragging_hand_right) {
+            m_hand_drag_world = m_camera.screenToWorld(
+                static_cast<float>(event.motion.x),
+                static_cast<float>(event.motion.y),
+                GROUND_Y, vw, vh);
+        } else if (m_is_panning) {
+            const float dx = m_config.camera.follow_x ? 0.f : static_cast<float>(event.motion.xrel);
+            const float dy = m_config.camera.follow_y ? 0.f : static_cast<float>(event.motion.yrel);
+            if (dx != 0.f || dy != 0.f)
+                m_camera.panByScreenDelta(dx, dy);
+        }
     }
 
-    // Right drag → set CM velocity
+    // Right-click: pin/unpin hand/foot or drag CM velocity (near CM)
     if (event.type == SDL_MOUSEBUTTONDOWN
         && event.button.button == SDL_BUTTON_RIGHT
         && !io.WantCaptureMouse)
     {
         int vw, vh;
         SDL_GetRendererOutputSize(m_renderer, &vw, &vh);
-        const Vec2& cm_pos = m_core->state().cm.position;
-        const SDL_FPoint cm_s = m_camera.worldToScreen(
-            cm_pos.x, cm_pos.y, GROUND_Y, vw, vh);
         const float mx = static_cast<float>(event.button.x);
         const float my = static_cast<float>(event.button.y);
-        const float d  = std::sqrt((mx - cm_s.x) * (mx - cm_s.x)
-                                 + (my - cm_s.y) * (my - cm_s.y));
-        if (d <= CM_HIT_RADIUS_PX) {
-            m_drag_vel_active = true;
-            m_drag_mouse_x = mx;
-            m_drag_mouse_y = my;
+        const SimState& s = m_core->state();
+
+        bool handled_body_part = false;
+        if (s.character.feet_initialized) {
+            const SDL_FPoint lh_s = m_camera.worldToScreen(
+                s.character.hand_left.x, s.character.hand_left.y, GROUND_Y, vw, vh);
+            const SDL_FPoint rh_s = m_camera.worldToScreen(
+                s.character.hand_right.x, s.character.hand_right.y, GROUND_Y, vw, vh);
+            const SDL_FPoint lf_s = m_camera.worldToScreen(
+                s.character.foot_left.pos.x, s.character.foot_left.pos.y, GROUND_Y, vw, vh);
+            const SDL_FPoint rf_s = m_camera.worldToScreen(
+                s.character.foot_right.pos.x, s.character.foot_right.pos.y, GROUND_Y, vw, vh);
+            const float dlh = std::sqrt((mx-lh_s.x)*(mx-lh_s.x)+(my-lh_s.y)*(my-lh_s.y));
+            const float drh = std::sqrt((mx-rh_s.x)*(mx-rh_s.x)+(my-rh_s.y)*(my-rh_s.y));
+            const float dl = std::sqrt((mx-lf_s.x)*(mx-lf_s.x)+(my-lf_s.y)*(my-lf_s.y));
+            const float dr = std::sqrt((mx-rf_s.x)*(mx-rf_s.x)+(my-rf_s.y)*(my-rf_s.y));
+            float best_d = HAND_HIT_RADIUS_PX;
+            enum class HitPart { None, HandLeft, HandRight, FootLeft, FootRight };
+            HitPart picked = HitPart::None;
+            if (dlh <= best_d) {
+                best_d = dlh;
+                picked = HitPart::HandLeft;
+            }
+            if (drh <= best_d) {
+                best_d = drh;
+                picked = HitPart::HandRight;
+            }
+            if (dl <= std::min(best_d, FOOT_HIT_RADIUS_PX)) {
+                best_d = dl;
+                picked = HitPart::FootLeft;
+            }
+            if (dr <= std::min(best_d, FOOT_HIT_RADIUS_PX)) {
+                picked = HitPart::FootRight;
+            }
+
+            if (picked == HitPart::HandLeft) {
+                m_core->toggleHandPin(true);
+                handled_body_part = true;
+            } else if (picked == HitPart::HandRight) {
+                m_core->toggleHandPin(false);
+                handled_body_part = true;
+            } else if (picked == HitPart::FootLeft) {
+                m_core->toggleFootPin(true);
+                handled_body_part = true;
+            } else if (picked == HitPart::FootRight) {
+                m_core->toggleFootPin(false);
+                handled_body_part = true;
+            }
+        }
+
+        if (!handled_body_part) {
+            const Vec2& cm_pos = s.cm.position;
+            const SDL_FPoint cm_s = m_camera.worldToScreen(
+                cm_pos.x, cm_pos.y, GROUND_Y, vw, vh);
+            const float d = std::sqrt((mx-cm_s.x)*(mx-cm_s.x)+(my-cm_s.y)*(my-cm_s.y));
+            if (d <= CM_HIT_RADIUS_PX) {
+                m_drag_vel_active = true;
+                m_drag_mouse_x = mx;
+                m_drag_mouse_y = my;
+            }
         }
     }
     if (event.type == SDL_MOUSEMOTION && m_drag_vel_active) {
