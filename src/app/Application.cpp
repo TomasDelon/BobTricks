@@ -416,18 +416,23 @@ void Application::render()
 
     const SimState& s = m_core->state();
     const FrameStats stats{ m_current_fps, m_frame_dt_s };
+    const Terrain& terrain = m_core->terrain();
     const AppRequests req = m_debugUI.render(
         stats, m_simLoop, m_config.sim_loop,
         m_camera, m_config.camera,
         m_config.character,
+        m_config.head,
+        m_config.arms,
+        m_config.spline_render,
         m_config.reconstruction,
         s.cm, m_config.cm,
         s.character,
         m_config.standing,
-        m_config.balance,
         m_config.physics,
         m_config.terrain,
-        m_config.walk
+        m_config.terrain_sampling,
+        m_config.walk,
+        terrain
     );
 
     if (req.step_back)          stepBack();
@@ -442,9 +447,9 @@ void Application::render()
                 req.ip_test_cm_x, req.ip_test_cm_vx);
     }
 
-    if (req.sim_loop || req.camera || req.character || req.reconstruction
+    if (req.sim_loop || req.camera || req.character || req.head || req.arms || req.spline || req.reconstruction
         || req.walk
-        || req.cm || req.balance || req.physics || req.terrain) {
+        || req.cm || req.physics || req.terrain) {
         m_config.sim_loop.time_scale = m_simLoop.getTimeScale();
         m_config.camera.zoom         = m_camera.getZoom();
         if (ConfigIO::save(CONFIG_PATH, m_config))
@@ -455,32 +460,35 @@ void Application::render()
 
     ImGui::Render();
 
-    // Smoothed ground ref height — shared by debug overlay and character renderer
-    const Terrain& terrain = m_core->terrain();
-    const double L_r  = m_config.character.body_height_m / 5.0;
-    const double ref_h = GROUND_Y + (terrain.height_at(s.cm.position.x - L_r)
-                                   + terrain.height_at(s.cm.position.x + L_r)) * 0.5;
+    const double ref_h = terrain.height_at(s.cm.position.x);
 
     SDL_SetRenderDrawColor(m_renderer, 18, 18, 18, 255);
     SDL_RenderClear(m_renderer);
 
     m_sceneRenderer.render(m_renderer, m_camera, terrain, GROUND_Y, vw, vh);
 
-    m_debugOverlay.renderBackground(m_renderer, m_camera, s.cm, terrain,
-                                    m_config.character, m_config.cm,
+    m_debugOverlay.renderBackground(m_renderer, m_camera, m_config.cm,
                                     m_trail, m_simLoop.getSimulationTime(),
-                                    GROUND_Y, vw, vh,
-                                    s.character.support);
+                                    GROUND_Y, vw, vh);
 
-    m_characterRenderer.render(m_renderer, m_camera, s.cm, s.character, m_config.cm, GROUND_Y, vw, vh);
+    m_characterRenderer.render(m_renderer, m_camera, s.cm, s.character,
+                               m_config.character, m_config.spline_render,
+                               m_config.reconstruction, m_config.cm,
+                               terrain, GROUND_Y, vw, vh);
 
     m_debugOverlay.renderForeground(m_renderer, m_camera, s.cm,
-                                    m_config.character, m_config.standing, m_config.cm,
-                                    s.character.balance, s.character.step_plan,
-                                    s.character.feet_initialized,
-                                    ref_h, ACCEL_DISPLAY_SCALE,
+                                    s.character,
+                                    m_config.character, m_config.head, m_config.arms, m_config.standing, m_config.cm,
+                                    terrain, m_gaze_target_world, ref_h, ACCEL_DISPLAY_SCALE,
                                     m_drag_vel_active, m_drag_mouse_x, m_drag_mouse_y,
                                     GROUND_Y, vw, vh);
+
+    if (m_config.cm.show_xcom_line && s.character.feet_initialized) {
+        const bool show_target = std::abs(s.cm.velocity.x) > 0.05;
+        m_debugOverlay.renderXCoM(m_renderer, m_camera,
+                                  s.xi, s.xi_target_x, s.xi_trigger, show_target,
+                                  terrain, GROUND_Y, vw, vh);
+    }
 
     ImGui_ImplSDLRenderer2_RenderDrawData(ImGui::GetDrawData(), m_renderer);
     SDL_RenderPresent(m_renderer);

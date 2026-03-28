@@ -1,23 +1,28 @@
 #pragma once
 
 #include "core/runtime/SimulationLoop.h"
+#include "core/terrain/Terrain.h"
 #include "render/Camera2D.h"
 #include "core/character/CMState.h"
 #include "core/character/CharacterState.h"
 #include "config/AppConfig.h"
 
+/** @brief Statistiques de frame injectées dans l'UI de debug. */
 struct FrameStats {
     float current_fps = 0.f;
     float frame_dt_s  = 0.f;
 };
 
+/** @brief Requêtes émises par l'UI vers l'application après un frame ImGui. */
 struct AppRequests {
     bool sim_loop  = false;
     bool camera    = false;
     bool character = false;
+    bool head      = false;
+    bool arms      = false;
+    bool spline    = false;
     bool cm        = false;
     bool walk      = false;
-    bool balance   = false;
     bool physics   = false;
     bool terrain            = false;
     bool regenerate_terrain = false;
@@ -31,37 +36,56 @@ struct AppRequests {
     double ip_test_cm_vx  = 0.0;
 };
 
+/**
+ * @brief Interface ImGui de contrôle et d'inspection du projet.
+ */
 class DebugUI
 {
 public:
+    /** @brief Dessine la fenêtre de debug et retourne les requêtes utilisateur. */
     AppRequests render(const FrameStats&      stats,
                         SimulationLoop&        simLoop,   SimLoopConfig&   simConfig,
                         Camera2D&              camera,    CameraConfig&    camConfig,
                         CharacterConfig&       charConfig,
+                        HeadConfig&            headConfig,
+                        ArmConfig&             armConfig,
+                        SplineRenderConfig&    splineConfig,
                         CharacterReconstructionConfig& reconstructionConfig,
                         const CMState&         cmState,   CMConfig&        cmConfig,
                         const CharacterState&  charState,
                         const StandingConfig&  standConfig,
-                        BalanceConfig&         balConfig,
                         PhysicsConfig&         physConfig,
                         TerrainConfig&         terrainConfig,
-                        WalkConfig&            walkConfig);
+                        TerrainSamplingConfig& terrainSamplingConfig,
+                        WalkConfig&            walkConfig,
+                        const Terrain&         terrain);
 
 private:
     void renderSimLoopPanel  (const FrameStats& stats, SimulationLoop& simLoop,
                               SimLoopConfig& config,   bool& saveRequested, bool& stepBack);
     void renderCameraPanel   (Camera2D& camera, CameraConfig& config, bool& saveRequested);
     void renderCharacterPanel(CharacterConfig& config, const StandingConfig& standConfig, bool& saveRequested);
+    void renderHeadPanel(const CharacterState& charState, HeadConfig& config, bool& saveRequested);
     void renderReconstructionPanel(CharacterReconstructionConfig& config, bool& saveRequested);
-    void renderCMKinematicsPanel(const CMState& state);
-    void renderLocomotionPanel  (const CharacterState& charState, WalkConfig& walkConfig,
-                                 bool& saveRequested);
+    void renderTorsoPanel(const CharacterState& charState, const CharacterConfig& charConfig,
+                          CharacterReconstructionConfig& reconstructionConfig,
+                          const Terrain& terrain, bool& saveRequested);
+    void renderLegsPanel(const CharacterState& charState, CharacterConfig& charConfig,
+                         CMConfig& cmConfig, bool& saveRequested);
+    void renderArmsPanel     (ArmConfig& config, bool& saveRequested);
+    void renderSplinePanel   (SplineRenderConfig& config, bool& saveRequested);
+    void renderCMKinematicsPanel(const CMState& state, CMConfig& config, bool& saveRequested, bool& clearTrail);
+    void renderLocomotionPanel  (const CMState& cmState, const CharacterState& charState,
+                                 const CharacterConfig& charConfig,
+                                 const CharacterReconstructionConfig& reconstructionConfig,
+                                 const Terrain& terrain,
+                                 WalkConfig& walkConfig, bool& saveRequested);
     void renderBalancePanel     (const CMState& cmState, const CharacterState& charState,
                                  const CharacterConfig& charConfig, const StandingConfig& standConfig,
-                                 BalanceConfig& balConfig, bool& saveBalance);
-    void renderCMVisualizationPanel(CMConfig& config, bool& saveRequested, bool& clearTrail);
+                                 CMConfig& cmConfig, bool& saveRequested);
     void renderPhysicsPanel (PhysicsConfig& config,  bool& saveRequested);
-    void renderTerrainPanel (TerrainConfig& config,  bool& saveRequested, bool& regenerateRequested);
+    void renderTerrainPanel        (TerrainConfig& config,         bool& saveRequested, bool& regenerateRequested);
+    void renderTerrainSamplingPanel(TerrainSamplingConfig& config, CMConfig& cmConfig, bool& saveRequested);
     void renderIPTestPanel  (const CMState& cmState, const CharacterState& charState,
                              const CharacterConfig& charConfig, const StandingConfig& standConfig,
                              const PhysicsConfig& physConfig, SimulationLoop& simLoop,
