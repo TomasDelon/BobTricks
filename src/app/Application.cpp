@@ -286,7 +286,7 @@ void Application::handleEvent(const SDL_Event& event)
             m_is_panning = true;
     }
     if (event.type == SDL_MOUSEBUTTONUP && event.button.button == SDL_BUTTON_LEFT) {
-        m_is_panning          = false;
+        m_is_panning         = false;
         m_dragging_foot_left  = false;
         m_dragging_foot_right = false;
         m_dragging_hand_left  = false;
@@ -483,11 +483,12 @@ void Application::render()
                                     m_drag_vel_active, m_drag_mouse_x, m_drag_mouse_y,
                                     GROUND_Y, vw, vh);
 
+    // XCoM (ξ) + step target — shown when show_xcom_line is on and feet exist
     if (m_config.cm.show_xcom_line && s.character.feet_initialized) {
         const bool show_target = std::abs(s.cm.velocity.x) > 0.05;
         m_debugOverlay.renderXCoM(m_renderer, m_camera,
-                                  s.xi, s.xi_target_x, s.xi_trigger, show_target,
-                                  terrain, GROUND_Y, vw, vh);
+                                   s.xi, s.xi_target_x, s.xi_trigger, show_target,
+                                   terrain, GROUND_Y, vw, vh);
     }
 
     ImGui_ImplSDLRenderer2_RenderDrawData(ImGui::GetDrawData(), m_renderer);

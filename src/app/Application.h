@@ -67,7 +67,7 @@ private:
     std::optional<Vec2> m_pending_set_velocity;  // consumed once in stepSimulation()
     std::optional<Vec2> m_gaze_target_world;
 
-    // Left-click drag → move foot/hand (world-space target updated on motion)
+    // Left-click drag → move foot (world-space target updated on motion)
     bool m_dragging_foot_left  = false;
     bool m_dragging_foot_right = false;
     Vec2 m_foot_drag_world     = {0.0, 0.0};
