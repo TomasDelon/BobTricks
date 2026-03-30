@@ -6,5 +6,6 @@ analysis/*
 !analysis/*.cpp
 !analysis/*.md
 imgui.ini
+CLAUDE.md
 *.swp
 .DS_Store
