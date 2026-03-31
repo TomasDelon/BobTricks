@@ -822,9 +822,9 @@ void DebugUI::renderLegsPanel(const CharacterState& charState,
 }
 
 void DebugUI::renderLocomotionPanel(const CMState& /*cmState*/, const CharacterState& charState,
-                                    const CharacterConfig& charConfig,
+                                    const CharacterConfig& /*charConfig*/,
                                     const CharacterReconstructionConfig& /*reconstructionConfig*/,
-                                    const Terrain& terrain,
+                                    const Terrain& /*terrain*/,
                                     WalkConfig& walkConfig, bool& saveRequested)
 {
     if (!ImGui::CollapsingHeader("Locomotion", ImGuiTreeNodeFlags_None))
