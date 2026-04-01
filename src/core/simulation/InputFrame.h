@@ -7,26 +7,34 @@
  * @brief Entrées consommées par `SimulationCore` pendant un pas fixe.
  */
 struct InputFrame {
+    /** @brief Demande d'accélération horizontale vers la gauche. */
     bool key_left  = false;
+    /** @brief Demande d'accélération horizontale vers la droite. */
     bool key_right = false;
+    /** @brief Demande de saut pour le pas fixe courant. */
     bool jump      = false;
 
-    // Right-drag: overrides CM velocity at start of step.
+    /** @brief Vitesse du CM imposée au début du pas, via drag droit. */
     std::optional<Vec2> set_velocity;
 
-    // Optional world-space gaze target used by upper-body kinematics.
+    /** @brief Cible monde optionnelle utilisée par la cinématique de regard. */
     std::optional<Vec2> gaze_target_world;
 
-    // Left-drag: drag feet to a world position.
-    // SimulationCore applies the circle constraint after positioning.
+    /** @brief Active le drag du pied gauche vers une cible monde. */
     bool              foot_left_drag  = false;
-    Vec2              foot_left_pos   = {0.0, 0.0};   // world target
+    /** @brief Cible monde du drag du pied gauche. */
+    Vec2              foot_left_pos   = {0.0, 0.0};
+    /** @brief Active le drag du pied droit vers une cible monde. */
     bool              foot_right_drag = false;
-    Vec2              foot_right_pos  = {0.0, 0.0};   // world target
+    /** @brief Cible monde du drag du pied droit. */
+    Vec2              foot_right_pos  = {0.0, 0.0};
 
-    // Left-drag: override hand IK target to a world position.
+    /** @brief Active le drag de la main gauche vers une cible monde. */
     bool              hand_left_drag  = false;
-    Vec2              hand_left_pos   = {0.0, 0.0};   // world target
+    /** @brief Cible monde du drag de la main gauche. */
+    Vec2              hand_left_pos   = {0.0, 0.0};
+    /** @brief Active le drag de la main droite vers une cible monde. */
     bool              hand_right_drag = false;
-    Vec2              hand_right_pos  = {0.0, 0.0};   // world target
+    /** @brief Cible monde du drag de la main droite. */
+    Vec2              hand_right_pos  = {0.0, 0.0};
 };
