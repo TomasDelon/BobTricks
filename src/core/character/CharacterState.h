@@ -13,6 +13,10 @@ enum class LocomotionState { Standing, Walking, Airborne };
  *
  * Cette structure rassemble la pose visualisable, les états des membres, les
  * filtres persistants et plusieurs champs de debug/telemetry.
+ *
+ * Les champs de pose sont recalculés à chaque pas fixe. Les champs de debug
+ * persistent assez longtemps pour être lus par l'UI, l'overlay et la
+ * télémétrie headless.
  */
 struct CharacterState {
     LocomotionState locomotion_state = LocomotionState::Standing;
@@ -81,6 +85,13 @@ struct CharacterState {
 
 /**
  * @brief Reconstruit la pose du tronc à partir de l'état du centre de masse.
+ * @param character       État du personnage à mettre à jour.
+ * @param cm              État du centre de masse courant.
+ * @param config          Paramètres morphologiques globaux.
+ * @param reconstruction  Paramètres de reconstruction du tronc.
+ * @param on_floor        Indique si le centre de masse est considéré au sol.
+ * @param dt              Pas fixe courant.
+ * @param terrain_slope   Pente locale du terrain sous le personnage.
  */
 void updateCharacterState(CharacterState&       character,
                           const CMState&        cm,

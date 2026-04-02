@@ -18,6 +18,14 @@ struct ArmPose {
  *
  * La préférence de pliage et, si disponible, le coude précédent servent à
  * stabiliser le choix entre les deux branches géométriques.
+ * @param target          Cible monde visée par la main.
+ * @param upper_len       Longueur du segment épaule-coude.
+ * @param fore_len        Longueur du segment coude-main.
+ * @param shoulder        Point d'ancrage du bras sur le torse.
+ * @param bend_preference Direction privilégiée pour le pliage du coude.
+ * @param previous_elbow  Position précédente du coude pour stabiliser la branche.
+ * @param pose            Résultat cinématique rempli par la fonction.
+ * @return `true` si la cible a été atteinte sans saturation géométrique.
  */
 bool solveTwoBoneArm(Vec2 target,
                      double upper_len,
@@ -27,7 +35,12 @@ bool solveTwoBoneArm(Vec2 target,
                      const std::optional<Vec2>& previous_elbow,
                      ArmPose& pose);
 
-/** @brief Met à jour les bras dérivés du personnage. */
+/**
+ * @brief Met à jour les bras dérivés du personnage.
+ *
+ * Cette fonction applique la trajectoire de marche, les targets drag/pin et
+ * résout ensuite l'IK de chaque bras.
+ */
 void updateArmState(CharacterState& ch,
                     const CMState& cm,
                     const CharacterConfig& char_config,
