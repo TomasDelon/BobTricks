@@ -15,14 +15,23 @@ struct FrameStats {
 
 /** @brief Requêtes émises par l'UI vers l'application après un frame ImGui. */
 struct AppRequests {
+    /** @brief Sauvegarde demandée pour la boucle de simulation. */
     bool sim_loop  = false;
+    /** @brief Sauvegarde demandée pour la caméra. */
     bool camera    = false;
+    /** @brief Sauvegarde demandée pour les caractéristiques globales du personnage. */
     bool character = false;
+    /** @brief Sauvegarde demandée pour les paramètres de tête. */
     bool head      = false;
+    /** @brief Sauvegarde demandée pour les paramètres de bras. */
     bool arms      = false;
+    /** @brief Sauvegarde demandée pour le renderer spline. */
     bool spline    = false;
+    /** @brief Sauvegarde demandée pour les paramètres de CM. */
     bool cm        = false;
+    /** @brief Sauvegarde demandée pour la locomotion. */
     bool walk      = false;
+    /** @brief Sauvegarde demandée pour la physique. */
     bool physics   = false;
     bool terrain            = false;
     bool regenerate_terrain = false;
@@ -42,7 +51,10 @@ struct AppRequests {
 class DebugUI
 {
 public:
-    /** @brief Dessine la fenêtre de debug et retourne les requêtes utilisateur. */
+    /**
+     * @brief Dessine la fenêtre de debug et retourne les requêtes utilisateur.
+     * @return Ensemble des actions demandées par l'utilisateur pendant ce frame.
+     */
     AppRequests render(const FrameStats&      stats,
                         SimulationLoop&        simLoop,   SimLoopConfig&   simConfig,
                         Camera2D&              camera,    CameraConfig&    camConfig,
@@ -61,25 +73,37 @@ public:
                         const Terrain&         terrain);
 
 private:
+    /** @brief Construit le panel de la boucle de simulation et du step-back. */
     void renderSimLoopPanel  (const FrameStats& stats, SimulationLoop& simLoop,
                               SimLoopConfig& config,   bool& saveRequested, bool& stepBack);
+    /** @brief Construit le panel caméra. */
     void renderCameraPanel   (Camera2D& camera, CameraConfig& config, bool& saveRequested);
+    /** @brief Construit le panel des caractéristiques globales du personnage. */
     void renderCharacterPanel(CharacterConfig& config, const StandingConfig& standConfig, bool& saveRequested);
+    /** @brief Construit le panel tête et regard. */
     void renderHeadPanel(const CharacterState& charState, HeadConfig& config, bool& saveRequested);
+    /** @brief Construit le panel de reconstruction du tronc. */
     void renderReconstructionPanel(CharacterReconstructionConfig& config, bool& saveRequested);
+    /** @brief Construit le panel torse et inclinaisons. */
     void renderTorsoPanel(const CharacterState& charState, const CharacterConfig& charConfig,
                           CharacterReconstructionConfig& reconstructionConfig,
                           const Terrain& terrain, bool& saveRequested);
+    /** @brief Construit le panel jambes et overlays associés. */
     void renderLegsPanel(const CharacterState& charState, CharacterConfig& charConfig,
                          CMConfig& cmConfig, bool& saveRequested);
+    /** @brief Construit le panel bras et trajectoires de main. */
     void renderArmsPanel     (ArmConfig& config, bool& saveRequested);
+    /** @brief Construit le panel du renderer spline. */
     void renderSplinePanel   (SplineRenderConfig& config, bool& saveRequested);
+    /** @brief Construit le panel cinématique du centre de masse. */
     void renderCMKinematicsPanel(const CMState& state, CMConfig& config, bool& saveRequested, bool& clearTrail);
+    /** @brief Construit le panel locomotion et déclenchement des pas. */
     void renderLocomotionPanel  (const CMState& cmState, const CharacterState& charState,
                                  const CharacterConfig& charConfig,
                                  const CharacterReconstructionConfig& reconstructionConfig,
                                  const Terrain& terrain,
                                  WalkConfig& walkConfig, bool& saveRequested);
+    /** @brief Construit le panel d'analyse de balance/XCoM. */
     void renderBalancePanel     (const CMState& cmState, const CharacterState& charState,
                                  const CharacterConfig& charConfig, const StandingConfig& standConfig,
                                  CMConfig& cmConfig, bool& saveRequested);
