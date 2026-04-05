@@ -60,6 +60,7 @@ Le README sera mis à jour dès que ces cibles Makefile existeront réellement.
 - `doc/VISION.md` — scope, régimes locomoteurs, critères de complétude
 - `doc/STATE_MODEL.md` — état autoritatif, invariants, reset
 - `doc/LOCOMOTION_SPEC.md` — spécification technique par régime
+- `doc/WALKING_REDESIGN_PLAN.md` — plan détaillé de refonte du walking
 - `doc/TESTING_AND_VALIDATION.md` — types de tests, commandes, format des scénarios
 - `doc/ROADMAP_locomotion.md` — état d'avancement des phases de locomotion
 - `doc/CONTRIBUTING.md` — workflow minimal avant commit/push
