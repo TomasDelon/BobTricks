@@ -2,6 +2,9 @@
 
 #include <cmath>
 
+/**
+ * @brief Vecteur 2D minimal utilisé dans tout le noyau.
+ */
 struct Vec2 {
     double x = 0.0;
     double y = 0.0;

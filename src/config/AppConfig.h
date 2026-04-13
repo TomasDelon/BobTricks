@@ -1,14 +1,18 @@
 #pragma once
 
-// Root config — one sub-struct per subsystem.
-// Loaded from / saved to data/config.ini at startup/on demand.
+/**
+ * @file AppConfig.h
+ * @brief Structures de configuration persistées dans `data/config.ini`.
+ */
 
+/** @brief Paramètres de la boucle de simulation fixe. */
 struct SimLoopConfig {
     int    max_fps    = 60;
     double fixed_dt_s = 1.0 / 60.0;
     double time_scale = 1.0;
 };
 
+/** @brief Paramètres de suivi et de zoom de la caméra 2D. */
 struct CameraConfig {
     double zoom       = 1.0;
     bool   follow_x   = true;
@@ -17,21 +21,69 @@ struct CameraConfig {
     double smooth_y   = 0.0;
 };
 
+/** @brief Paramètres morphologiques globaux du personnage. */
 struct CharacterConfig {
     double body_height_m   = 1.80;  // H
-    double body_mass_kg    = 60.0;
-    double cm_pelvis_ratio = 0.75;  // cm is this many L above pelvis, range [0.60, 0.85]
-    // derived (not stored): L = H/5,  cm_nominal_height = (2 + ratio) * L
+    double cm_pelvis_ratio = 0.75;  // CM is this many L above pelvis, range [0.60, 0.85]
+    bool   show_pelvis_reach_disk = true;
+    // derived (not stored): L = H/5,  h_nominal = computeNominalY(L, d_pref, ratio)
 };
 
+/** @brief Paramètres de reconstruction du buste à partir de l'état du CM. */
 struct CharacterReconstructionConfig {
-    double facing_tau    = 0.12;  // s    — facing_vel filter time constant
-    double facing_eps    = 0.10;  // m/s  — deadzone to freeze facing flip
-    double walk_eps      = 0.10;  // m/s  — threshold Standing ↔ Walking
-    double theta_max_deg = 10.0;  // °    — max pelvis lean at high speed
-    double v_ref         = 1.20;  // m/s  — tanh half-saturation speed
+    double facing_eps        = 0.10;  // m/s  — deadzone to freeze facing flip
+    double walk_eps          = 0.10;  // m/s  — threshold Standing ↔ Walking
+    double theta_max_deg     =  6.0;  // °    — max lean angle at high speed
+    double v_ref             = 1.50;  // m/s  — tanh half-saturation speed for lean
+    double tau_lean          = 0.15;  // s    — lean angle filter time constant
+    double tau_slope         = 0.10;  // s    — terrain slope low-pass filter
+    double slope_lean_factor = 0.25;  // [-]  fraction of slope that transfers to body tilt
 };
 
+/** @brief Paramètres cinématiques et debug de la tête. */
+struct HeadConfig {
+    double center_offset_L  = 0.50;  // [×L] torso_top -> head center distance
+    double radius_L         = 0.50;  // [×L] head radius
+    double eye_height_ratio = 0.72;  // [0-1] eye line from bottom of head
+    double eye_spacing      = 0.35;  // [×radius] half-spacing between eyes
+    double max_tilt_deg     = 25.0;  // [deg] max head tilt toward gaze
+    double tau_tilt         = 0.12;  // [s] low-pass time constant
+    bool   show_eye_marker  = true;
+    bool   show_gaze_ray    = true;
+    bool   show_gaze_target = true;
+};
+
+/** @brief Paramètres cinématiques et debug des bras. */
+struct ArmConfig {
+    double upper_arm_L                    = 1.00;   // [×L] torso_top to elbow length
+    double fore_arm_L                     = 1.00;   // [×L] elbow to hand length
+    double walk_hand_reach_reduction_L    = 0.40;   // [×L] retract hand target from the 2L circle while walking
+    double walk_front_hand_start_deg      = -20.0;  // [deg] front-hand arc start angle in torso local frame
+    double walk_front_hand_end_deg        = -65.0;  // [deg] front-hand arc end angle in torso local frame
+    double walk_back_hand_start_deg       = -115.0; // [deg] back-hand arc start angle in torso local frame
+    double walk_back_hand_end_deg         = -165.0; // [deg] back-hand arc end angle in torso local frame
+    double walk_hand_phase_speed_scale    = 0.50;   // [-] fraction of step_speed used as hand cycle Hz
+    double walk_hand_speed_arc_gain       = 0.35;   // [-] how much low speed shrinks hand arc amplitude
+    double walk_hand_phase_response       = 10.0;   // [s^-1] how quickly swing angular velocity follows walking intent
+    double walk_hand_phase_friction       = 3.5;    // [s^-1] angular damping applied after releasing walking input
+
+    bool   show_debug_reach_circles       = false;
+    bool   show_debug_swing_points        = false;
+    bool   show_debug_swing_arcs          = false;
+};
+
+/** @brief Paramètres du renderer spline expérimental. */
+struct SplineRenderConfig {
+    bool   enabled              = false;
+    bool   draw_under_legacy    = false;
+    float  stroke_width_px      = 8.0f;
+    int    samples_per_curve    = 24;
+    bool   show_test_curve      = true;
+    bool   show_control_polygon = false;
+    bool   show_sample_points   = false;
+};
+
+/** @brief Paramètres d'affichage et d'overlay liés au centre de masse. */
 struct CMConfig {
     bool show_ground_reference   = true;
     bool show_projection_line    = true;
@@ -46,109 +98,126 @@ struct CMConfig {
     // Extra debug overlays
     bool show_xcom_line           = true;   // vertical magenta line at XCoM
     bool show_support_line        = true;   // horizontal segment between planted feet
-    bool show_planted_feet_color  = true;   // feet turn orange when planted
 };
 
+/** @brief Fenêtre d'échantillonnage du terrain utilisée pour la référence de sol. */
+struct TerrainSamplingConfig {
+    double w_back    = 0.5;   // [×L]  fixed backward sample distance
+    double w_fwd     = 0.5;   // [×L]  base forward sample distance
+    double t_look    = 0.20;  // [s]   velocity lookahead added to forward window
+    double tau_slide = 0.12;  // [s]   time constant for endpoint sliding (exp lag)
+};
+
+/** @brief Paramètres physiques du noyau de locomotion. */
 struct PhysicsConfig {
-    bool   gravity_enabled        = true;
-    double gravity                = 9.81;  // m/s²
+    bool   gravity_enabled  = true;
+    double gravity          = 9.81;   // m/s²
 
-    bool   air_friction_enabled   = false;
-    double air_friction           = 0.5;   // linear drag coefficient (s⁻¹)
+    // Horizontal locomotion (stickman3-style kinematic model)
+    double accel            =  6.0;   // m/s²  — horizontal acceleration while key held
+    double walk_max_speed   =  1.5;   // m/s   — maximum walking speed cap
+    double floor_friction   =  4.0;   // s⁻¹   — vel *= (1 - friction*dt) when not accelerating
+    double hold_speed       =  0.4;   // m/s   — below this, slope gravity is suppressed at rest
+    double stop_speed       =  0.05;  // m/s   — below this velocity snaps to zero (deadzone)
 
-    bool   floor_friction_enabled = true;
-    double floor_friction         = 4.0;   // viscous floor damping (s⁻¹)
+    // Vertical tracking — tanh-based nonlinear soft constraint
+    bool   spring_enabled = true;   // toggle vertical tracking
+    double vy_max         =  2.0;   // m/s   — max vertical correction speed (asymptote)
+    double d_soft         =  0.15;  // m     — half-saturation distance (knee of tanh)
+    double vy_tau         = 20.0;   // s⁻¹   — how fast vy adapts to vy_want
 
-    // Leg spring — vertical spring-damper keeping CM at nominal height
-    bool   spring_enabled         = true;
-    double spring_stiffness       = 200.0; // s⁻²  (acc per meter of compression)
-    double spring_damping         = 20.0;  // s⁻¹  (acc per m/s of velocity)
-
-    // Locomotion input
-    double move_force             =  4.0;  // m/s²  horizontal acceleration (Q/D keys)
-                                          //       terminal_v = move_force / floor_friction = 1 m/s
-    double jump_impulse           = 5.5;   // m/s   upward velocity on jump (Z key)
+    double jump_impulse     =  5.5;   // m/s   — upward velocity on jump (Z key)
 };
 
-// Procedural terrain: random angle-walk (inspired by stickman2).
-// Each step chooses a random length and angle change; soft height bounds
-// keep the terrain from drifting too far.  height_at(x) returns an offset
-// above GROUND_Y (0 when disabled or outside generated range).
+/** @brief Paramètres de génération du terrain procédural. */
 struct TerrainConfig {
     bool   enabled     = false;
     int    seed        = 42;
-    double seg_min     = 4.0;   // m — min segment length
-    double seg_max     = 14.0;  // m — max segment length
-    double angle_small = 8.0;   // ° — max change for a small step (high freq)
-    double angle_large = 20.0;  // ° — max change for a large step (low freq)
-    double large_prob  = 0.25;  // probability of choosing a large step
-    double slope_max   = 25.0;  // ° — absolute angle clamp
-    double height_min  = -2.0;  // m — soft lower bound
-    double height_max  =  3.0;  // m — soft upper bound
+    double seg_min     = 4.0;   // m
+    double seg_max     = 14.0;  // m
+    double angle_small = 8.0;   // °
+    double angle_large = 20.0;  // °
+    double large_prob  = 0.25;
+    double slope_max   = 25.0;  // °
+    double height_min  = -2.0;  // m
+    double height_max  =  3.0;  // m
 };
 
-// Standing pose geometry.
-// Values marked [×L] are dimensionless ratios; multiply by L = H/5 at runtime.
-// Values marked [m/s] or [s] are in SI units directly.
+/** @brief Paramètres géométriques du régime debout. */
 struct StandingConfig {
-    double d_pref   = 0.90;  // [×L] preferred foot separation
-    double d_min    = 0.75;  // [×L] minimum foot separation
-    double d_max    = 1.20;  // [×L] maximum foot separation
-    double k_leg    = 0.90;  // [-]  leg extension ratio ∈ (0,1]; r = 2L*k_leg
-    double eps_v    = 0.15;  // [m/s] max |vx| for standing validity
-    double k_crouch = 0.15;  // [×L] CM drop for recovery crouch
+    double d_pref          = 0.90;  // [×L] preferred foot separation
+    double d_min           = 0.75;  // [×L] minimum foot separation
+    double d_max           = 1.20;  // [×L] maximum foot separation
+    double eps_v           = 0.15;  // [m/s] max |vx| for standing validity
+    double delta_support   = 0.20;  // [×L] support degradation band
+    double k_ankle_factor  = 0.50;  // [-]  abstract ankle torque factor
 };
 
-// Balance metric (XCoM / Hof 2008).
-struct BalanceConfig {
-    double h_ref_override     = -1.0;   // [m]  use auto (from geometry) if < 0
-    double mos_step_threshold =  0.0;   // [×L] MoS below this triggers a step (0 = at boundary)
-};
-
-// Swing foot trajectory.
+/** @brief Paramètres du profil de levée du pied en swing. */
 struct StepConfig {
-    double h_clear_ratio    = 0.10;  // [×L] peak clearance of swing arc
-    double T_min            = 0.18;  // [s]  minimum swing duration
-    double T_max            = 0.30;  // [s]  maximum swing duration
-    double dist_coeff       = 0.20;  // [s]  duration growth per (dist/L) unit
-    // Recovery steps may use a wider separation than comfortable standing allows.
-    double d_max_correction = 1.80;  // [×L] max foot separation for corrective step
-    // CM vertical bobbing during swing.
-    // Amplitude = k_bob * L * tanh(|vx| / v_ref_bob), applied as sin(π·φ) offset
-    // to the spring target — rises at mid-swing (φ=0.5), zero at toe-off/heel-strike.
-    double k_bob     = 0.10;  // [×L] max bob amplitude ratio
-    double v_ref_bob = 1.00;  // [m/s] speed at which bob reaches 76% of max
+    double h_clear_ratio = 0.40;  // [×L] peak height of swing arc above takeoff-landing midline
 };
 
-// Walking trigger and foot placement.
-// All distances in [×L] units (multiply by L = H/5 at runtime).
+/** @brief Paramètres de la marche et du déclenchement des pas. */
 struct WalkConfig {
-    // Trigger: step fires when rear foot is this many L behind the pelvis.
-    // Must be > d_pref/2 = 0.45 to avoid firing at rest. Validated: 0.45 < 0.70. ✓
-    double k_trigger = 0.70;  // [×L]
+    // Step trigger (window-based, stickman3-style)
+    double eps_step    = 0.15;  // [m/s]  minimum speed for a step to fire
+    double xcom_scale  = 0.5;   // [0-1]  scales v/ω₀ in ξ = x_cm + α·v/ω₀ (1=full capture point, 0=no lookahead)
+    double d_rear_max  = 1.5;   // [×L]   max distance rear foot may lag behind pelvis before forcing a step
+    double max_step_L  = 2.0;   // [×L]   max step length measured from stance foot to landing foot
 
-    // Target: swing foot lands k_step*L + |v_x|*T_ant ahead of the CM.
-    // Placing the target relative to CM (not stance foot) avoids leg-reach infeasibility.
-    double k_step    = 0.90;  // [×L] base step reach ahead of CM
-    double T_ant     = 0.15;  // [s]  velocity look-ahead added to the landing target
+    // Swing animation
+    double step_speed = 5.5;  // [steps/s]  swing_t advances at this rate per second
 
-    // Rule 3 — IK reach violation trigger.
-    // Fires when the planted rear foot exceeds this absolute distance beyond
-    // max IK reach (2L).  Calibrated above walking noise floor (~0.03 m) and
-    // below the first visible artefact (~0.05 m).
-    double reach_margin = 0.04;  // [m]
+    // Foot target — dynamic per-frame planning
+    double stability_margin = 1.5;  // [×L]  foot lands this far ahead of xi (ξ)
+
+
+    // CoM vertical bob — inverted pendulum arc model
+    // At mid-stance (CM over foot): y_cm = y_foot + R_bob
+    // R_bob = (2 − leg_flex_coeff + cm_pelvis_ratio) · L
+    //   → pelvis-to-foot at mid-stance = (2 − leg_flex_coeff) · L
+    // bob_scale amplifies the descent away from that peak.
+    // bob_amp caps the maximum drop (hard limit on how far the CM dips).
+    double leg_flex_coeff = 0.05;  // [×L] knee bend at mid-stance (0=fully ext, 0.1=10% bent)
+    double bob_scale      = 3.0;   // [×]  IP arc deviation multiplier (0=flat, >1=expressive)
+    double bob_amp        = 0.15;  // [×L] max drop cap below R_bob
+
+    // Swing foot lift — computed dynamically at step initiation
+    // h_clear = h_clear_ratio*L  +  h_clear_slope*L*step_slope  +  h_clear_speed*L*(|vx|/vmax)
+    // h_clear_ratio is in StepConfig (base lift, already exists).
+    // On downhill, step_slope < 0 → h_clear decreases. Floor: h_clear_min * L.
+    double h_clear_slope_factor = 0.50;  // [×L per unit slope] extra lift going uphill
+    double h_clear_speed_factor = 0.10;  // [×L at vmax]        extra lift at full speed
+    double h_clear_min_ratio    = 0.05;  // [×L]                minimum foot lift (anti-drag)
+
+    // Double support: minimum time both feet stay grounded after heel-strike
+    double double_support_time = 0.06;  // [s] cooldown after heel-strike before next step fires
+
+    // CoM height adjustments
+    double cm_height_offset = 0.0;   // [m]   direct height offset (+ = taller, - = shorter)
+    double max_speed_drop   = 0.15;  // [×L]  max CM drop at walk_max_speed (speed-dependent crouch)
+    double max_slope_drop   = 0.20;  // [×L]  max CM drop at uphill_angle_deg slope
+    double downhill_crouch_max = 0.35;  // [×L] extra CoM drop when descending
+    double downhill_crouch_tau = 0.25;  // [s]  crouch engage time constant
+    double downhill_relax_tau  = 0.45;  // [s]  crouch release time constant
+    double downhill_step_bonus = 0.35;  // [×L] extra step length / margin while crouched
 };
 
+/** @brief Agrégat racine de toute la configuration de l'application. */
 struct AppConfig {
     SimLoopConfig                 sim_loop;
     CameraConfig                  camera;
     CharacterConfig               character;
     CharacterReconstructionConfig reconstruction;
+    HeadConfig                    head;
+    ArmConfig                     arms;
+    SplineRenderConfig            spline_render;
     CMConfig                      cm;
     PhysicsConfig                 physics;
     TerrainConfig                 terrain;
+    TerrainSamplingConfig         terrain_sampling;
     StandingConfig                standing;
-    BalanceConfig                 balance;
     StepConfig                    step;
     WalkConfig                    walk;
 };

@@ -6,16 +6,20 @@
 
 #include <cstdint>
 
-// Complete snapshot of simulation state at one point in time.
-// Read-only outside SimulationCore — renderers and telemetry observe this.
+/** @brief Instantané complet de l'état de simulation à un instant donné. */
 struct SimState {
     CMState        cm;
     CharacterState character;
     double         sim_time = 0.0;
+
+    // XCoM (ξ = x_cm + α·v/ω₀) — computed in SimulationCore::step, cached here
+    // so renderers don't need to recompute with potentially stale config values.
+    double xi            = 0.0;
+    double xi_target_x   = 0.0;   // ξ + facing × margin × L (foot landing target)
+    bool   xi_trigger    = false;  // ξ crossed the front foot (step needed)
 };
 
-// Initial conditions for reset() / headless scenario start.
-// Feet are always bootstrapped on the first step() after reset().
+/** @brief Conditions initiales utilisées par `reset()` et les scénarios headless. */
 struct ScenarioInit {
     Vec2     cm_pos       = {0.0, 0.0};
     Vec2     cm_vel       = {0.0, 0.0};

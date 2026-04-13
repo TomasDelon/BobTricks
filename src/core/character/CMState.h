@@ -2,8 +2,7 @@
 
 #include "core/math/Vec2.h"
 
-// Runtime state of the Center of Mass.
-// Position and velocity in world units (m, m/s).
+/** @brief État cinématique courant du centre de masse. */
 struct CMState {
     Vec2 position     = {0.0, 0.0};
     Vec2 velocity     = {0.0, 0.0};

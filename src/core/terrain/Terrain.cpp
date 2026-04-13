@@ -8,6 +8,38 @@ static constexpr double WORLD_X_MIN = -300.0;
 static constexpr double WORLD_X_MAX =  300.0;
 static constexpr double DEG_TO_RAD  = 3.14159265358979323846 / 180.0;
 
+namespace {
+
+struct TerrainSegment {
+    Vec2 a;
+    Vec2 b;
+};
+
+TerrainSegment findSegment(const std::vector<Vec2>& verts, double x)
+{
+    if (verts.size() < 2) return {};
+
+    const auto it = std::lower_bound(
+        verts.begin(), verts.end(), x,
+        [](const Vec2& v, double val) { return v.x < val; });
+
+    if (it == verts.end()) {
+        return {verts[verts.size() - 2], verts.back()};
+    }
+    if (it == verts.begin()) {
+        return {verts.front(), verts[1]};
+    }
+    return {*std::prev(it), *it};
+}
+
+Vec2 normalizeOrFallback(Vec2 v, Vec2 fallback)
+{
+    const double len = v.length();
+    return (len > 1e-9) ? (v / len) : fallback;
+}
+
+}  // namespace
+
 Terrain::Terrain(const TerrainConfig& config)
     : m_config(config)
 {}
@@ -58,16 +90,33 @@ double Terrain::height_at(double x) const
 {
     if (!m_config.enabled || m_verts.size() < 2) return 0.0;
 
-    // Binary search for the first vertex with v.x >= x
-    const auto it = std::lower_bound(
-        m_verts.begin(), m_verts.end(), x,
-        [](const Vec2& v, double val) { return v.x < val; });
-
-    if (it == m_verts.end())   return m_verts.back().y;
-    if (it == m_verts.begin()) return m_verts.front().y;
-
-    const Vec2& b = *it;
-    const Vec2& a = *std::prev(it);
+    const TerrainSegment seg = findSegment(m_verts, x);
+    const Vec2& a = seg.a;
+    const Vec2& b = seg.b;
     const double t = (x - a.x) / (b.x - a.x);
     return a.y + t * (b.y - a.y);
+}
+
+double Terrain::slope_at(double x) const
+{
+    if (!m_config.enabled || m_verts.size() < 2) return 0.0;
+
+    const TerrainSegment seg = findSegment(m_verts, x);
+    const double dx = seg.b.x - seg.a.x;
+    if (std::abs(dx) <= 1e-9) return 0.0;
+    return (seg.b.y - seg.a.y) / dx;
+}
+
+Vec2 Terrain::tangent_at(double x) const
+{
+    if (!m_config.enabled || m_verts.size() < 2) return {1.0, 0.0};
+
+    const TerrainSegment seg = findSegment(m_verts, x);
+    return normalizeOrFallback(seg.b - seg.a, {1.0, 0.0});
+}
+
+Vec2 Terrain::normal_at(double x) const
+{
+    const Vec2 t = tangent_at(x);
+    return {-t.y, t.x};
 }

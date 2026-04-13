@@ -7,24 +7,13 @@
 
 #include <optional>
 
-// Returns the y-coordinate that the CM should converge to in standing pose,
-// or nullopt if the foot separation makes standing geometry impossible (d/2 >= 2L).
-//
-// Geometry (ROADMAP §2.1):
-//   L        = body_height_m / 5
-//   r        = 2*L                   (full leg reach — same basis as computeNominalY)
-//   d        = support.width()
-//   h_pelvis = sqrt(r² - (d/2)²)
-//   y_CM     = ground_center + h_pelvis + cm_pelvis_ratio * L
-//
-// Returns nullopt when d/2 >= 2L — physically impossible foot separation;
-// caller must handle this as an invalid-regime state, NOT silently use a degraded value.
+/**
+ * @brief Calcule la hauteur cible du centre de masse en régime debout.
+ */
 std::optional<double> computeStandingCMTarget(const SupportState&   support,
                                               const CharacterConfig& char_cfg);
 
-// Per-criterion diagnostics for the 5 validity criteria (ROADMAP §2.3).
-// Used by DebugUI and Application logging; individual fields show which
-// criterion failed when standing_valid = false.
+/** @brief Détails des critères de validité du régime debout. */
 struct StandingDiag {
     bool   c1      = false;  // both feet planted
     bool   c2      = false;  // d in [d_min*L, d_max*L]
@@ -38,9 +27,7 @@ struct StandingDiag {
     bool valid() const { return c1 && c2 && c3 && c4 && c5; }
 };
 
-// Evaluates the 5 validity criteria and returns per-criterion diagnostics.
-// xcom: extrapolated CoM from BalanceState (balance.xcom), used for c3.
-// pelvis: current pelvis position (from CharacterState), used for c4 reach check.
+/** @brief Évalue les critères de validité du régime debout. */
 StandingDiag diagStanding(const CMState&        cm,
                           double                xcom,
                           const Vec2&           pelvis,

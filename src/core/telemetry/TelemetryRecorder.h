@@ -8,46 +8,29 @@
 #include "core/telemetry/TelemetryRow.h"
 #include "core/simulation/SimState.h"
 
-// Records simulation telemetry and evaluates pass/fail assertions.
-//
-// Usage pattern:
-//   TelemetryRecorder rec;
-//   rec.addAssertion("heel_strikes >= 2", [](auto& rows){ ... });
-//   while (running) {
-//       core.step(dt, input);
-//       rec.record(core.state());
-//   }
-//   rec.writeCsv(std::cout);
-//   bool ok = rec.runAssertions(std::cerr);
-//
-// The recorder is decoupled from SimulationCore — it is the caller's
-// responsibility to call record() after each step().
+/**
+ * @brief Enregistre la télémétrie et exécute des assertions de scénario.
+ */
 class TelemetryRecorder
 {
 public:
-    // Append one row from the current simulation state.
+    /** @brief Ajoute une ligne à partir de l'état courant. */
     void record(const SimState& state);
 
-    // Write CSV to any ostream (file, stdout, stringstream).
-    // First line is the frozen header; subsequent lines are data rows.
+    /** @brief Écrit la télémétrie au format CSV. */
     void writeCsv(std::ostream& out) const;
 
-    // Read-only access to all recorded rows.
+    /** @brief Accès en lecture seule à toutes les lignes enregistrées. */
     const std::vector<TelemetryRow>& rows() const { return m_rows; }
 
-    // Discard all rows and assertions.
+    /** @brief Efface les lignes et les assertions enregistrées. */
     void clear();
 
-    // ── Assertions ───────────────────────────────────────────────────────────
-
-    // Register an assertion.  fn receives the full row vector; returns true = PASS.
-    // Assertions are evaluated by runAssertions(), not by record().
+    /** @brief Ajoute une assertion évaluée après l'exécution du scénario. */
     void addAssertion(const std::string& name,
                       std::function<bool(const std::vector<TelemetryRow>&)> fn);
 
-    // Evaluate all registered assertions.
-    // Writes "PASS  <name>" or "FAIL  <name>" for each to `report`.
-    // Returns true if every assertion passes.
+    /** @brief Exécute toutes les assertions enregistrées. */
     bool runAssertions(std::ostream& report) const;
 
 private:

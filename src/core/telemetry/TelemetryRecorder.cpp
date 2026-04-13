@@ -3,17 +3,13 @@
 #include <iomanip>
 #include <ostream>
 
-// ── helpers ──────────────────────────────────────────────────────────────────
+namespace {
 
-static const char* triggerName(StepTriggerType t)
-{
-    switch (t) {
-        case StepTriggerType::None:      return "None";
-        case StepTriggerType::Normal:    return "Normal";
-        case StepTriggerType::Emergency: return "Emergency";
-    }
-    return "None";
-}
+constexpr const char* kLegacyXCoMPlaceholder = "0.000000";
+constexpr const char* kLegacyMoSPlaceholder = "0.000000";
+constexpr const char* kLegacyStepActivePlaceholder = "0";
+
+} // namespace
 
 static const char* locoName(LocomotionState s)
 {
@@ -25,63 +21,73 @@ static const char* locoName(LocomotionState s)
     return "Standing";
 }
 
-// ── TelemetryRecorder ────────────────────────────────────────────────────────
-
 void TelemetryRecorder::record(const SimState& s)
 {
     const auto& cm  = s.cm;
     const auto& ch  = s.character;
 
     TelemetryRow row;
-    row.t             = s.sim_time;
-    row.cm_x          = cm.position.x;
-    row.cm_vx         = cm.velocity.x;
-    row.cm_y          = cm.position.y;
-    row.cm_vy         = cm.velocity.y;
-    row.pelvis_x      = ch.pelvis.x;
-    row.xcom          = ch.balance.xcom;
-    row.mos           = ch.balance.mos;
-    row.support_left  = ch.support.x_left;
-    row.support_right = ch.support.x_right;
-    row.support_width = ch.support.width();
-    row.foot_L_x      = ch.foot_left.pos.x;
-    row.foot_R_x      = ch.foot_right.pos.x;
-    row.step_active   = ch.step_plan.active;
-    row.swing_right   = ch.step_plan.active && ch.step_plan.move_right;  // false when no step in flight
-    row.trigger       = ch.last_trigger;
-    row.heel_strike   = ch.heel_strike_this_tick;
-    row.loco_state    = ch.locomotion_state;
+    row.t                 = s.sim_time;
+    row.cm_x              = cm.position.x;
+    row.cm_vx             = cm.velocity.x;
+    row.cm_y              = cm.position.y;
+    row.cm_vy             = cm.velocity.y;
+    row.pelvis_x          = ch.pelvis.x;
+    row.loco_state        = ch.locomotion_state;
+    row.foot_L_x          = ch.foot_left.pos.x;
+    row.foot_R_x          = ch.foot_right.pos.x;
+    row.foot_L_y          = ch.foot_left.pos.y;
+    row.foot_R_y          = ch.foot_right.pos.y;
+    row.foot_L_on_ground  = ch.foot_left.on_ground;
+    row.foot_R_on_ground  = ch.foot_right.on_ground;
+    row.cm_target_y       = ch.debug_cm_target_y;
+    row.ref_ground        = ch.debug_ref_ground;
+    row.ref_slope         = ch.debug_ref_slope;
+    row.h_ip              = ch.debug_h_ip;
+    row.cm_offset         = ch.debug_cm_offset;
+    row.speed_drop        = ch.debug_speed_drop;
+    row.slope_drop        = ch.debug_slope_drop;
+    row.heel_strike       = false;
 
     m_rows.push_back(row);
 }
 
 void TelemetryRecorder::writeCsv(std::ostream& out) const
 {
-    // Frozen header — column order matches TelemetryRow field order.
+    // Fixed CSV layout kept for regression/test compatibility.
+    // xcom/mos/step_active remain placeholder columns in the walking-redesign runtime.
     out << "t,cm_x,cm_vx,cm_y,cm_vy,"
            "pelvis_x,"
-           "xcom,mos,"
-           "support_left,support_right,support_width,"
            "foot_L_x,foot_R_x,"
-           "step_active,swing_right,"
-           "trigger,"
-           "heel_strike,"
-           "loco_state\n";
+           "foot_L_y,foot_R_y,"
+           "foot_L_on_ground,foot_R_on_ground,"
+           "cm_target_y,"
+           "xcom,mos,step_active,"
+           "heel_strike,loco_state,"
+           "ref_ground,ref_slope,h_ip,cm_offset,speed_drop,slope_drop\n";
 
     out << std::fixed << std::setprecision(6);
     for (const auto& r : m_rows) {
-        out << r.t       << ','
-            << r.cm_x    << ',' << r.cm_vx  << ','
-            << r.cm_y    << ',' << r.cm_vy  << ','
+        out << r.t        << ','
+            << r.cm_x     << ',' << r.cm_vx << ','
+            << r.cm_y     << ',' << r.cm_vy << ','
             << r.pelvis_x << ','
-            << r.xcom    << ',' << r.mos     << ','
-            << r.support_left  << ',' << r.support_right << ',' << r.support_width << ','
             << r.foot_L_x << ',' << r.foot_R_x << ','
-            << static_cast<int>(r.step_active)   << ','
-            << static_cast<int>(r.swing_right)   << ','
-            << triggerName(r.trigger)             << ','
-            << static_cast<int>(r.heel_strike)    << ','
-            << locoName(r.loco_state)             << '\n';
+            << r.foot_L_y << ',' << r.foot_R_y << ','
+            << static_cast<int>(r.foot_L_on_ground) << ','
+            << static_cast<int>(r.foot_R_on_ground) << ','
+            << r.cm_target_y << ','
+            << kLegacyXCoMPlaceholder << ','
+            << kLegacyMoSPlaceholder << ','
+            << kLegacyStepActivePlaceholder << ','
+            << static_cast<int>(r.heel_strike) << ','
+            << locoName(r.loco_state) << ','
+            << r.ref_ground << ','
+            << r.ref_slope << ','
+            << r.h_ip << ','
+            << r.cm_offset << ','
+            << r.speed_drop << ','
+            << r.slope_drop << '\n';
     }
 }
 

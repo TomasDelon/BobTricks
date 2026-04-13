@@ -3,10 +3,10 @@
 #include <cmath>
 #include <algorithm>
 
-// ── Locomotion geometry utilities ─────────────────────────────────────────────
-//
-// All heights are measured from terrain ground level (do NOT include terrain
-// offset — callers add that separately).
+/**
+ * @file Geometry.h
+ * @brief Utilitaires géométriques partagés par la locomotion.
+ */
 
 // Height of the CM above terrain when standing at preferred foot separation.
 //
@@ -26,6 +26,12 @@
 //   L               — limb segment length = body_height / 5
 //   d_pref          — preferred foot separation as a fraction of L  (e.g. 0.90)
 //   cm_pelvis_ratio  — CM-to-pelvis offset as a fraction of L        (e.g. 0.75)
+/**
+ * @brief Calcule la hauteur nominale du centre de masse au-dessus du terrain.
+ *
+ * Le calcul suppose deux jambes de longueur totale `2L` et une séparation de
+ * pieds préférée `d_pref * L`.
+ */
 inline double computeNominalY(double L, double d_pref, double cm_pelvis_ratio)
 {
     const double half_d   = d_pref * L * 0.5;
