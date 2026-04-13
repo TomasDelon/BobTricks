@@ -1,0 +1,12 @@
+{
+  "name": "bobtricks-tools",
+  "private": true,
+  "scripts": {
+    "test:web": "playwright test",
+    "test:web:headed": "playwright test --headed",
+    "open:web": "node scripts/open_web_debug.js"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.52.0"
+  }
+}

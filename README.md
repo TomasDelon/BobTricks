@@ -1,67 +1,55 @@
 # BobTricks
 
-BobTricks est un système de locomotion procédurale 2D pour stickman en C++20.
-Le projet repose sur un noyau physique `CM-first` (centre de masse) qui pilote
-la marche, la course, le saut, la chute, l'accroupissement et le relevé.
-Il peut être exécuté soit en mode interactif SDL2 + ImGui, soit en mode
-headless via des scénarios déterministes.
+BobTricks is a 2D procedural stickman locomotion project developed for the **LIFAPCD** course at
+Universite Claude Bernard Lyon 1.
 
-## Commandes disponibles aujourd'hui
+The current implementation direction is:
 
-```sh
-make build           # compile l'application SDL
-make run             # compile puis lance l'application SDL
-make build_headless  # compile le binaire headless (sans SDL)
-make test            # exécute unitaires + régression + scénarios headless
-make test_unit
-make test_regression
-make test_headless
-make check_architecture
-make clean
+- midpoint demo: `Stand`, `Walk`, `Run`
+- midpoint runtime: procedural only
+- final target: extend the same architecture toward `Crouch`, `Jump`, `Land`, `Fall`, `Recovery`,
+  and `GetUp`
+
+## Project Entry Points
+
+Start here if you want the current source of truth:
+
+- [Implementation freeze](doc/project/implementation/README.md)
+- [Project docs](doc/project/README.md)
+- [Workflow docs](doc/workflow/README.md)
+- [Team Git workflow](doc/workflow/team-git-workflow.md)
+
+## Build Requirements
+
+- `CMake` 3.20 or newer
+- `SDL2` for native builds
+
+## Repository Layout
+
+- `src/`: main source code
+- `include/`: shared headers when needed
+- `doc/`: project and workflow documentation
+- `scripts/`: project build and development scripts
+- `data/`: presets, inputs, and generated data that belong to the project
+
+## Common Commands
+
+```bash
+make help
+make build-native
+make run-native
 ```
 
-## Commandes prévues par le plan directeur
+## Publication Model
 
-Les commandes suivantes sont documentées comme objectifs d'architecture, mais
-elles ne sont pas encore toutes disponibles dans le dépôt actif :
+This repository uses two remotes with different roles:
 
-```sh
-make build_asan      # compilation avec -fsanitize=address,undefined
-make test_mem        # Valgrind sur bobtricks_headless --all
-make docs            # génération de la documentation Doxygen
-```
+- `origin`: full development history on GitHub
+- `forge`: curated academic publication history on the university GitLab forge
 
-Le README sera mis à jour dès que ces cibles Makefile existeront réellement.
+After the forge bootstrap exists, publication can be automated from local hooks:
 
-## Règles d'architecture
+- pushes to `origin` may automatically publish eligible non-AI commits to `forge`
+- direct pushes to `forge` remain blocked
 
-- `src/core/` est sans SDL et sans ImGui. Aucune exception.
-- `SimulationCore` est l'unique propriétaire de l'état physique. Aucune logique
-  de simulation dans `Application`, les renderers ou l'UI.
-- `InputFrame` transporte l'entrée physique par tick. `RuntimeCommand`
-  transporte le contrôle du shell. On ne les mélange pas.
-- Le mode headless est un chemin de validation de premier rang, pas un outil secondaire.
-- `make test` est la porte de qualité minimale avant tout changement significatif.
-- `make check_architecture` protège les invariants de dépôt avant push.
-
-## Boucle de validation
-
-1. Définir le comportement attendu avant d'implémenter.
-2. Implémenter le changement.
-3. Exécuter `make test` — il doit passer.
-4. Exécuter `make check_architecture` — il doit passer.
-5. Pour les changements qui affectent SDL / render / UI : valider aussi
-   manuellement dans l'application SDL.
-6. Si le comportement observé contredit l'attendu, investiguer avant de clôturer.
-
-## Documents clés
-
-- `doc/ARCHITECTURE.md` — arbre des modules, règles de dépendance, modes d'exécution
-- `doc/VISION.md` — scope, régimes locomoteurs, critères de complétude
-- `doc/STATE_MODEL.md` — état autoritatif, invariants, reset
-- `doc/LOCOMOTION_SPEC.md` — spécification technique par régime
-- `doc/WALKING_REDESIGN_PLAN.md` — plan détaillé de refonte du walking
-- `doc/TESTING_AND_VALIDATION.md` — types de tests, commandes, format des scénarios
-- `doc/ROADMAP_locomotion.md` — état d'avancement des phases de locomotion
-- `doc/CONTRIBUTING.md` — workflow minimal avant commit/push
-- `experiments/` — prototypes isolés, hors base de production
+The exact publication workflow is documented in `doc/workflow/` and will remain explicit.

@@ -1,11 +1,30 @@
-build/
+# Build outputs
+/build/
+/dist/
+/web-build/
+/bin/*
+/obj/*
+!.gitkeep
+
+# Generated web artifacts
+*.wasm
+*.map
+
+# Common temp files
 *.o
-*.d
-experiments/curves_lab/tests/test_curves
-analysis/*
-!analysis/*.cpp
-!analysis/*.md
-imgui.ini
-CLAUDE.md
-*.swp
+*.obj
+*.out
+*.log
+
+# Node / Playwright
+/node_modules/
+/playwright-report/
+/test-results/
+/.tools/ai-browser-debug/node_modules/
+/.tools/ai-browser-debug/playwright-report/
+/.tools/ai-browser-debug/test-results/
+
+# OS/editor
 .DS_Store
+Thumbs.db
+*.swp
