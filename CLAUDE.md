@@ -17,6 +17,31 @@ Deadline : fin avril. Voir `doc/ROADMAP.md` pour l'état d'avancement.
 
 ---
 
+## BRANCHE walking-redesign — contexte spécifique
+
+Cette branche est une réécriture complète de la locomotion à partir de zéro.
+
+**Référence principale : `doc/WALKING_SPEC_V2.md`**
+La branche suit ce redesign, mais l'état effectivement implémenté doit rester
+cohérent avec `doc/LOCOMOTION_SPEC.md` et `doc/ROADMAP_locomotion.md`.
+
+État actuel de l'implémentation :
+- `src/core/simulation/SimulationCore.cpp` est le noyau actif de locomotion
+- `src/core/locomotion/StepPlanner.*` est un stub de compatibilité ; la logique
+  de planification de pas vit actuellement dans `SimulationCore`
+
+Fichiers conservés (ne pas modifier sans raison) :
+- `src/core/locomotion/LegIK.cpp` — IK correcte
+- `src/core/locomotion/BalanceComputer.cpp` — XCoM correcte
+- `src/core/locomotion/StandingController.cpp` — utilitaires géométriques
+- `src/core/character/CharacterState.cpp` — reconstruction de pose
+
+**Règle absolue dans cette branche** : garder le code, le spec et la doc runtime
+alignés. Ne pas réintroduire d'ancienne implémentation en parallèle sans mettre
+à jour les documents de référence.
+
+---
+
 ## Commandes essentielles
 
 ```sh
@@ -84,8 +109,10 @@ expose un `SimState` en lecture seule.
 enum class LocomotionState { Standing, Walking, Airborne };
 ```
 
-Walking est en phase 5 (trigger unifié). Voir `doc/ROADMAP_locomotion.md`
-pour l'état exact et `doc/LOCOMOTION_SPEC.md` pour la spécification.
+Walking est implémenté dans le noyau CM-first actuel avec trigger unifié et
+recovery géré directement par `SimulationCore`. Voir
+`doc/ROADMAP_locomotion.md` pour l'état exact et `doc/LOCOMOTION_SPEC.md` pour
+la spécification runtime.
 
 Extension prévue (Bloque 5A) : `LocomotionMode` + `PostureMode` orthogonal
 (`Crouching` est un modificateur, pas un mode exclusif).

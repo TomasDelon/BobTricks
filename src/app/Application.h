@@ -17,11 +17,21 @@
 #include "render/DebugOverlayRenderer.h"
 #include "debug/DebugUI.h"
 
+/**
+ * @brief Application SDL interactive principale.
+ *
+ * Cette classe possède la fenêtre, le renderer SDL, la boucle de simulation,
+ * la caméra, l'UI de debug et tous les renderers visuels. Elle sert
+ * d'orchestrateur entre le noyau de simulation et l'interface utilisateur.
+ */
 class Application
 {
 public:
+    /** @brief Initialise SDL, ImGui, la configuration et le noyau de simulation. */
     bool init();
+    /** @brief Lance la boucle principale jusqu'à fermeture de l'application. */
     int  run();
+    /** @brief Libère proprement les ressources SDL et ImGui. */
     void shutdown();
 
 private:
@@ -55,6 +65,15 @@ private:
     float             m_drag_mouse_x       = 0.f;
     float             m_drag_mouse_y       = 0.f;
     std::optional<Vec2> m_pending_set_velocity;  // consumed once in stepSimulation()
+    std::optional<Vec2> m_gaze_target_world;
+
+    // Left-click drag → move foot (world-space target updated on motion)
+    bool m_dragging_foot_left  = false;
+    bool m_dragging_foot_right = false;
+    Vec2 m_foot_drag_world     = {0.0, 0.0};
+    bool m_dragging_hand_left  = false;
+    bool m_dragging_hand_right = false;
+    Vec2 m_hand_drag_world     = {0.0, 0.0};
 
     // AZERTY locomotion input
     bool m_key_left       = false;  // Q
@@ -65,6 +84,7 @@ private:
     std::deque<TrailPoint> m_trail;
 
     // Step-back history — snapshot before each fixed step
+    /** @brief Instantané stocké avant chaque pas fixe pour le step-back. */
     struct StepSnapshot {
         SimState      state;
         std::uint64_t step_count;
