@@ -16,6 +16,7 @@ static const char* locoName(LocomotionState s)
     switch (s) {
         case LocomotionState::Standing: return "Standing";
         case LocomotionState::Walking:  return "Walking";
+        case LocomotionState::Running:  return "Running";
         case LocomotionState::Airborne: return "Airborne";
     }
     return "Standing";

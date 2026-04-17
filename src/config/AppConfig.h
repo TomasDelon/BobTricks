@@ -209,22 +209,22 @@ struct RunConfig {
     // Speed and steps
     double max_speed        = 3.5;   // [m/s]   velocity cap while running
     double accel_factor     = 1.8;   // [×]     multiplies physics.accel
-    double step_speed       = 9.0;   // [steps/s]
-    double stability_margin = 1.8;   // [×L]    foot target ahead of xi
+    double step_speed       = 6.5;   // [steps/s] faster swing closure than walk
+    double stability_margin = 0.55;  // [×L]    mild touchdown lead; run trigger handles the long step
     double max_step_L       = 2.5;   // [×L]    max step from stance foot
-    double d_rear_max       = 1.2;   // [×L]    rear-foot lag threshold
+    double d_rear_max       = 0.9;   // [×L]    rear-foot lag threshold
     double xcom_scale       = 0.75;  // [0-1]   capture-point lookahead
 
     // Phase-based CM oscillation (stickman3 style)
-    double stride_len       = 3.0;   // [×L]    distance per full stride cycle (used for phase advance)
+    double stride_len       = 5.8;   // [×L]    full stride target near max speed
 
     // Body lean
     double theta_max_deg    = 18.0;  // [°]     max lean at full run speed (replaces reconstruction theta_max_deg)
 
     // CoM height and bounce
     double leg_flex_coeff   = 0.35;  // [×L]    knee bend — higher = more SLIP compression
-    double bob_scale        = 4.5;   // [×]     IP arc multiplier
-    double bob_amp          = 0.25;  // [×L]    max drop cap
+    double bob_scale        = 2.2;   // [×]     reduced run vertical excursion
+    double bob_amp          = 0.08;  // [×L]    max run oscillation amplitude
 
     // Swing foot lift
     double h_clear_ratio    = 0.30;  // [×L]    base swing lift

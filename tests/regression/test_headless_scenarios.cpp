@@ -18,6 +18,8 @@ namespace {
 struct ParsedRow {
     double      cm_x = 0.0;
     double      cm_y = 0.0;
+    bool        foot_L_on_ground = false;
+    bool        foot_R_on_ground = false;
     bool        heel_strike = false;
     std::string loco_state;
 };
@@ -55,6 +57,8 @@ std::vector<ParsedRow> parseRows(const std::string& csv, TestSuite& suite)
         ParsedRow row;
         row.cm_x = std::stod(cols[1]);
         row.cm_y = std::stod(cols[3]);
+        row.foot_L_on_ground = (cols[10] == "1");
+        row.foot_R_on_ground = (cols[11] == "1");
         row.heel_strike = (cols[16] == "1");
         row.loco_state = cols[17];
         rows.push_back(row);
@@ -157,6 +161,23 @@ int main()
         TEST_EXPECT(suite, rows.back().cm_x > 1.0);
         TEST_EXPECT(suite, std::any_of(rows.begin(), rows.end(),
             [](const ParsedRow& row) { return row.loco_state == "Walking"; }));
+    }
+
+    {
+        AppConfig run_cfg = base_cfg;
+        const ScenarioDef def = lib.at("run_3s")(run_cfg);
+        std::ostringstream csv;
+        std::ostringstream report;
+        const bool ok = runScenario(def, run_cfg, csv, report);
+        const auto rows = parseRows(csv.str(), suite);
+
+        TEST_EXPECT_MSG(suite, ok, report.str());
+        TEST_EXPECT(suite, !rows.empty());
+        TEST_EXPECT(suite, rows.back().cm_x > 4.0);
+        TEST_EXPECT(suite, std::any_of(rows.begin(), rows.end(),
+            [](const ParsedRow& row) { return row.loco_state == "Running"; }));
+        TEST_EXPECT(suite, std::any_of(rows.begin(), rows.end(),
+            [](const ParsedRow& row) { return row.foot_L_on_ground != row.foot_R_on_ground; }));
     }
 
     {

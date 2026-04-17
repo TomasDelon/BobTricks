@@ -6,7 +6,7 @@
 #include "config/AppConfig.h"
 
 /** @brief Régime locomoteur courant du personnage. */
-enum class LocomotionState { Standing, Walking, Airborne };
+enum class LocomotionState { Standing, Walking, Running, Airborne };
 
 /**
  * @brief État dérivé complet du personnage reconstruit autour du centre de masse.
@@ -62,6 +62,7 @@ struct CharacterState {
     double run_blend = 0.0;   // [0,1] 0=walk, 1=run — blends parameters smoothly
     bool   run_mode  = false; // true when run_blend > 0.5
     double run_phase = 0.0;   // [0,1) continuous stride phase, advances with CM speed
+    bool   run_last_touchdown_left = false;
 
     // Persistent terrain-reference samples. These are stored in left/right world
     // order so the reference can slide continuously even when facing changes.
@@ -92,5 +93,6 @@ void updateCharacterState(CharacterState&       character,
                           const CharacterConfig& config,
                           const CharacterReconstructionConfig& reconstruction,
                           bool   on_floor,
+                          bool   run_mode,
                           double dt,
                           double terrain_slope);

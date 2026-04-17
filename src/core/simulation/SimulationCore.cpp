@@ -141,6 +141,86 @@ struct HeightTargetState {
     double y_tgt = 0.0;
 };
 
+struct RunTimingTargets {
+    double speed_ratio = 0.0;
+    double cadence_spm = 0.0;
+    double step_period = 0.0;
+    double contact_time = 0.0;
+    double flight_time = 0.0;
+    double step_length = 0.0;
+    double touchdown_ahead = 0.0;
+};
+
+RunTimingTargets computeRunTimingTargets(const RunConfig& run_cfg,
+                                         double           speed_abs,
+                                         double           max_speed,
+                                         double           L)
+{
+    RunTimingTargets out;
+    const double usable_max = std::max(max_speed, 1.0e-4);
+    out.speed_ratio = std::clamp(speed_abs / usable_max, 0.0, 1.0);
+
+    // Recreational-to-trained running typically lives near 165-180 spm.
+    const double cadence_min = 162.0;
+    const double cadence_max = 176.0;
+    out.cadence_spm = std::lerp(cadence_min, cadence_max, out.speed_ratio);
+
+    const double stride_L_min = 5.4;
+    const double stride_L_max = std::max(run_cfg.stride_len, stride_L_min + 0.2);
+    const double stride_len_m = std::lerp(stride_L_min, stride_L_max, out.speed_ratio) * L;
+
+    if (speed_abs > 1.0e-4) {
+        out.step_period = stride_len_m / (2.0 * speed_abs);
+    } else {
+        out.step_period = 60.0 / cadence_min;
+    }
+
+    const double preferred_step_period = 60.0 / std::max(out.cadence_spm, 1.0e-4);
+    out.step_period = 0.5 * (out.step_period + preferred_step_period);
+    out.step_period = std::clamp(out.step_period, 0.28, 0.42);
+
+    out.contact_time = std::lerp(0.26, 0.22, out.speed_ratio);
+    out.contact_time = std::min(out.contact_time, out.step_period - 0.03);
+    out.contact_time = std::max(out.contact_time, 0.16);
+    out.flight_time = std::max(0.0, out.step_period - out.contact_time);
+    out.step_length = speed_abs * out.step_period;
+    out.touchdown_ahead = std::lerp(0.25 * L,
+                                    std::max(0.30 * L, run_cfg.stability_margin * L),
+                                    out.speed_ratio);
+    return out;
+}
+
+double computeRunLandingX(const RunConfig&       run_cfg,
+                          const CharacterState&  ch,
+                          const FootState&       stance_foot,
+                          const Vec2&            pelvis,
+                          double                 velocity_x,
+                          double                 reach_radius,
+                          double                 L,
+                          const RunTimingTargets& timing)
+{
+    const double facing = ch.facing;
+    const double future_pelvis_x = pelvis.x + velocity_x * 0.06;
+    const double front_extent = std::lerp(0.45 * L, 0.80 * L, timing.speed_ratio);
+    const double raw_tx = future_pelvis_x + facing * front_extent;
+
+    const double max_step = run_cfg.max_step_L * L;
+    const double support_eps = 0.08 * L;
+    const double reach_lo = pelvis.x - 0.95 * reach_radius;
+    const double reach_hi = pelvis.x + 0.95 * reach_radius;
+    const double support_lo = std::min(stance_foot.pos.x + facing * support_eps,
+                                       stance_foot.pos.x + facing * max_step);
+    const double support_hi = std::max(stance_foot.pos.x + facing * support_eps,
+                                       stance_foot.pos.x + facing * max_step);
+    const double lo = std::max(reach_lo, support_lo);
+    const double hi = std::min(reach_hi, support_hi);
+
+    if (lo <= hi)
+        return std::clamp(raw_tx, lo, hi);
+
+    return std::clamp(raw_tx, support_lo, support_hi);
+}
+
 double computeStepLandingX(const WalkConfig&   walk_cfg,
                            const CharacterState& ch,
                            const FootState&    stance_foot,
@@ -964,11 +1044,18 @@ void SimulationCore::step(double dt, const InputFrame& input)
         ch.run_mode   = (ch.run_blend > 0.5);
     }
 
-    // ── Running phase advance ─────────────────────────────────────────────────
+    // ── Running phase estimate ────────────────────────────────────────────────
+    // Do not drive run_phase purely from body speed; that desynchronizes the
+    // vertical wave from actual foot contacts. Instead, tie it to the swinging
+    // foot when a step is active and keep endpoints stable between touchdowns.
     if (ch.run_blend > 0.0) {
-        const double stride_m = std::max(m_config.run.stride_len * L, 0.01);
-        ch.run_phase += std::abs(cm.velocity.x) * dt / stride_m;
-        if (ch.run_phase >= 1.0) ch.run_phase -= 1.0;
+        if (ch.foot_right.swinging && !ch.foot_left.swinging) {
+            ch.run_phase = 0.5 * std::clamp(ch.foot_right.swing_t, 0.0, 1.0);
+        } else if (ch.foot_left.swinging && !ch.foot_right.swinging) {
+            ch.run_phase = 0.5 + 0.5 * std::clamp(ch.foot_left.swing_t, 0.0, 1.0);
+        } else {
+            ch.run_phase = ch.run_last_touchdown_left ? 0.0 : 0.5;
+        }
     }
 
     // ── Effective walk/run parameters (blended) ──────────────────────────────
@@ -976,6 +1063,9 @@ void SimulationCore::step(double dt, const InputFrame& input)
     WalkConfig    eff_walk    = m_config.walk;
     StepConfig    eff_step    = m_config.step;
     PhysicsConfig eff_physics = m_config.physics;
+    const double  speed_abs   = std::abs(cm.velocity.x);
+    const RunTimingTargets run_timing =
+        computeRunTimingTargets(m_config.run, speed_abs, m_config.run.max_speed, L);
     if (rb > 0.0) {
         eff_walk.step_speed         = std::lerp(m_config.walk.step_speed,         m_config.run.step_speed,        rb);
         eff_walk.stability_margin   = std::lerp(m_config.walk.stability_margin,   m_config.run.stability_margin,  rb);
@@ -1019,17 +1109,20 @@ void SimulationCore::step(double dt, const InputFrame& input)
     const double slope_drop = height_state.slope_drop;
     double       y_tgt      = height_state.y_tgt;
 
-    // ── Running height target (stickman3-style phase oscillation) ────────────
-    // Walking IP: CM peaks at mid-stance. Running SLIP: CM valleys at landing,
-    // peaks during flight. Model this with a cosine oscillation on run_phase:
-    //   phase=0 → landing (target LOW), phase=0.5 → flight apex (target HIGH)
-    // Blend the walk target (y_tgt) toward this run target using run_blend.
+    // ── Running height target (phase oscillation tied to footfalls) ──────────
+    // run_phase is a stride phase: 0 and 0.5 correspond to alternating
+    // touchdowns. The CM must therefore oscillate at step frequency, i.e.
+    // two compressions per stride. Using 4π*phase keeps vertical timing in
+    // sync with left/right contacts instead of producing one wave per stride.
     if (rb > 0.0) {
-        const double run_bob    = -eff_walk.bob_amp * L
-                                * std::cos(2.0 * kPi * ch.run_phase);
-        const double y_tgt_run  = ref_ground + h_nominal + run_bob
-                                + eff_walk.cm_height_offset
-                                - speed_drop - slope_drop;
+        const double run_compression = std::lerp(0.09 * L, 0.14 * L, run_timing.speed_ratio);
+        const double run_bob         = -eff_walk.bob_amp * L
+                                     * std::cos(4.0 * kPi * ch.run_phase);
+        const double y_tgt_run       = ref_ground + h_nominal
+                                     - run_compression
+                                     + run_bob
+                                     + eff_walk.cm_height_offset
+                                     - speed_drop - slope_drop;
         y_tgt = std::lerp(y_tgt, y_tgt_run, rb);
     }
 
@@ -1075,14 +1168,16 @@ void SimulationCore::step(double dt, const InputFrame& input)
 
     advanceSwingFoot(ch.foot_left,  m_terrain, pelvis, dt, reach_radius, eff_walk);
     advanceSwingFoot(ch.foot_right, m_terrain, pelvis, dt, reach_radius, eff_walk);
+    const bool heel_strike_L = was_swinging_L && !ch.foot_left.swinging;
+    const bool heel_strike_R = was_swinging_R && !ch.foot_right.swinging;
+    if (heel_strike_L) ch.run_last_touchdown_left = true;
+    if (heel_strike_R) ch.run_last_touchdown_left = false;
 
     // ── Double-support enforcement ────────────────────────────────────────────
     // When a foot lands (heel-strike), force a minimum cooldown before the next
     // step fires. In run mode double_support_time blends to 0 so there is no
     // pause between strides.
     {
-        const bool heel_strike_L = was_swinging_L && !ch.foot_left.swinging;
-        const bool heel_strike_R = was_swinging_R && !ch.foot_right.swinging;
         if (heel_strike_L || heel_strike_R) {
             if (eff_walk.double_support_time > 0.0)
                 ch.step_cooldown = std::max(ch.step_cooldown,
@@ -1133,7 +1228,33 @@ void SimulationCore::step(double dt, const InputFrame& input)
 
     const bool any_swinging = ch.foot_left.swinging || ch.foot_right.swinging;
 
-    if (ch.feet_initialized && ch.step_cooldown <= 0.0 && !any_swinging && !airborne_final) {
+    if (ch.run_mode
+        && ch.feet_initialized
+        && !any_swinging
+        && !airborne_final) {
+        FootState& back_foot = ((ch.facing >= 0.0) ? (ch.foot_left.pos.x < ch.foot_right.pos.x)
+                                                   : (ch.foot_left.pos.x > ch.foot_right.pos.x))
+            ? ch.foot_left : ch.foot_right;
+        FootState& front_foot = (&back_foot == &ch.foot_left) ? ch.foot_right : ch.foot_left;
+
+        const double back_extent = std::lerp(0.40 * L, 0.80 * L, run_timing.speed_ratio);
+        const double movement_back_x = pelvis.x - ch.facing * back_extent;
+        const bool outside_back_window = (back_foot.pos.x - movement_back_x) * ch.facing < 0.0;
+        const double behind_back = (pelvis.x - back_foot.pos.x) * ch.facing;
+        const double trigger_dist = std::lerp(0.45 * L, 0.75 * L, run_timing.speed_ratio);
+
+        if (outside_back_window || behind_back > trigger_dist) {
+            const double tx = computeRunLandingX(m_config.run, ch, front_foot,
+                                                 pelvis, cm.velocity.x,
+                                                 reach_radius, L, run_timing);
+            beginSwingStep(back_foot, front_foot, ch, tx, m_terrain,
+                           false, L, eff_step, eff_walk, speed_abs, max_spd);
+            ch.step_cooldown = 0.0;
+        }
+    } else if (ch.feet_initialized
+               && ch.step_cooldown <= 0.0
+               && !any_swinging
+               && !airborne_final) {
         const StepTriggerEval trigger_eval =
             evaluateStepTriggers(ch, eff_lx, eff_rx, xi, cm.velocity.x,
                                  eff_walk.eps_step, pelvis, L,
@@ -1188,7 +1309,7 @@ void SimulationCore::step(double dt, const InputFrame& input)
         eff_reconstruction.theta_max_deg = std::lerp(m_config.reconstruction.theta_max_deg,
                                                      m_config.run.theta_max_deg, rb);
     updateCharacterState(ch, cm, m_config.character, eff_reconstruction,
-                         !airborne_final, dt, ref_slope);
+                         !airborne_final, ch.run_mode, dt, ref_slope);
     UpperBodyControl upper_body;
     upper_body.input_dir = input_dir;
     if (ch.hand_left_pinned)  upper_body.targets.left_hand_target  = ch.hand_left_target;

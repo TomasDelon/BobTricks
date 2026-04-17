@@ -150,6 +150,40 @@ static ScenarioDef makeFastWalk(const AppConfig& cfg)
     return def;
 }
 
+// run_3s — hold right + run for 3 seconds; expect explicit flight and sustained forward motion.
+static ScenarioDef makeRun3s(const AppConfig& cfg)
+{
+    ScenarioDef def;
+    def.name          = "run_3s";
+    def.duration_s    = 3.0;
+    def.init.cm_pos   = { 0.0, nominalCMHeight(cfg) };
+    def.init.cm_vel   = { 2.4, 0.0 };
+    def.init.terrain_seed = 42;
+
+    def.input_fn = [](double) -> InputFrame {
+        InputFrame f;
+        f.key_right = true;
+        f.key_run   = true;
+        return f;
+    };
+
+    def.setup_asserts = [](TelemetryRecorder& rec) {
+        rec.addAssertion("run_3s cm_x > 4.0 at end", [](const std::vector<TelemetryRow>& rows) {
+            return !rows.empty() && rows.back().cm_x > 4.0;
+        });
+        rec.addAssertion("run_3s enters Running", [](const std::vector<TelemetryRow>& rows) {
+            return std::any_of(rows.begin(), rows.end(),
+                [](const TelemetryRow& r){ return r.loco_state == LocomotionState::Running; });
+        });
+        rec.addAssertion("run_3s contains single support", [](const std::vector<TelemetryRow>& rows) {
+            return std::any_of(rows.begin(), rows.end(),
+                [](const TelemetryRow& r){ return r.foot_L_on_ground != r.foot_R_on_ground; });
+        });
+    };
+
+    return def;
+}
+
 // walk_left — negative facing and key_left; tests symmetric locomotion direction.
 static ScenarioDef makeWalkLeft(const AppConfig& cfg)
 {
@@ -266,6 +300,7 @@ const std::map<std::string, ScenarioFactory>& scenarioLibrary()
         { "stand_still",           makeStandStill           },
         { "walk_then_stop",        makeWalkThenStop         },
         { "fast_walk",             makeFastWalk             },
+        { "run_3s",                makeRun3s                },
         { "walk_left",             makeWalkLeft             },
         { "perturbation_recovery", makePerturbationRecovery },
         { "upper_body_walk_gaze",  makeUpperBodyWalkGaze    },

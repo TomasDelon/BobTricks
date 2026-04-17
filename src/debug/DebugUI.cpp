@@ -13,6 +13,7 @@ const char* locomotionStateLabel(LocomotionState state)
     switch (state) {
         case LocomotionState::Standing: return "Standing";
         case LocomotionState::Walking:  return "Walking";
+        case LocomotionState::Running:  return "Running";
         case LocomotionState::Airborne: return "Airborne";
     }
     return "?";

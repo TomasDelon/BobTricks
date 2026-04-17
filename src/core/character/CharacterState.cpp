@@ -10,6 +10,7 @@ void updateCharacterState(CharacterState& ch,
                           const CharacterConfig& config,
                           const CharacterReconstructionConfig& rc,
                           bool   on_floor,
+                          bool   run_mode,
                           double dt,
                           double terrain_slope)
 {
@@ -18,6 +19,8 @@ void updateCharacterState(CharacterState& ch,
     // ── Locomotion state ─────────────────────────────────────────────────────
     if (!on_floor) {
         ch.locomotion_state = LocomotionState::Airborne;
+    } else if (run_mode) {
+        ch.locomotion_state = LocomotionState::Running;
     } else if (std::abs(vx) > rc.walk_eps) {
         ch.locomotion_state = LocomotionState::Walking;
     } else {
