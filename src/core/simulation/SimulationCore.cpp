@@ -1008,10 +1008,46 @@ void SimulationCore::step(double dt, const InputFrame& input)
         computeHeightTargetState(ch, cm, eff_walk, eff_physics,
                                  ref_ground, ref_slope, h_nominal,
                                  m_config.character.cm_pelvis_ratio, L);
-    const double h_ip = height_state.h_ip;
+    const double h_ip      = height_state.h_ip;
     const double speed_drop = height_state.speed_drop;
     const double slope_drop = height_state.slope_drop;
-    const double y_tgt = height_state.y_tgt;
+    double       y_tgt      = height_state.y_tgt;
+
+    // ── Running SLIP height correction ────────────────────────────────────────
+    // The inverted-pendulum model has CM at its MAXIMUM at mid-stance — correct
+    // for walking but wrong for running. In SLIP running:
+    //   • minimum CM height at mid-stance (spring compressed on landing)
+    //   • maximum CM height during flight (ballistic apex)
+    //
+    // Fix: replace the IP arc target with a CONSTANT low target above the stance
+    // foot. The asymmetric spring (upward-only) then acts as a rebound floor:
+    // gravity pulls CM down freely from flight height → CM overshoots the target
+    // → spring fires and sends CM back up → stance foot releases → CM continues
+    // up during flight.
+    //
+    // Disable the spring entirely during the flight phase so the CM is purely
+    // ballistic (only gravity). One-frame lag from the release detection is
+    // acceptable (~16 ms at 60 fps).
+    if (ch.run_flight_active)
+        eff_physics.spring_enabled = false;
+
+    if (rb > 0.0 && !ch.run_flight_active) {
+        const bool gL = ch.foot_left.on_ground;
+        const bool gR = ch.foot_right.on_ground;
+        if (gL || gR) {
+            // R_slip: running stance height above the foot.
+            // leg_flex_coeff is blended toward run.leg_flex_coeff which is higher
+            // (more knee bend), so R_slip < R_bob_walk → CM target is lower.
+            const double R_slip = (2.0 - eff_walk.leg_flex_coeff
+                                   + m_config.character.cm_pelvis_ratio) * L;
+            const double base_y = (gL && gR)
+                                ? std::min(ch.foot_left.pos.y, ch.foot_right.pos.y)
+                                : (gL ? ch.foot_left.pos.y : ch.foot_right.pos.y);
+            const double y_slip = base_y + R_slip + eff_walk.cm_height_offset
+                                - height_state.speed_drop - height_state.slope_drop;
+            y_tgt = std::lerp(y_tgt, y_slip, rb);
+        }
+    }
 
     integrateVerticalMotion(cm, accel, m_terrain, m_config.character,
                             m_config.reconstruction, eff_physics,

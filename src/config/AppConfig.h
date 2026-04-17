@@ -220,7 +220,7 @@ struct RunConfig {
     double flight_vy_min    = 0.3;   // [m/s]   minimum upward CM velocity at toe-off
 
     // CoM height and bounce
-    double leg_flex_coeff   = 0.18;  // [×L]    knee bend (more than walking)
+    double leg_flex_coeff   = 0.35;  // [×L]    knee bend — higher = more SLIP compression
     double bob_scale        = 4.5;   // [×]     IP arc multiplier
     double bob_amp          = 0.25;  // [×L]    max drop cap
 
