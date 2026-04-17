@@ -9,6 +9,7 @@
 struct InputFrame {
     bool key_left  = false;
     bool key_right = false;
+    bool key_run   = false;
     bool jump      = false;
 
     // Right-drag: overrides CM velocity at start of step.

@@ -180,6 +180,23 @@ bool ConfigIO::load(const std::string& path, AppConfig& config)
             else if (key == "h_clear_speed_factor"){ config.walk.h_clear_speed_factor= std::stod(value); handled = true; }
             else if (key == "h_clear_min_ratio")   { config.walk.h_clear_min_ratio   = std::stod(value); handled = true; }
         }
+        else if (section == "Run") {
+            if      (key == "max_speed")           { config.run.max_speed           = std::stod(value); handled = true; }
+            else if (key == "accel_factor")        { config.run.accel_factor        = std::stod(value); handled = true; }
+            else if (key == "step_speed")          { config.run.step_speed          = std::stod(value); handled = true; }
+            else if (key == "stability_margin")    { config.run.stability_margin    = std::stod(value); handled = true; }
+            else if (key == "max_step_L")          { config.run.max_step_L          = std::stod(value); handled = true; }
+            else if (key == "d_rear_max")          { config.run.d_rear_max          = std::stod(value); handled = true; }
+            else if (key == "xcom_scale")          { config.run.xcom_scale          = std::stod(value); handled = true; }
+            else if (key == "flight_release_t")    { config.run.flight_release_t    = std::stod(value); handled = true; }
+            else if (key == "flight_vy_min")       { config.run.flight_vy_min       = std::stod(value); handled = true; }
+            else if (key == "leg_flex_coeff")      { config.run.leg_flex_coeff      = std::stod(value); handled = true; }
+            else if (key == "bob_scale")           { config.run.bob_scale           = std::stod(value); handled = true; }
+            else if (key == "bob_amp")             { config.run.bob_amp             = std::stod(value); handled = true; }
+            else if (key == "h_clear_ratio")       { config.run.h_clear_ratio       = std::stod(value); handled = true; }
+            else if (key == "h_clear_min_ratio")   { config.run.h_clear_min_ratio   = std::stod(value); handled = true; }
+            else if (key == "blend_tau")           { config.run.blend_tau           = std::stod(value); handled = true; }
+        }
 
         if (!handled) {
             std::fprintf(stderr,

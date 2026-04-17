@@ -78,6 +78,7 @@ private:
     // AZERTY locomotion input
     bool m_key_left       = false;  // Q
     bool m_key_right      = false;  // D
+    bool m_key_run        = false;  // Shift
     bool m_jump_requested = false;  // SPACE
 
     // CM trajectory trail

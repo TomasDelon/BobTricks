@@ -204,6 +204,34 @@ struct WalkConfig {
     double downhill_step_bonus = 0.35;  // [×L] extra step length / margin while crouched
 };
 
+/** @brief Paramètres du mode course (SLIP approximé). */
+struct RunConfig {
+    // Speed and steps
+    double max_speed        = 3.5;   // [m/s]   velocity cap while running
+    double accel_factor     = 1.8;   // [×]     multiplies physics.accel
+    double step_speed       = 9.0;   // [steps/s]
+    double stability_margin = 1.8;   // [×L]    foot target ahead of xi
+    double max_step_L       = 2.5;   // [×L]    max step from stance foot
+    double d_rear_max       = 1.2;   // [×L]    rear-foot lag threshold
+    double xcom_scale       = 0.75;  // [0-1]   capture-point lookahead
+
+    // Flight phase
+    double flight_release_t = 0.55;  // swing_t at which stance foot releases
+    double flight_vy_min    = 0.3;   // [m/s]   minimum upward CM velocity at toe-off
+
+    // CoM height and bounce
+    double leg_flex_coeff   = 0.18;  // [×L]    knee bend (more than walking)
+    double bob_scale        = 4.5;   // [×]     IP arc multiplier
+    double bob_amp          = 0.25;  // [×L]    max drop cap
+
+    // Swing foot lift
+    double h_clear_ratio    = 0.30;  // [×L]    base swing lift
+    double h_clear_min_ratio = 0.15; // [×L]    guaranteed minimum
+
+    // Walk→run blend
+    double blend_tau        = 0.12;  // [s]     transition time constant
+};
+
 /** @brief Agrégat racine de toute la configuration de l'application. */
 struct AppConfig {
     SimLoopConfig                 sim_loop;
@@ -220,4 +248,5 @@ struct AppConfig {
     StandingConfig                standing;
     StepConfig                    step;
     WalkConfig                    walk;
+    RunConfig                     run;
 };

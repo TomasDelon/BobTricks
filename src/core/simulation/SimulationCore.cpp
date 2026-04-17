@@ -954,9 +954,42 @@ void SimulationCore::step(double dt, const InputFrame& input)
     // ── Airborne test (pelvis > 2L above terrain) ────────────────────────────
     const bool   airborne_pre = ground_state.airborne_ref;
 
+    // ── Run mode blend ───────────────────────────────────────────────────────
+    {
+        const bool want_run = input.key_run
+                           && std::abs(cm.velocity.x) > m_config.physics.stop_speed;
+        const double run_alpha = 1.0 - std::exp(-dt / std::max(m_config.run.blend_tau, 1.0e-4));
+        ch.run_blend += (want_run ? 1.0 - ch.run_blend : -ch.run_blend) * run_alpha;
+        ch.run_blend  = std::clamp(ch.run_blend, 0.0, 1.0);
+        ch.run_mode   = (ch.run_blend > 0.5);
+        if (!ch.run_mode) ch.run_flight_active = false;
+    }
+
+    // ── Effective walk/run parameters (blended) ──────────────────────────────
+    const double rb = ch.run_blend;
+    WalkConfig    eff_walk    = m_config.walk;
+    StepConfig    eff_step    = m_config.step;
+    PhysicsConfig eff_physics = m_config.physics;
+    if (rb > 0.0) {
+        eff_walk.step_speed         = std::lerp(m_config.walk.step_speed,         m_config.run.step_speed,        rb);
+        eff_walk.stability_margin   = std::lerp(m_config.walk.stability_margin,   m_config.run.stability_margin,  rb);
+        eff_walk.max_step_L         = std::lerp(m_config.walk.max_step_L,         m_config.run.max_step_L,        rb);
+        eff_walk.d_rear_max         = std::lerp(m_config.walk.d_rear_max,         m_config.run.d_rear_max,        rb);
+        eff_walk.xcom_scale         = std::lerp(m_config.walk.xcom_scale,         m_config.run.xcom_scale,        rb);
+        eff_walk.leg_flex_coeff     = std::lerp(m_config.walk.leg_flex_coeff,     m_config.run.leg_flex_coeff,    rb);
+        eff_walk.bob_scale          = std::lerp(m_config.walk.bob_scale,          m_config.run.bob_scale,         rb);
+        eff_walk.bob_amp            = std::lerp(m_config.walk.bob_amp,            m_config.run.bob_amp,           rb);
+        eff_walk.h_clear_min_ratio  = std::lerp(m_config.walk.h_clear_min_ratio,  m_config.run.h_clear_min_ratio, rb);
+        eff_walk.double_support_time = m_config.walk.double_support_time * (1.0 - rb);
+        eff_step.h_clear_ratio      = std::lerp(m_config.step.h_clear_ratio,      m_config.run.h_clear_ratio,     rb);
+        eff_physics.accel           = m_config.physics.accel
+                                    * std::lerp(1.0, m_config.run.accel_factor,   rb);
+        eff_physics.walk_max_speed  = std::lerp(m_config.physics.walk_max_speed,  m_config.run.max_speed,         rb);
+    }
+
     // ── Horizontal physics ────────────────────────────────────────────────────
-    const double max_spd = m_config.physics.walk_max_speed;
-    integrateHorizontalMotion(cm, ch, m_config.physics, input_dir, sin_t, cos_t,
+    const double max_spd = eff_physics.walk_max_speed;
+    integrateHorizontalMotion(cm, ch, eff_physics, input_dir, sin_t, cos_t,
                               g, airborne_pre, max_spd, dt, accel);
 
     // ── Facing ────────────────────────────────────────────────────────────────
@@ -967,12 +1000,12 @@ void SimulationCore::step(double dt, const InputFrame& input)
     // Driven by actual motion over the slope, not by facing or input, so a turn
     // on a slope does not instantly drop the body. The same filtered state then
     // feeds both CoM height and step length.
-    updateDownhillCrouch(ch, m_config.walk, m_config.physics, ref_slope,
+    updateDownhillCrouch(ch, eff_walk, eff_physics, ref_slope,
                          cm.velocity.x, max_spd, dt);
 
     // ── Vertical physics ──────────────────────────────────────────────────────
     const HeightTargetState height_state =
-        computeHeightTargetState(ch, cm, m_config.walk, m_config.physics,
+        computeHeightTargetState(ch, cm, eff_walk, eff_physics,
                                  ref_ground, ref_slope, h_nominal,
                                  m_config.character.cm_pelvis_ratio, L);
     const double h_ip = height_state.h_ip;
@@ -981,7 +1014,7 @@ void SimulationCore::step(double dt, const InputFrame& input)
     const double y_tgt = height_state.y_tgt;
 
     integrateVerticalMotion(cm, accel, m_terrain, m_config.character,
-                            m_config.reconstruction, m_config.physics,
+                            m_config.reconstruction, eff_physics,
                             y_tgt, ref_ground, L, g, dt);
 
     // ── Pelvis (for foot constraints) — post-integration, authoritative ──────
@@ -1007,26 +1040,49 @@ void SimulationCore::step(double dt, const InputFrame& input)
     const bool was_swinging_L = ch.foot_left.swinging;
     const bool was_swinging_R = ch.foot_right.swinging;
 
-    advanceSwingFoot(ch.foot_left,  m_terrain, pelvis, dt, reach_radius, m_config.walk);
-    advanceSwingFoot(ch.foot_right, m_terrain, pelvis, dt, reach_radius, m_config.walk);
+    advanceSwingFoot(ch.foot_left,  m_terrain, pelvis, dt, reach_radius, eff_walk);
+    advanceSwingFoot(ch.foot_right, m_terrain, pelvis, dt, reach_radius, eff_walk);
+
+    // ── Running flight phase: release stance foot to create ballistic interval ──
+    // At swing_t = flight_release_t the stance foot pushes off, giving the CM a
+    // minimum upward velocity. Both feet are then in the air until the swing foot
+    // lands and becomes the new stance.
+    if (ch.run_mode && !ch.run_flight_active && !airborne_final) {
+        const FootState* swing_f = ch.foot_left.swinging  ? &ch.foot_left
+                                 : ch.foot_right.swinging ? &ch.foot_right
+                                                          : nullptr;
+        if (swing_f && swing_f->swing_t >= m_config.run.flight_release_t) {
+            FootState& stance = ch.foot_left.swinging ? ch.foot_right : ch.foot_left;
+            if (stance.on_ground || stance.pinned) {
+                if (cm.velocity.y < m_config.run.flight_vy_min)
+                    cm.velocity.y = m_config.run.flight_vy_min;
+                stance.pinned    = false;
+                stance.on_ground = false;
+                ch.run_flight_active = true;
+            }
+        }
+    }
 
     // ── Double-support enforcement ────────────────────────────────────────────
     // When a foot lands (heel-strike), force a minimum cooldown before the next
-    // step fires. This guarantees at least double_support_time seconds where
-    // both feet are on the ground before the next swing starts.
+    // step fires. In run mode double_support_time blends to 0 so there is no
+    // pause between strides.
     {
         const bool heel_strike_L = was_swinging_L && !ch.foot_left.swinging;
         const bool heel_strike_R = was_swinging_R && !ch.foot_right.swinging;
-        if ((heel_strike_L || heel_strike_R) && m_config.walk.double_support_time > 0.0)
-            ch.step_cooldown = std::max(ch.step_cooldown,
-                                        m_config.walk.double_support_time);
+        if (heel_strike_L || heel_strike_R) {
+            ch.run_flight_active = false;
+            if (eff_walk.double_support_time > 0.0)
+                ch.step_cooldown = std::max(ch.step_cooldown,
+                                            eff_walk.double_support_time);
+        }
     }
 
     // ── Step trigger helpers ──────────────────────────────────────────────────
     if (ch.step_cooldown > 0.0) ch.step_cooldown -= dt;
 
     const double omega0 = std::sqrt(g / h_nominal);
-    const double xi     = cm.position.x + m_config.walk.xcom_scale * cm.velocity.x / omega0;
+    const double xi     = cm.position.x + eff_walk.xcom_scale * cm.velocity.x / omega0;
 
     // Effective foot x: use swing target while mid-arc so the trigger sees
     // where each foot *will* land, not its current arc position.
@@ -1040,11 +1096,11 @@ void SimulationCore::step(double dt, const InputFrame& input)
         FootState& stance_foot = step_left ? ch.foot_right : ch.foot_left;
         if (step_foot.swinging) return false;
 
-        const double tx = computeStepLandingX(m_config.walk, ch, stance_foot,
+        const double tx = computeStepLandingX(eff_walk, ch, stance_foot,
                                               pelvis, xi, L, reach_radius, ref_slope);
         beginSwingStep(step_foot, stance_foot, ch, tx, m_terrain,
                        corrective_followthrough,
-                       L, m_config.step, m_config.walk,
+                       L, eff_step, eff_walk,
                        std::abs(cm.velocity.x), max_spd);
         return true;
     };
@@ -1068,8 +1124,8 @@ void SimulationCore::step(double dt, const InputFrame& input)
     if (ch.feet_initialized && ch.step_cooldown <= 0.0 && !any_swinging && !airborne_final) {
         const StepTriggerEval trigger_eval =
             evaluateStepTriggers(ch, eff_lx, eff_rx, xi, cm.velocity.x,
-                                 m_config.walk.eps_step, pelvis, L,
-                                 m_config.walk.d_rear_max);
+                                 eff_walk.eps_step, pelvis, L,
+                                 eff_walk.d_rear_max);
 
         if (trigger_eval.xcom_trigger || trigger_eval.rear_trigger) {
             const bool no_forward_input = std::abs(input_dir) <= 0.01;
@@ -1107,11 +1163,11 @@ void SimulationCore::step(double dt, const InputFrame& input)
     unpinLiftedFeet(ch, airborne_final, was_grounded_L, was_grounded_R);
 
     // ── Cache XCoM for renderer ──────────────────────────────────────────────
-    cacheXCoMState(m_state, ch, cm, m_config.walk, eff_lx, eff_rx, xi, L);
+    cacheXCoMState(m_state, ch, cm, eff_walk, eff_lx, eff_rx, xi, L);
 
     // ── Debug ────────────────────────────────────────────────────────────────
     writeDebugState(ch, airborne_final, y_tgt, ground_ref, ref_slope, h_ip,
-                    speed_drop, slope_drop, m_config.walk.cm_height_offset);
+                    speed_drop, slope_drop, eff_walk.cm_height_offset);
 
     // ── Character state (facing, lean, spine, knees) ─────────────────────────
     updateCharacterState(ch, cm, m_config.character, m_config.reconstruction,

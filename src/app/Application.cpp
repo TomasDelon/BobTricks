@@ -145,6 +145,7 @@ void Application::stepSimulation(double dt)
     InputFrame input;
     input.key_left       = m_key_left;
     input.key_right      = m_key_right;
+    input.key_run        = m_key_run && (m_key_left || m_key_right);
     input.jump           = m_jump_requested;
     input.set_velocity   = m_pending_set_velocity;
     input.gaze_target_world = m_gaze_target_world;
@@ -199,6 +200,8 @@ void Application::handleEvent(const SDL_Event& event)
         switch (event.key.keysym.sym) {
             case SDLK_q:      m_key_left  = pressed; break;
             case SDLK_d:      m_key_right = pressed; break;
+            case SDLK_LSHIFT:
+            case SDLK_RSHIFT: m_key_run   = pressed; break;
             case SDLK_SPACE:  if (pressed && !event.key.repeat) m_jump_requested = true; break;
             default: break;
         }
