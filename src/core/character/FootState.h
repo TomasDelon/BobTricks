@@ -7,6 +7,7 @@ struct FootState {
     Vec2 pos           = {0.0, 0.0};
     bool on_ground     = false;
     Vec2 ground_normal = {0.0, 1.0};  // outward terrain normal at contact point
+    bool airborne      = false;       // true while the foot is intentionally kept off terrain constraints
 
     // Pinned: foot is anchored to pinned_pos (second priority after 2L circle).
     // Toggle via right-click.

@@ -151,6 +151,182 @@ struct RunTimingTargets {
     double touchdown_ahead = 0.0;
 };
 
+struct LandingFootPlan {
+    Vec2 left  = {0.0, 0.0};
+    Vec2 right = {0.0, 0.0};
+};
+
+double smooth01(double x)
+{
+    x = std::clamp(x, 0.0, 1.0);
+    return x * x * (3.0 - 2.0 * x);
+}
+
+LandingFootPlan planLandingFeet(const CharacterState& ch,
+                                const StandingConfig& stand_cfg,
+                                const Terrain&        terrain,
+                                const Vec2&           pelvis,
+                                double                reach_radius,
+                                double                L)
+{
+    LandingFootPlan plan;
+    const double half = stand_cfg.d_pref * 0.5 * L;
+    const double lx = clampTerrainEndpointX(terrain, pelvis, reach_radius,
+                                            pelvis.x, pelvis.x - ch.facing * half);
+    const double rx = clampTerrainEndpointX(terrain, pelvis, reach_radius,
+                                            pelvis.x, pelvis.x + ch.facing * half);
+    plan.left  = { lx, terrain.height_at(lx) };
+    plan.right = { rx, terrain.height_at(rx) };
+    return plan;
+}
+
+double predictLandingTime(const CMState&                           cm,
+                          const CharacterConfig&                   char_cfg,
+                          const CharacterReconstructionConfig&      recon_cfg,
+                          const Terrain&                           terrain,
+                          double                                   g,
+                          double                                   L)
+{
+    const double d = char_cfg.cm_pelvis_ratio * L;
+    const double theta = recon_cfg.theta_max_deg * kDegToRad
+                       * std::tanh(cm.velocity.x / recon_cfg.v_ref);
+    const double pelvis_drop = d * std::cos(theta);
+
+    constexpr double dt_probe = 1.0 / 120.0;
+    constexpr int max_steps = 240; // 2 seconds
+    for (int i = 1; i <= max_steps; ++i) {
+        const double t = dt_probe * static_cast<double>(i);
+        const double x = cm.position.x + cm.velocity.x * t;
+        const double y = cm.position.y + cm.velocity.y * t - 0.5 * g * t * t;
+        const double pelvis_y = y - pelvis_drop;
+        const double threshold = terrain.height_at(x) + 2.0 * L;
+        if (pelvis_y <= threshold)
+            return t;
+    }
+    return dt_probe * static_cast<double>(max_steps);
+}
+
+void beginJumpPreload(CharacterState& ch,
+                      bool            run_mode,
+                      double          speed_abs,
+                      double          L,
+                      const CMState&  cm)
+{
+    ch.jump_preload_active = true;
+    ch.jump_flight_active  = false;
+    ch.jump_targets_valid  = false;
+    ch.jump_preload_t      = 0.0;
+    ch.jump_origin_mode    = run_mode ? LocomotionState::Running
+                           : (speed_abs > 0.2 ? LocomotionState::Walking
+                                              : LocomotionState::Standing);
+    switch (ch.jump_origin_mode) {
+        case LocomotionState::Running:
+            ch.jump_preload_duration = 0.08;
+            ch.jump_preload_depth    = 0.18 * L;
+            break;
+        case LocomotionState::Walking:
+            ch.jump_preload_duration = 0.11;
+            ch.jump_preload_depth    = 0.22 * L;
+            break;
+        case LocomotionState::Standing:
+        default:
+            ch.jump_preload_duration = 0.14;
+            ch.jump_preload_depth    = 0.26 * L;
+            break;
+    }
+    ch.jump_takeoff_cm_vel = cm.velocity;
+}
+
+void beginAirborneLandingProtocol(CharacterState&                       ch,
+                                  const AppConfig&                      config,
+                                  const Terrain&                        terrain,
+                                  const CharacterReconstructionConfig&  recon_cfg,
+                                  const CMState&                        cm,
+                                  double                                g,
+                                  double                                L)
+{
+    ch.jump_flight_active  = true;
+    ch.jump_takeoff_cm_pos = cm.position;
+    ch.jump_takeoff_cm_vel = cm.velocity;
+    ch.jump_left_start     = ch.foot_left.pos;
+    ch.jump_right_start    = ch.foot_right.pos;
+    ch.jump_tuck_height    = 0.24 * L;
+    ch.jump_total_flight_time = predictLandingTime(cm, config.character, recon_cfg,
+                                                   terrain, g, L);
+    ch.jump_time_remaining = ch.jump_total_flight_time;
+
+    const double t_land = ch.jump_total_flight_time;
+    const CMState predicted_cm{
+        { cm.position.x + cm.velocity.x * t_land,
+          cm.position.y + cm.velocity.y * t_land - 0.5 * g * t_land * t_land },
+        cm.velocity,
+        {0.0, 0.0}
+    };
+    const Vec2 predicted_pelvis = reconstructPelvis(predicted_cm, config.character, recon_cfg);
+    const LandingFootPlan plan = planLandingFeet(ch, config.standing, terrain,
+                                                 predicted_pelvis, 2.0 * L, L);
+    ch.jump_left_target = plan.left;
+    ch.jump_right_target = plan.right;
+    ch.jump_targets_valid = true;
+
+    auto prepFoot = [](FootState& foot) {
+        foot.pinned = false;
+        foot.on_ground = false;
+        foot.airborne = true;
+        foot.swinging = false;
+    };
+    prepFoot(ch.foot_left);
+    prepFoot(ch.foot_right);
+}
+
+void updateJumpLandingTargets(CharacterState&                      ch,
+                              const AppConfig&                     config,
+                              const Terrain&                       terrain,
+                              const CharacterReconstructionConfig& recon_cfg,
+                              const CMState&                       cm,
+                              double                               g,
+                              double                               L)
+{
+    const double t_land = predictLandingTime(cm, config.character, recon_cfg, terrain, g, L);
+    ch.jump_total_flight_time = std::max(ch.jump_total_flight_time, t_land);
+    ch.jump_time_remaining = t_land;
+
+    const CMState predicted_cm{
+        { cm.position.x + cm.velocity.x * t_land,
+          cm.position.y + cm.velocity.y * t_land - 0.5 * g * t_land * t_land },
+        cm.velocity,
+        {0.0, 0.0}
+    };
+    const Vec2 predicted_pelvis = reconstructPelvis(predicted_cm, config.character, recon_cfg);
+    const LandingFootPlan plan = planLandingFeet(ch, config.standing, terrain,
+                                                 predicted_pelvis, 2.0 * L, L);
+    const double target_alpha = smooth01(1.0 - t_land / std::max(ch.jump_total_flight_time, 1.0e-4));
+    ch.jump_left_target  = ch.jump_left_target  + (plan.left  - ch.jump_left_target)  * std::max(0.15, target_alpha);
+    ch.jump_right_target = ch.jump_right_target + (plan.right - ch.jump_right_target) * std::max(0.15, target_alpha);
+    ch.jump_targets_valid = true;
+}
+
+void updateJumpFeetInFlight(CharacterState& ch,
+                            const Vec2&     pelvis,
+                            double          progress)
+{
+    const double s = smooth01(progress);
+    const double tuck_weight = 4.0 * s * (1.0 - s);
+    const double tuck = ch.jump_tuck_height * tuck_weight;
+    auto updateFoot = [&](FootState& foot, Vec2 start, Vec2 target) {
+        const double base_x = start.x + (target.x - start.x) * s;
+        const double tucked_x = pelvis.x + 0.18 * (target.x - pelvis.x);
+        foot.pos.x = base_x + (tucked_x - base_x) * (0.70 * tuck_weight);
+        foot.pos.y = start.y + (target.y - start.y) * s + tuck;
+        foot.on_ground = false;
+        foot.airborne = true;
+        foot.pinned = false;
+        foot.swinging = false;
+    };
+    updateFoot(ch.foot_left,  ch.jump_left_start,  ch.jump_left_target);
+    updateFoot(ch.foot_right, ch.jump_right_start, ch.jump_right_target);
+}
+
 RunTimingTargets computeRunTimingTargets(const RunConfig& run_cfg,
                                          double           speed_abs,
                                          double           max_speed,
@@ -356,6 +532,7 @@ void releaseFeetAirborne(CharacterState& ch)
         foot.swinging  = false;
         foot.pinned    = false;
         foot.on_ground = false;
+        foot.airborne  = false;
     };
     releaseFootAirborne(ch.foot_left);
     releaseFootAirborne(ch.foot_right);
@@ -378,11 +555,15 @@ void bootstrapFeetOnLanding(CharacterState&       ch,
     ch.foot_left.pinned     = true;
     ch.foot_left.pinned_pos = ch.foot_left.pos;
     ch.foot_left.swinging   = false;
+    ch.foot_left.airborne   = false;
+    ch.foot_left.on_ground  = true;
 
     ch.foot_right.pos        = { rx, terrain.height_at(rx) };
     ch.foot_right.pinned     = true;
     ch.foot_right.pinned_pos = ch.foot_right.pos;
     ch.foot_right.swinging   = false;
+    ch.foot_right.airborne   = false;
+    ch.foot_right.on_ground  = true;
 }
 
 void initializeFeetUnderPelvis(CharacterState& ch,
@@ -473,15 +654,15 @@ void applyFootConstraints(CharacterState& ch,
                           double          reach_radius)
 {
     // Constraint 1: terrain — non-swinging feet only.
-    if (!ch.foot_left.swinging)  applyGroundConstraint(ch.foot_left,  terrain);
-    if (!ch.foot_right.swinging) applyGroundConstraint(ch.foot_right, terrain);
+    if (!ch.foot_left.swinging && !ch.foot_left.airborne)  applyGroundConstraint(ch.foot_left,  terrain);
+    if (!ch.foot_right.swinging && !ch.foot_right.airborne) applyGroundConstraint(ch.foot_right, terrain);
 
     // Constraint 2: 2L reach circle — global, always enforced.
     ch.foot_left.pos  = clampToCircle(ch.foot_left.pos,  pelvis, reach_radius);
     ch.foot_right.pos = clampToCircle(ch.foot_right.pos, pelvis, reach_radius);
 
-    if (!ch.foot_left.swinging)  applyGroundConstraint(ch.foot_left,  terrain);
-    if (!ch.foot_right.swinging) applyGroundConstraint(ch.foot_right, terrain);
+    if (!ch.foot_left.swinging && !ch.foot_left.airborne)  applyGroundConstraint(ch.foot_left,  terrain);
+    if (!ch.foot_right.swinging && !ch.foot_right.airborne) applyGroundConstraint(ch.foot_right, terrain);
 }
 
 struct StepTriggerEval {
@@ -1031,6 +1212,13 @@ void SimulationCore::step(double dt, const InputFrame& input)
     if (input.key_right) input_dir += 1.0;
     if (input.key_left)  input_dir -= 1.0;
 
+    if (input.jump
+        && !ch.jump_preload_active
+        && !ch.jump_flight_active
+        && !ground_state.airborne_ref) {
+        beginJumpPreload(ch, ch.run_mode, std::abs(cm.velocity.x), L, cm);
+    }
+
     // ── Airborne test (pelvis > 2L above terrain) ────────────────────────────
     const bool   airborne_pre = ground_state.airborne_ref;
 
@@ -1109,12 +1297,25 @@ void SimulationCore::step(double dt, const InputFrame& input)
     const double slope_drop = height_state.slope_drop;
     double       y_tgt      = height_state.y_tgt;
 
+    if (ch.jump_preload_active) {
+        ch.jump_preload_t += dt;
+        const double preload_progress = smooth01(
+            ch.jump_preload_t / std::max(ch.jump_preload_duration, 1.0e-4));
+        y_tgt -= ch.jump_preload_depth * preload_progress;
+    }
+
+    const bool jump_takeoff_now = ch.jump_preload_active
+                               && ch.jump_preload_t >= ch.jump_preload_duration;
+    const bool jump_vertical_override = ch.jump_preload_active
+                                     || ch.jump_flight_active
+                                     || jump_takeoff_now;
+
     // ── Running height target (phase oscillation tied to footfalls) ──────────
     // run_phase is a stride phase: 0 and 0.5 correspond to alternating
     // touchdowns. The CM must therefore oscillate at step frequency, i.e.
     // two compressions per stride. Using 4π*phase keeps vertical timing in
     // sync with left/right contacts instead of producing one wave per stride.
-    if (rb > 0.0) {
+    if (rb > 0.0 && !jump_vertical_override) {
         const double run_compression = std::lerp(0.09 * L, 0.14 * L, run_timing.speed_ratio);
         const double run_bob         = -eff_walk.bob_amp * L
                                      * std::cos(4.0 * kPi * ch.run_phase);
@@ -1126,11 +1327,25 @@ void SimulationCore::step(double dt, const InputFrame& input)
         y_tgt = std::lerp(y_tgt, y_tgt_run, rb);
     }
 
+    if (ch.landing_recovery_timer > 0.0) {
+        ch.landing_recovery_timer = std::max(0.0, ch.landing_recovery_timer - dt);
+    }
+
+    const double landing_recovery_alpha = (ch.landing_recovery_timer > 0.0)
+        ? smooth01(ch.landing_recovery_timer / 0.22)
+        : 0.0;
+    if (landing_recovery_alpha > 0.0) {
+        const double recovery_gain = ch.landing_recovery_boost * landing_recovery_alpha;
+        eff_walk.step_speed *= (1.0 + 0.75 * recovery_gain);
+        eff_walk.d_rear_max *= std::max(0.55, 1.0 - 0.25 * recovery_gain);
+        eff_walk.double_support_time *= std::max(0.0, 1.0 - 0.80 * recovery_gain);
+    }
+
     // ── Running downward spring (two-sided correction) ────────────────────────
     // The normal spring only pushes CM UP. During running the oscillating target
     // also needs to pull CM DOWN (gravity alone is too slow for energetic running).
     // Add a symmetric downward corrective acceleration when CM is above target.
-    if (rb > 0.0) {
+    if (rb > 0.0 && !jump_vertical_override) {
         const double delta = y_tgt - cm.position.y;
         if (delta < 0.0) {
             const double vy_w = eff_physics.vy_max
@@ -1139,6 +1354,19 @@ void SimulationCore::step(double dt, const InputFrame& input)
         }
     }
 
+    if (ch.jump_preload_active
+        && ch.jump_preload_t >= ch.jump_preload_duration) {
+        // Takeoff begins after the crouch has visually completed.
+        // The upward impulse is applied before integration so the same frame
+        // already transitions from compression into ascent.
+        cm.velocity.y = std::max(cm.velocity.y, m_config.physics.jump_impulse);
+        eff_physics.spring_enabled = false;
+    }
+
+    if (ch.jump_flight_active)
+        eff_physics.spring_enabled = false;
+
+    const double pre_vertical_velocity = cm.velocity.y;
     integrateVerticalMotion(cm, accel, m_terrain, m_config.character,
                             m_config.reconstruction, eff_physics,
                             y_tgt, ref_ground, L, g, dt);
@@ -1153,6 +1381,14 @@ void SimulationCore::step(double dt, const InputFrame& input)
     // ── Bootstrap feet ───────────────────────────────────────────────────────
     if (!ch.feet_initialized) {
         initializeFeetUnderPelvis(ch, m_terrain, pelvis, L, m_config.standing.d_pref);
+    }
+
+    if (ch.jump_preload_active
+        && ch.jump_preload_t >= ch.jump_preload_duration) {
+        ch.jump_preload_active = false;
+        cm.velocity.y = std::max(cm.velocity.y, m_config.physics.jump_impulse);
+        beginAirborneLandingProtocol(ch, m_config, m_terrain, m_config.reconstruction,
+                                     cm, g, L);
     }
 
     // ── Pinned constraint (second priority — applied before 2L clamp) ────────
@@ -1216,19 +1452,67 @@ void SimulationCore::step(double dt, const InputFrame& input)
     // When airborne: cancel any swing in progress, unpin feet so clampToCircle
     // drags them naturally. On landing (airborne→grounded), re-bootstrap so feet
     // start from a sensible ground position instead of stale mid-air pinned_pos.
+    if (airborne_final && !ch.jump_flight_active) {
+        beginAirborneLandingProtocol(ch, m_config, m_terrain, m_config.reconstruction,
+                                     cm, g, L);
+    }
+
+    if (ch.jump_flight_active) {
+        updateJumpLandingTargets(ch, m_config, m_terrain, m_config.reconstruction, cm, g, L);
+        const double progress = 1.0 - ch.jump_time_remaining
+                                      / std::max(ch.jump_total_flight_time, 1.0e-4);
+        updateJumpFeetInFlight(ch, pelvis, progress);
+    }
+
     if (airborne_final) {
         releaseFeetAirborne(ch);
+        if (ch.jump_flight_active) {
+            ch.foot_left.airborne  = true;
+            ch.foot_right.airborne = true;
+        }
     } else if (airborne_pre && airborne_final != airborne_pre) {
-        // Just landed — re-bootstrap feet at terrain under pelvis.
-        // Clamp each foot x so that its terrain point stays inside the 2L disk,
-        // even on steep slopes where the naive half-offset would violate it.
-        bootstrapFeetOnLanding(ch, m_config.standing, m_terrain,
-                               pelvis, reach_radius, L);
+        if (ch.jump_flight_active && ch.jump_targets_valid) {
+            ch.foot_left.pos        = ch.jump_left_target;
+            ch.foot_left.pinned     = true;
+            ch.foot_left.pinned_pos = ch.jump_left_target;
+            ch.foot_left.swinging   = false;
+            ch.foot_left.airborne   = false;
+            ch.foot_left.on_ground  = true;
+
+            ch.foot_right.pos        = ch.jump_right_target;
+            ch.foot_right.pinned     = true;
+            ch.foot_right.pinned_pos = ch.jump_right_target;
+            ch.foot_right.swinging   = false;
+            ch.foot_right.airborne   = false;
+            ch.foot_right.on_ground  = true;
+            ch.jump_flight_active    = false;
+            ch.jump_preload_active   = false;
+            ch.jump_targets_valid    = false;
+
+            const double impact_speed = std::max(0.0, -pre_vertical_velocity);
+            const double impact_ratio = std::clamp(
+                impact_speed / std::max(m_config.physics.jump_impulse, 1.0e-4),
+                0.0, 2.0);
+            ch.landing_recovery_timer = 0.22;
+            ch.landing_recovery_boost = 0.5 + 0.9 * impact_ratio;
+        } else {
+            // Just landed — re-bootstrap feet at terrain under pelvis.
+            bootstrapFeetOnLanding(ch, m_config.standing, m_terrain,
+                                   pelvis, reach_radius, L);
+            const double impact_speed = std::max(0.0, -pre_vertical_velocity);
+            const double impact_ratio = std::clamp(
+                impact_speed / std::max(m_config.physics.jump_impulse, 1.0e-4),
+                0.0, 2.0);
+            ch.landing_recovery_timer = 0.18;
+            ch.landing_recovery_boost = 0.35 + 0.7 * impact_ratio;
+        }
     }
 
     const bool any_swinging = ch.foot_left.swinging || ch.foot_right.swinging;
 
-    if (ch.run_mode
+    if (!ch.jump_preload_active
+        && !ch.jump_flight_active
+        && ch.run_mode
         && ch.feet_initialized
         && !any_swinging
         && !airborne_final) {
@@ -1251,7 +1535,9 @@ void SimulationCore::step(double dt, const InputFrame& input)
                            false, L, eff_step, eff_walk, speed_abs, max_spd);
             ch.step_cooldown = 0.0;
         }
-    } else if (ch.feet_initialized
+    } else if (!ch.jump_preload_active
+               && !ch.jump_flight_active
+               && ch.feet_initialized
                && ch.step_cooldown <= 0.0
                && !any_swinging
                && !airborne_final) {

@@ -20,6 +20,7 @@ struct CharacterState {
     double facing = 1.0;   // +1 = right, -1 = left
     double theta  = 0.0;   // filtered lean angle (rad) — used for spine reconstruction
     double filtered_slope = 0.0;  // low-pass terrain slope used by lean target
+    double airborne_lean_blend = 0.0; // [0,1] blends velocity lean from forward-on-ground to backward-in-air
 
     // Derived pose — reconstructed each frame from CM
     Vec2 pelvis       = {0.0, 0.0};
@@ -57,6 +58,26 @@ struct CharacterState {
     bool   recovery_followthrough_active = false;
     double recovery_followthrough_dir    = 0.0;  // +1 / -1 while a corrective swing should carry CM along
     double downhill_crouch               = 0.0;  // [0,1] filtered downhill crouch / reach state
+    double landing_recovery_timer        = 0.0;  // [s] short post-touchdown window for faster recovery steps
+    double landing_recovery_boost        = 0.0;  // [-] impact-scaled step-speed boost during landing recovery
+
+    // Jump protocol
+    bool   jump_preload_active     = false;
+    bool   jump_flight_active      = false;
+    double jump_preload_t          = 0.0;
+    double jump_preload_duration   = 0.0;
+    double jump_preload_depth      = 0.0;
+    double jump_total_flight_time  = 0.0;
+    double jump_time_remaining     = 0.0;
+    double jump_tuck_height        = 0.0;
+    Vec2   jump_takeoff_cm_pos     = {0.0, 0.0};
+    Vec2   jump_takeoff_cm_vel     = {0.0, 0.0};
+    Vec2   jump_left_start         = {0.0, 0.0};
+    Vec2   jump_right_start        = {0.0, 0.0};
+    Vec2   jump_left_target        = {0.0, 0.0};
+    Vec2   jump_right_target       = {0.0, 0.0};
+    bool   jump_targets_valid      = false;
+    LocomotionState jump_origin_mode = LocomotionState::Standing;
 
     // Run mode
     double run_blend = 0.0;   // [0,1] 0=walk, 1=run — blends parameters smoothly

@@ -1,6 +1,7 @@
 #include "core/character/CharacterState.h"
 #include "core/locomotion/LegIK.h"
 
+#include <algorithm>
 #include <cmath>
 
 static constexpr double DEG_TO_RAD = 3.14159265358979323846 / 180.0;
@@ -50,7 +51,13 @@ void updateCharacterState(CharacterState& ch,
     const double move_sign   = (std::abs(vx) > rc.facing_eps)
                              ? std::copysign(1.0, vx)
                              : ch.facing;
-    const double theta_vel   = move_sign * theta_max
+    const double airborne_target = on_floor ? 0.0 : 1.0;
+    const double airborne_tau = 0.08;
+    ch.airborne_lean_blend += (airborne_target - ch.airborne_lean_blend)
+                            * dt / airborne_tau;
+    ch.airborne_lean_blend = std::clamp(ch.airborne_lean_blend, 0.0, 1.0);
+    const double velocity_lean_dir = 1.0 - 2.0 * ch.airborne_lean_blend;
+    const double theta_vel   = velocity_lean_dir * move_sign * theta_max
                              * std::tanh(std::abs(vx) / v_ref);
     const double theta_tgt = theta_slope + theta_vel;
     const double tau  = (rc.tau_lean > 0.0) ? rc.tau_lean : dt;

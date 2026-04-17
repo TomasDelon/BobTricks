@@ -225,6 +225,44 @@ int main()
 
     {
         AppConfig run_cfg = base_cfg;
+        run_cfg.terrain.enabled = false;
+
+        SimulationCore core(run_cfg);
+        const double   L = run_cfg.character.body_height_m / 5.0;
+        ScenarioInit   init;
+        init.cm_pos = {
+            0.0,
+            computeNominalY(L, run_cfg.standing.d_pref, run_cfg.character.cm_pelvis_ratio)
+        };
+        core.reset(init);
+
+        bool preload_seen = false;
+        bool airborne_seen = false;
+        for (int frame = 0; frame < 60; ++frame) {
+            InputFrame input;
+            if (frame == 1)
+                input.jump = true;
+
+            const double prev_y = core.state().cm.position.y;
+            core.step(run_cfg.sim_loop.fixed_dt_s, input);
+            const SimState& s  = core.state();
+            const auto& ch = s.character;
+
+            if (!airborne_seen && s.cm.position.y < prev_y - 1e-5)
+                preload_seen = true;
+            if (ch.locomotion_state == LocomotionState::Airborne)
+                airborne_seen = true;
+
+            TEST_EXPECT(suite, isFinite(ch.foot_left.pos));
+            TEST_EXPECT(suite, isFinite(ch.foot_right.pos));
+        }
+
+        TEST_EXPECT(suite, preload_seen);
+        TEST_EXPECT(suite, airborne_seen);
+    }
+
+    {
+        AppConfig run_cfg = base_cfg;
         SimulationCore core(run_cfg);
         const double   L = run_cfg.character.body_height_m / 5.0;
         ScenarioInit   init;
