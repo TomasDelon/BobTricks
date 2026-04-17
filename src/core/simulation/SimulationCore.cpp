@@ -440,6 +440,95 @@ double computeStepLandingX(const WalkConfig&   walk_cfg,
     return std::clamp(raw_tx, base_lo, base_hi);
 }
 
+void refreshSwingArcProfile(FootState&         foot,
+                            const Terrain&     terrain,
+                            double             L,
+                            const StepConfig&  step_cfg,
+                            const WalkConfig&  walk_cfg,
+                            double             speed_abs,
+                            double             walk_max_speed)
+{
+    const double tx_local = foot.swing_target.x;
+
+    // A step with large vertical drop/rise covers more total arc distance than
+    // its horizontal extent alone. Scale down the parameter advance rate so the
+    // foot takes proportionally longer — downhill steps slow the swing naturally.
+    {
+        const double dx      = tx_local - foot.swing_start.x;
+        const double dy      = foot.swing_target.y - foot.swing_start.y;
+        const double hdist   = std::abs(dx);
+        const double arc_len = std::sqrt(dx * dx + dy * dy);
+        foot.swing_speed_scale = (arc_len > 1.0e-9)
+            ? std::max(0.30, hdist / arc_len)
+            : 1.0;
+    }
+
+    // Base lift from StepConfig. Uphill adds lift (foot must clear rising terrain);
+    // downhill reduces it (terrain drops away, less clearance needed).
+    // Speed adds a small bonus for larger, faster arcs.
+    {
+        const double dx         = tx_local - foot.swing_start.x;
+        const double dy         = foot.swing_target.y - foot.swing_start.y;
+        const double hdist      = std::abs(dx);
+        const double step_slope = (hdist > 1.0e-9) ? (dy / hdist) : 0.0;
+        const double h_base     = step_cfg.h_clear_ratio * L;
+        const double h_slope    = walk_cfg.h_clear_slope_factor * L * step_slope;
+        const double h_speed    = walk_cfg.h_clear_speed_factor * L
+                                * std::clamp(speed_abs / std::max(walk_max_speed, 1.0e-4),
+                                             0.0, 1.0);
+
+        double max_terrain_bulge = 0.0;
+        for (int s = 1; s <= 3; ++s) {
+            const double ts       = s * 0.25;
+            const double x_samp   = foot.swing_start.x + ts * dx;
+            const double y_linear = foot.swing_start.y + ts * dy;
+            const double bulge    = terrain.height_at(x_samp) - y_linear;
+            max_terrain_bulge     = std::max(max_terrain_bulge, bulge);
+        }
+
+        const double h_terrain = max_terrain_bulge + walk_cfg.h_clear_min_ratio * L;
+        foot.swing_h_clear = std::max(h_terrain,
+                                      std::max(walk_cfg.h_clear_min_ratio * L,
+                                               h_base + h_slope + h_speed));
+    }
+}
+
+double estimateSwingRemainingTime(const FootState& foot,
+                                  const WalkConfig& walk_cfg)
+{
+    const double rate = std::max(1.0e-4, walk_cfg.step_speed * foot.swing_speed_scale);
+    return std::max(0.0, 1.0 - foot.swing_t) / rate;
+}
+
+double retargetLandingRecoveryX(double                 target_x,
+                                const CharacterState&  ch,
+                                const FootState&       stance_foot,
+                                const Vec2&            pelvis,
+                                double                 future_cm_x,
+                                double                 reach_radius,
+                                double                 L,
+                                double                 ref_slope,
+                                const WalkConfig&      walk_cfg,
+                                double                 recovery_gain)
+{
+    const double normalized_gain = std::clamp(recovery_gain / 1.8, 0.0, 1.0);
+    const double valid_back      = std::lerp(0.34 * L, 0.16 * L, normalized_gain);
+    const double extra_forward   = std::lerp(0.04 * L, 0.12 * L, normalized_gain);
+    const double behind_future   = (future_cm_x - target_x) * ch.facing;
+    if (behind_future <= valid_back)
+        return target_x;
+
+    const double desired_x = future_cm_x - ch.facing * valid_back
+                           + ch.facing * extra_forward;
+    const double slope_factor = std::sqrt(1.0 + ref_slope * ref_slope);
+    const double max_reach    = 0.95 * reach_radius / slope_factor;
+    const double max_step     = walk_cfg.max_step_L * L;
+    const double base_lo      = std::max(pelvis.x - max_reach, stance_foot.pos.x - max_step);
+    const double base_hi      = std::min(pelvis.x + max_reach, stance_foot.pos.x + max_step);
+
+    return std::clamp(desired_x, base_lo, base_hi);
+}
+
 void beginSwingStep(FootState&       step_foot,
                     FootState&       stance_foot,
                     CharacterState&  ch,
@@ -459,53 +548,7 @@ void beginSwingStep(FootState&       step_foot,
     step_foot.swing_start  = step_foot.pos;
     step_foot.swing_target = { tx, terrain.height_at(tx) };
     step_foot.swing_t      = 0.0;
-
-    // ── Swing speed scale ────────────────────────────────────────────────────
-    // A step with large vertical drop/rise covers more total arc distance than
-    // its horizontal extent alone. Scale down the parameter advance rate so the
-    // foot takes proportionally longer — downhill steps slow the swing naturally.
-    {
-        const double dx       = tx - step_foot.swing_start.x;
-        const double dy       = step_foot.swing_target.y - step_foot.swing_start.y;
-        const double hdist    = std::abs(dx);
-        const double arc_len  = std::sqrt(dx * dx + dy * dy);
-        step_foot.swing_speed_scale = (arc_len > 1e-9)
-            ? std::max(0.30, hdist / arc_len)
-            : 1.0;
-    }
-
-    // ── Dynamic foot lift (h_clear) ──────────────────────────────────────────
-    // Base lift from StepConfig. Uphill adds lift (foot must clear rising terrain);
-    // downhill reduces it (terrain drops away, less clearance needed).
-    // Speed adds a small bonus for larger, faster arcs.
-    {
-        const double dx         = tx - step_foot.swing_start.x;
-        const double dy         = step_foot.swing_target.y - step_foot.swing_start.y;
-        const double hdist      = std::abs(dx);
-        const double step_slope = (hdist > 1e-9) ? (dy / hdist) : 0.0;  // +uphill / −downhill
-        const double h_base     = step_cfg.h_clear_ratio * L;
-        const double h_slope    = walk_cfg.h_clear_slope_factor * L * step_slope;
-        const double h_speed    = walk_cfg.h_clear_speed_factor * L
-                                * std::clamp(speed_abs / std::max(walk_max_speed, 1e-4),
-                                             0.0, 1.0);
-        // Sample terrain at 3 midpoints to detect concavity: if the terrain
-        // between start and target rises above the linear baseline, the foot
-        // needs extra clearance or it will trigger early landing near the start.
-        double max_terrain_bulge = 0.0;
-        for (int s = 1; s <= 3; ++s) {
-            const double ts      = s * 0.25;  // t = 0.25, 0.50, 0.75
-            const double x_samp  = step_foot.swing_start.x + ts * dx;
-            const double y_linear = step_foot.swing_start.y + ts * dy;
-            const double bulge   = terrain.height_at(x_samp) - y_linear;
-            max_terrain_bulge    = std::max(max_terrain_bulge, bulge);
-        }
-        // 4t(1-t) peaks at 1.0 at t=0.5; divide by that to get required h_clear.
-        // Add a small margin to avoid just barely grazing.
-        const double h_terrain   = max_terrain_bulge + walk_cfg.h_clear_min_ratio * L;
-        step_foot.swing_h_clear = std::max(h_terrain,
-                                           std::max(walk_cfg.h_clear_min_ratio * L,
-                                                    h_base + h_slope + h_speed));
-    }
+    refreshSwingArcProfile(step_foot, terrain, L, step_cfg, walk_cfg, speed_abs, walk_max_speed);
 
     if (corrective_followthrough) {
         const double step_dx = tx - step_foot.pos.x;
@@ -1334,8 +1377,10 @@ void SimulationCore::step(double dt, const InputFrame& input)
     const double landing_recovery_alpha = (ch.landing_recovery_timer > 0.0)
         ? smooth01(ch.landing_recovery_timer / 0.22)
         : 0.0;
-    if (landing_recovery_alpha > 0.0) {
-        const double recovery_gain = ch.landing_recovery_boost * landing_recovery_alpha;
+    const double landing_recovery_gain = ch.landing_recovery_boost * landing_recovery_alpha;
+    const bool landing_recovery_active = landing_recovery_gain > 0.0;
+    if (landing_recovery_active) {
+        const double recovery_gain = landing_recovery_gain;
         eff_walk.step_speed *= (1.0 + 0.75 * recovery_gain);
         eff_walk.d_rear_max *= std::max(0.55, 1.0 - 0.25 * recovery_gain);
         eff_walk.double_support_time *= std::max(0.0, 1.0 - 0.80 * recovery_gain);
@@ -1402,6 +1447,29 @@ void SimulationCore::step(double dt, const InputFrame& input)
     const bool was_swinging_L = ch.foot_left.swinging;
     const bool was_swinging_R = ch.foot_right.swinging;
 
+    if (landing_recovery_active) {
+        auto retargetSwingIfLate = [&](FootState& swing_foot, const FootState& stance_foot) {
+            if (!swing_foot.swinging) return;
+
+            const double t_remaining = estimateSwingRemainingTime(swing_foot, eff_walk);
+            const double future_cm_x = cm.position.x + cm.velocity.x * t_remaining;
+            const double old_target_x = swing_foot.swing_target.x;
+            const double new_target_x = retargetLandingRecoveryX(old_target_x, ch, stance_foot,
+                                                                 pelvis, future_cm_x,
+                                                                 reach_radius, L, ref_slope,
+                                                                 eff_walk, landing_recovery_gain);
+            if (std::abs(new_target_x - old_target_x) <= 1.0e-5) return;
+
+            swing_foot.swing_target.x = new_target_x;
+            swing_foot.swing_target.y = m_terrain.height_at(new_target_x);
+            refreshSwingArcProfile(swing_foot, m_terrain, L, eff_step, eff_walk,
+                                   std::abs(cm.velocity.x), max_spd);
+        };
+
+        retargetSwingIfLate(ch.foot_left, ch.foot_right);
+        retargetSwingIfLate(ch.foot_right, ch.foot_left);
+    }
+
     advanceSwingFoot(ch.foot_left,  m_terrain, pelvis, dt, reach_radius, eff_walk);
     advanceSwingFoot(ch.foot_right, m_terrain, pelvis, dt, reach_radius, eff_walk);
     const bool heel_strike_L = was_swinging_L && !ch.foot_left.swinging;
@@ -1439,8 +1507,21 @@ void SimulationCore::step(double dt, const InputFrame& input)
         FootState& stance_foot = step_left ? ch.foot_right : ch.foot_left;
         if (step_foot.swinging) return false;
 
-        const double tx = computeStepLandingX(eff_walk, ch, stance_foot,
-                                              pelvis, xi, L, reach_radius, ref_slope);
+        double tx = computeStepLandingX(eff_walk, ch, stance_foot,
+                                        pelvis, xi, L, reach_radius, ref_slope);
+        if (landing_recovery_active) {
+            FootState predicted_step = step_foot;
+            predicted_step.swing_start = step_foot.pos;
+            predicted_step.swing_target = { tx, m_terrain.height_at(tx) };
+            predicted_step.swing_t = 0.0;
+            refreshSwingArcProfile(predicted_step, m_terrain, L, eff_step, eff_walk,
+                                   std::abs(cm.velocity.x), max_spd);
+            const double t_remaining = estimateSwingRemainingTime(predicted_step, eff_walk);
+            const double future_cm_x = cm.position.x + cm.velocity.x * t_remaining;
+            tx = retargetLandingRecoveryX(tx, ch, stance_foot, pelvis, future_cm_x,
+                                          reach_radius, L, ref_slope, eff_walk,
+                                          landing_recovery_gain);
+        }
         beginSwingStep(step_foot, stance_foot, ch, tx, m_terrain,
                        corrective_followthrough,
                        L, eff_step, eff_walk,
