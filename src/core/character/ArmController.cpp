@@ -1,23 +1,10 @@
 #include "core/character/ArmController.h"
+#include "core/math/MathConstants.h"
 
 #include <algorithm>
 #include <cmath>
 
 namespace {
-
-constexpr double kDegToRad = 3.14159265358979323846 / 180.0;
-
-Vec2 normalizeOr(Vec2 v, Vec2 fallback)
-{
-    const double len = v.length();
-    if (len <= 1.0e-9) return fallback;
-    return v / len;
-}
-
-double dot(Vec2 a, Vec2 b)
-{
-    return a.x * b.x + a.y * b.y;
-}
 
 Vec2 armCirclePoint(Vec2 center, Vec2 body_right, Vec2 body_up, double radius, double angle_deg)
 {
@@ -26,24 +13,14 @@ Vec2 armCirclePoint(Vec2 center, Vec2 body_right, Vec2 body_up, double radius, d
                   + body_up    * (std::sin(a) * radius);
 }
 
-double lerp(double a, double b, double t)
-{
-    return a + (b - a) * t;
-}
-
 double expDecayFactor(double rate, double dt)
 {
     return 1.0 - std::exp(-std::max(0.0, rate) * std::max(0.0, dt));
 }
 
-double clamp01(double x)
-{
-    return std::clamp(x, 0.0, 1.0);
-}
-
 double signedSpeedFromSwingDelta(double delta)
 {
-    if (std::abs(delta) <= 1.0e-6)
+    if (std::abs(delta) <= kEpsAngle)
         return 0.0;
     return (delta > 0.0) ? 1.0 : -1.0;
 }
@@ -51,7 +28,7 @@ double signedSpeedFromSwingDelta(double delta)
 double scaleArcAngle(double start_deg, double end_deg, double t, double amp_scale)
 {
     const double mid = 0.5 * (start_deg + end_deg);
-    const double raw = lerp(start_deg, end_deg, t);
+    const double raw = std::lerp(start_deg, end_deg, t);
     return mid + (raw - mid) * amp_scale;
 }
 
@@ -87,7 +64,7 @@ bool solveTwoBoneArm(Vec2 target,
     const double dist = delta.length();
     const Vec2 dir = normalizeOr(delta, {1.0, 0.0});
 
-    if (dist <= 1.0e-9) {
+    if (dist <= kEpsLength) {
         const Vec2 bend_dir = normalizeOr(bend_preference, {0.0, -1.0});
         pose.elbow = shoulder + bend_dir * upper_len;
         pose.hand = shoulder;
@@ -108,7 +85,7 @@ bool solveTwoBoneArm(Vec2 target,
     const double score_b = dot(elbow_b - shoulder, bend_preference);
     if (score_b > score_a) {
         std::swap(elbow_a, elbow_b);
-    } else if (std::abs(score_a - score_b) <= 1.0e-6 && previous_elbow.has_value()) {
+    } else if (std::abs(score_a - score_b) <= kEpsAngle && previous_elbow.has_value()) {
         const double da = (elbow_a - *previous_elbow).length();
         const double db = (elbow_b - *previous_elbow).length();
         if (db < da)
@@ -150,25 +127,25 @@ void updateArmState(CharacterState& ch,
     const bool right_foot_active = ch.foot_right.swinging && !ch.foot_left.swinging;
     const bool use_leg_coupled_cycle = left_foot_active || right_foot_active;
     if (!ch.arm_pose_initialized)
-        ch.arm_run_blend = clamp01(ch.run_blend);
+        ch.arm_run_blend = std::clamp(ch.run_blend, 0.0, 1.0);
     const double arm_run_tau = 0.18;
-    const double arm_run_alpha = clamp01(dt / std::max(arm_run_tau, 1.0e-4));
-    ch.arm_run_blend += (clamp01(ch.run_blend) - ch.arm_run_blend) * arm_run_alpha;
-    ch.arm_run_blend = clamp01(ch.arm_run_blend);
+    const double arm_run_alpha = std::clamp(dt / std::max(arm_run_tau, 1.0e-4), 0.0, 1.0);
+    ch.arm_run_blend += (std::clamp(ch.run_blend, 0.0, 1.0) - ch.arm_run_blend) * arm_run_alpha;
+    ch.arm_run_blend = std::clamp(ch.arm_run_blend, 0.0, 1.0);
     const double rb = ch.arm_run_blend;
 
     // Run arm targets, tuned from the desired in-editor pose.
     // These are blended continuously from walk -> run so the transition
     // does not snap when toggling the run modifier.
-    const double hand_reach_reduction_L = lerp(arm_config.walk_hand_reach_reduction_L, 0.59, rb);
-    const double hand_phase_speed_scale = lerp(arm_config.walk_hand_phase_speed_scale, 0.50, rb);
-    const double hand_speed_arc_gain    = lerp(arm_config.walk_hand_speed_arc_gain,    0.22, rb);
-    const double hand_phase_response    = lerp(arm_config.walk_hand_phase_response,    10.0, rb);
-    const double hand_phase_friction    = lerp(arm_config.walk_hand_phase_friction,     3.5, rb);
-    const double front_hand_start_deg   = lerp(arm_config.walk_front_hand_start_deg,   -93.0, rb);
-    const double front_hand_end_deg     = lerp(arm_config.walk_front_hand_end_deg,     -30.7, rb);
-    const double back_hand_start_deg    = lerp(arm_config.walk_back_hand_start_deg,    -34.9, rb);
-    const double back_hand_end_deg      = lerp(arm_config.walk_back_hand_end_deg,     -109.8, rb);
+    const double hand_reach_reduction_L = std::lerp(arm_config.walk_hand_reach_reduction_L, 0.59, rb);
+    const double hand_phase_speed_scale = std::lerp(arm_config.walk_hand_phase_speed_scale, 0.50, rb);
+    const double hand_speed_arc_gain    = std::lerp(arm_config.walk_hand_speed_arc_gain,    0.22, rb);
+    const double hand_phase_response    = std::lerp(arm_config.walk_hand_phase_response,    10.0, rb);
+    const double hand_phase_friction    = std::lerp(arm_config.walk_hand_phase_friction,     3.5, rb);
+    const double front_hand_start_deg   = std::lerp(arm_config.walk_front_hand_start_deg,   -93.0, rb);
+    const double front_hand_end_deg     = std::lerp(arm_config.walk_front_hand_end_deg,     -30.7, rb);
+    const double back_hand_start_deg    = std::lerp(arm_config.walk_back_hand_start_deg,    -34.9, rb);
+    const double back_hand_end_deg      = std::lerp(arm_config.walk_back_hand_end_deg,     -109.8, rb);
 
     const double cycle_hz = hand_phase_speed_scale * walk_config.step_speed;
     const double natural_swing_speed = std::max(0.25, cycle_hz);
@@ -184,7 +161,7 @@ void updateArmState(CharacterState& ch,
         const double raw_leg_t = active_swing_foot_is_left ? ch.foot_left.swing_t
                                                            : ch.foot_right.swing_t;
         const bool direct_cycle = (active_swing_foot_is_left == contralateral_front_foot_is_left);
-        const double leg_swing_t = direct_cycle ? clamp01(raw_leg_t) : (1.0 - clamp01(raw_leg_t));
+        const double leg_swing_t = direct_cycle ? std::clamp(raw_leg_t, 0.0, 1.0) : (1.0 - std::clamp(raw_leg_t, 0.0, 1.0));
         swing_t_target = leg_swing_t;
         swing_t_target_velocity = signedSpeedFromSwingDelta(leg_swing_t - ch.arm_phase) * natural_swing_speed;
     }
@@ -203,7 +180,7 @@ void updateArmState(CharacterState& ch,
         ch.arm_phase_velocity *= damping;
         ch.arm_phase += ch.arm_phase_velocity * dt;
     }
-    ch.arm_phase = clamp01(ch.arm_phase);
+    ch.arm_phase = std::clamp(ch.arm_phase, 0.0, 1.0);
     if ((ch.arm_phase <= 0.0 && ch.arm_phase_velocity < 0.0)
         || (ch.arm_phase >= 1.0 && ch.arm_phase_velocity > 0.0)) {
         ch.arm_phase_velocity = 0.0;
@@ -215,9 +192,9 @@ void updateArmState(CharacterState& ch,
     const bool keep_branch_memory = ch.arm_pose_initialized
                                  && (ch.arm_pose_facing * ch.facing > 0.0);
     const double walk_radius = std::max(0.05 * L, 2.0 * L - hand_reach_reduction_L * L);
-    const double swing_t = clamp01(ch.arm_phase);
+    const double swing_t = std::clamp(ch.arm_phase, 0.0, 1.0);
     const double speed_ref = std::max(1.0e-6, physics_config.walk_max_speed);
-    const double speed_norm = clamp01(std::abs(cm.velocity.x) / speed_ref);
+    const double speed_norm = std::clamp(std::abs(cm.velocity.x) / speed_ref, 0.0, 1.0);
     const double arc_amp_scale = 1.0 - hand_speed_arc_gain * (1.0 - speed_norm);
     const double front_angle = scaleArcAngle(front_hand_start_deg,
                                              front_hand_end_deg,

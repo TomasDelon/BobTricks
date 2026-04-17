@@ -1,10 +1,9 @@
 #include "core/character/CharacterState.h"
 #include "core/locomotion/LegIK.h"
+#include "core/math/MathConstants.h"
 
 #include <algorithm>
 #include <cmath>
-
-static constexpr double DEG_TO_RAD = 3.14159265358979323846 / 180.0;
 
 void updateCharacterState(CharacterState& ch,
                           const CMState&  cm,
@@ -40,7 +39,7 @@ void updateCharacterState(CharacterState& ch,
     // torso still tilts toward the hill if the slope term dominates.
     const double L         = config.body_height_m / 5.0;
     const double d         = config.cm_pelvis_ratio * L;
-    const double theta_max   = rc.theta_max_deg * DEG_TO_RAD;
+    const double theta_max   = rc.theta_max_deg * kDegToRad;
     const double v_ref       = std::max(rc.v_ref, 1.0e-4);
     const double safe_slope  = std::isfinite(terrain_slope) ? terrain_slope : 0.0;
     const double tau_slope = (rc.tau_slope > 0.0) ? rc.tau_slope : dt;

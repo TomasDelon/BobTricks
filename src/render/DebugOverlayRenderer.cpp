@@ -1,19 +1,11 @@
 #include "render/DebugOverlayRenderer.h"
+#include "core/math/MathConstants.h"
 #include "core/physics/Geometry.h"
 
 #include <cmath>
 #include <algorithm>
 
 namespace {
-constexpr double kTau = 6.28318530717958647692;
-constexpr double kDegToRad = 3.14159265358979323846 / 180.0;
-
-Vec2 normalizeOr(Vec2 v, Vec2 fallback)
-{
-    const double len = v.length();
-    if (len <= 1.0e-9) return fallback;
-    return v / len;
-}
 
 Vec2 armCirclePoint(Vec2 center, Vec2 body_right, Vec2 body_up, double radius, double angle_deg)
 {
@@ -39,7 +31,7 @@ void DebugOverlayRenderer::drawCircleOutline(SDL_Renderer* renderer, float cx, f
     float prev_x = cx + radius;
     float prev_y = cy;
     for (int i = 1; i <= SEGMENTS; ++i) {
-        const float a = static_cast<float>(kTau * static_cast<double>(i) / static_cast<double>(SEGMENTS));
+        const float a = static_cast<float>(kTau * i / SEGMENTS);
         const float x = cx + radius * std::cos(a);
         const float y = cy + radius * std::sin(a);
         SDL_RenderDrawLineF(renderer, prev_x, prev_y, x, y);

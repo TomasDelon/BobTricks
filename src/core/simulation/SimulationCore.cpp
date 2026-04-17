@@ -4,6 +4,7 @@
 #include "core/character/ArmController.h"
 #include "core/character/HeadController.h"
 #include "core/character/UpperBodyKinematics.h"
+#include "core/math/MathConstants.h"
 #include "core/physics/Geometry.h"
 #include "core/simulation/SimVerbosity.h"
 
@@ -13,8 +14,7 @@
 
 #define SIM_LOG(...) do { if (g_sim_verbose) std::fprintf(stderr, __VA_ARGS__); } while (0)
 
-static constexpr double kPi       = 3.14159265358979323846;
-static constexpr double kDegToRad = kPi / 180.0;
+static constexpr double kInputDirDeadzone = 0.01;
 
 namespace {
 
@@ -40,7 +40,7 @@ Vec2 clampToCircle(Vec2 pos, Vec2 center, double r)
     const double dx   = pos.x - center.x;
     const double dy   = pos.y - center.y;
     const double dist = std::sqrt(dx * dx + dy * dy);
-    if (dist > r && dist > 1e-9)
+    if (dist > r && dist > kEpsLength)
         return { center.x + dx * (r / dist),
                  center.y + dy * (r / dist) };
     return pos;
@@ -112,7 +112,7 @@ double slideTerrainEndpointX(const Terrain& terrain,
             return x_prev;
     }
 
-    if (std::abs(x_target - x_start) <= 1.0e-9)
+    if (std::abs(x_target - x_start) <= kEpsLength)
         return x_start;
 
     const double x_step = x_start + (x_target - x_start) * alpha;
@@ -762,10 +762,10 @@ void tryRecoveryStepOnLiftOff(const CharacterState& ch,
     if (airborne_final || any_swinging) return;
 
     if (lift_off_L && ch.foot_right.on_ground) {
-        launchStep(true, std::abs(input_dir) <= 0.01);
+        launchStep(true, std::abs(input_dir) <= kInputDirDeadzone);
         SIM_LOG("Step trigger: LEFT  lift_off=1\n");
     } else if (lift_off_R && ch.foot_left.on_ground) {
-        launchStep(false, std::abs(input_dir) <= 0.01);
+        launchStep(false, std::abs(input_dir) <= kInputDirDeadzone);
         SIM_LOG("Step trigger: RIGHT  lift_off=1\n");
     }
 }
@@ -995,7 +995,7 @@ double computeHorizontalAcceleration(const CharacterState& ch,
 {
     double accel_x = 0.0;
 
-    if (!airborne_pre && std::abs(input_dir) > 0.01) {
+    if (!airborne_pre && std::abs(input_dir) > kInputDirDeadzone) {
         accel_x += input_dir * physics_cfg.accel * cos_t;
     } else if (!airborne_pre) {
         double friction = physics_cfg.floor_friction;
@@ -1011,7 +1011,7 @@ double computeHorizontalAcceleration(const CharacterState& ch,
         accel_x += -friction * cm.velocity.x;
     }
     if (!airborne_pre
-        && (std::abs(input_dir) > 0.01
+        && (std::abs(input_dir) > kInputDirDeadzone
             || std::abs(cm.velocity.x) > physics_cfg.hold_speed)) {
         accel_x += -g * sin_t * cos_t;
     }
@@ -1035,11 +1035,11 @@ void integrateHorizontalMotion(CMState&             cm,
                                             sin_t, cos_t, g, airborne_pre);
     cm.velocity.x += accel.x * dt;
 
-    if (std::abs(input_dir) > 0.01
+    if (std::abs(input_dir) > kInputDirDeadzone
         && cm.velocity.x * input_dir > 0.0
         && std::abs(cm.velocity.x) > max_spd) {
         cm.velocity.x = std::copysign(max_spd, input_dir);
-    } else if (std::abs(input_dir) <= 0.01
+    } else if (std::abs(input_dir) <= kInputDirDeadzone
                && std::abs(cm.velocity.x) < physics_cfg.stop_speed) {
         cm.velocity.x = 0.0;
     }
@@ -1603,9 +1603,9 @@ void SimulationCore::step(double dt, const InputFrame& input)
         && ch.feet_initialized
         && !any_swinging
         && !airborne_final) {
-        FootState& back_foot = ((ch.facing >= 0.0) ? (ch.foot_left.pos.x < ch.foot_right.pos.x)
-                                                   : (ch.foot_left.pos.x > ch.foot_right.pos.x))
-            ? ch.foot_left : ch.foot_right;
+        const bool back_is_left = (ch.facing >= 0.0) ? (ch.foot_left.pos.x < ch.foot_right.pos.x)
+                                                     : (ch.foot_left.pos.x > ch.foot_right.pos.x);
+        FootState& back_foot = back_is_left ? ch.foot_left : ch.foot_right;
         FootState& front_foot = (&back_foot == &ch.foot_left) ? ch.foot_right : ch.foot_left;
 
         const double back_extent = std::lerp(0.40 * L, 0.80 * L, run_timing.speed_ratio);
@@ -1641,7 +1641,7 @@ void SimulationCore::step(double dt, const InputFrame& input)
                                  eff_walk.d_rear_max);
 
         if (trigger_eval.xcom_trigger || trigger_eval.rear_trigger) {
-            const bool no_forward_input = std::abs(input_dir) <= 0.01;
+            const bool no_forward_input = std::abs(input_dir) <= kInputDirDeadzone;
             const bool corrective_followthrough =
                 no_forward_input && trigger_eval.rear_trigger && !trigger_eval.xcom_trigger;
             launchStep(trigger_eval.step_left_xcom, corrective_followthrough);

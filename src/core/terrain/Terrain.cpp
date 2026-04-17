@@ -1,4 +1,5 @@
 #include "core/terrain/Terrain.h"
+#include "core/math/MathConstants.h"
 
 #include <algorithm>
 #include <cmath>
@@ -6,7 +7,6 @@
 
 static constexpr double WORLD_X_MIN = -300.0;
 static constexpr double WORLD_X_MAX =  300.0;
-static constexpr double DEG_TO_RAD  = 3.14159265358979323846 / 180.0;
 
 namespace {
 
@@ -75,7 +75,7 @@ void Terrain::generate()
         angle = std::clamp(angle + delta + bias,
                            -m_config.slope_max, m_config.slope_max);
 
-        const double rad = angle * DEG_TO_RAD;
+        const double rad = angle * kDegToRad;
         x += std::cos(rad) * len;
         y += std::sin(rad) * len;
 

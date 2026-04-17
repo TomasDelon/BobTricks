@@ -1,25 +1,9 @@
 #include "core/character/HeadController.h"
+#include "core/math/MathConstants.h"
 
 #include <algorithm>
 #include <cmath>
 
-namespace {
-
-constexpr double kDegToRad = 3.14159265358979323846 / 180.0;
-
-Vec2 normalizeOr(Vec2 v, Vec2 fallback)
-{
-    const double len = v.length();
-    if (len <= 1.0e-9) return fallback;
-    return v / len;
-}
-
-double dot(Vec2 a, Vec2 b)
-{
-    return a.x * b.x + a.y * b.y;
-}
-
-} // namespace
 
 void resetHeadState(CharacterState& ch)
 {

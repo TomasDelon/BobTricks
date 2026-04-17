@@ -4,10 +4,10 @@
 #include <cmath>
 #include <cstdint>
 
+#include "core/math/MathConstants.h"
 #include "core/math/StrokePath.h"
 
-static constexpr float CM_RADIUS = 4.f;
-static constexpr double TAU = 6.28318530717958647692;
+static constexpr float  CM_RADIUS    = 4.f;
 static constexpr double CIRCLE_KAPPA = 0.5522847498307936;
 
 namespace {
@@ -42,7 +42,7 @@ void CharacterRenderer::drawCircleOutline(SDL_Renderer* renderer, float cx, floa
     float prev_x = cx + radius;
     float prev_y = cy;
     for (int i = 1; i <= SEGMENTS; ++i) {
-        const float a = static_cast<float>(TAU * static_cast<double>(i) / static_cast<double>(SEGMENTS));
+        const float a = static_cast<float>(kTau * i / SEGMENTS);
         const float x = cx + radius * std::cos(a);
         const float y = cy + radius * std::sin(a);
         SDL_RenderDrawLineF(renderer, prev_x, prev_y, x, y);
@@ -68,7 +68,7 @@ void CharacterRenderer::render(SDL_Renderer*         renderer,
     const double L  = charConfig.body_height_m / 5.0;
     const Vec2 head_axis_world = character.head_center - character.torso_top;
     const double head_axis_len = head_axis_world.length();
-    const Vec2 neck_dir_world = (head_axis_len > 1.0e-9)
+    const Vec2 neck_dir_world = (head_axis_len > kEpsLength)
                               ? (head_axis_world / head_axis_len)
                               : Vec2{0.0, 1.0};
     const Vec2 neck_attach_world = character.head_center
@@ -390,7 +390,7 @@ void CharacterRenderer::renderSplineTorso(SDL_Renderer* renderer,
 {
     const Vec2 head_axis_world = character.head_center - character.torso_top;
     const double head_axis_len = head_axis_world.length();
-    const Vec2 neck_dir_world = (head_axis_len > 1.0e-9)
+    const Vec2 neck_dir_world = (head_axis_len > kEpsLength)
                               ? (head_axis_world / head_axis_len)
                               : Vec2{0.0, 1.0};
     const Vec2 neck_attach_world = character.head_center
