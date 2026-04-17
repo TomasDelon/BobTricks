@@ -186,8 +186,10 @@ void Application::stepSimulation(double dt)
 
 void Application::handleEvent(const SDL_Event& event)
 {
-    ImGui_ImplSDL2_ProcessEvent(&event);
+    if (!m_game_view)
+        ImGui_ImplSDL2_ProcessEvent(&event);
     const ImGuiIO& io = ImGui::GetIO();
+    const bool ui_captures_mouse = !m_game_view && io.WantCaptureMouse;
 
     if (event.type == SDL_QUIT)
         m_running = false;
@@ -203,12 +205,16 @@ void Application::handleEvent(const SDL_Event& event)
             case SDLK_LSHIFT:
             case SDLK_RSHIFT: m_key_run   = pressed; break;
             case SDLK_SPACE:  if (pressed && !event.key.repeat) m_jump_requested = true; break;
+            case SDLK_p:
+                if (pressed && !event.key.repeat)
+                    m_game_view = !m_game_view;
+                break;
             default: break;
         }
     }
 
     // Scroll → zoom
-    if (event.type == SDL_MOUSEWHEEL && !io.WantCaptureMouse) {
+    if (event.type == SDL_MOUSEWHEEL && !ui_captures_mouse) {
         if (event.wheel.y > 0)      m_camera.zoomBy(ZOOM_STEP);
         else if (event.wheel.y < 0) m_camera.zoomBy(1.0 / ZOOM_STEP);
         m_config.camera.zoom = m_camera.getZoom();
@@ -217,7 +223,7 @@ void Application::handleEvent(const SDL_Event& event)
     // Left-click: hand/foot drag takes priority over camera pan
     if (event.type == SDL_MOUSEBUTTONDOWN
         && event.button.button == SDL_BUTTON_LEFT
-        && !io.WantCaptureMouse)
+        && !ui_captures_mouse)
     {
         int vw = 0, vh = 0;
         SDL_GetRendererOutputSize(m_renderer, &vw, &vh);
@@ -295,7 +301,7 @@ void Application::handleEvent(const SDL_Event& event)
         m_dragging_hand_left  = false;
         m_dragging_hand_right = false;
     }
-    if (event.type == SDL_MOUSEMOTION && !io.WantCaptureMouse) {
+    if (event.type == SDL_MOUSEMOTION && !ui_captures_mouse) {
         int vw = 0, vh = 0;
         SDL_GetRendererOutputSize(m_renderer, &vw, &vh);
         m_gaze_target_world = m_camera.screenToWorld(
@@ -323,7 +329,7 @@ void Application::handleEvent(const SDL_Event& event)
     // Right-click: pin/unpin hand/foot or drag CM velocity (near CM)
     if (event.type == SDL_MOUSEBUTTONDOWN
         && event.button.button == SDL_BUTTON_RIGHT
-        && !io.WantCaptureMouse)
+        && !ui_captures_mouse)
     {
         int vw, vh;
         SDL_GetRendererOutputSize(m_renderer, &vw, &vh);
@@ -413,88 +419,121 @@ void Application::render()
     int vw = 0, vh = 0;
     SDL_GetRendererOutputSize(m_renderer, &vw, &vh);
 
-    ImGui_ImplSDLRenderer2_NewFrame();
-    ImGui_ImplSDL2_NewFrame();
-    ImGui::NewFrame();
-
     const SimState& s = m_core->state();
-    const FrameStats stats{ m_current_fps, m_frame_dt_s };
     const Terrain& terrain = m_core->terrain();
-    const AppRequests req = m_debugUI.render(
-        stats, m_simLoop, m_config.sim_loop,
-        m_camera, m_config.camera,
-        m_config.character,
-        m_config.head,
-        m_config.arms,
-        m_config.spline_render,
-        m_config.reconstruction,
-        s.cm, m_config.cm,
-        s.character,
-        m_config.standing,
-        m_config.physics,
-        m_config.terrain,
-        m_config.terrain_sampling,
-        m_config.walk,
-        terrain
-    );
+    if (!m_game_view) {
+        ImGui_ImplSDLRenderer2_NewFrame();
+        ImGui_ImplSDL2_NewFrame();
+        ImGui::NewFrame();
 
-    if (req.step_back)          stepBack();
-    if (req.regenerate_terrain) m_core->regenerateTerrain();
-    if (req.clear_trail)        m_trail.clear();
+        const FrameStats stats{ m_current_fps, m_frame_dt_s };
+        const AppRequests req = m_debugUI.render(
+            stats, m_simLoop, m_config.sim_loop,
+            m_camera, m_config.camera,
+            m_config.character,
+            m_config.head,
+            m_config.arms,
+            m_config.spline_render,
+            m_config.reconstruction,
+            s.cm, m_config.cm,
+            s.character,
+            m_config.standing,
+            m_config.physics,
+            m_config.terrain,
+            m_config.terrain_sampling,
+            m_config.walk,
+            terrain
+        );
 
-    // IP test: teleport CM to known initial conditions so DebugUI can compare
-    // analytical prediction vs actual physics.
-    if (req.ip_test_launch) {
-        m_core->teleportCM(req.ip_test_cm_x, req.ip_test_cm_vx);
-        SDL_Log("[IPTest] CM teleported to x=%.4f  vx=%.4f",
-                req.ip_test_cm_x, req.ip_test_cm_vx);
+        if (req.step_back)          stepBack();
+        if (req.regenerate_terrain) m_core->regenerateTerrain();
+        if (req.clear_trail)        m_trail.clear();
+
+        if (req.ip_test_launch) {
+            m_core->teleportCM(req.ip_test_cm_x, req.ip_test_cm_vx);
+            SDL_Log("[IPTest] CM teleported to x=%.4f  vx=%.4f",
+                    req.ip_test_cm_x, req.ip_test_cm_vx);
+        }
+
+        if (req.sim_loop || req.camera || req.character || req.head || req.arms || req.spline || req.reconstruction
+            || req.walk
+            || req.cm || req.physics || req.terrain) {
+            m_config.sim_loop.time_scale = m_simLoop.getTimeScale();
+            m_config.camera.zoom         = m_camera.getZoom();
+            if (ConfigIO::save(CONFIG_PATH, m_config))
+                SDL_Log("Config saved → %s", CONFIG_PATH);
+            else
+                SDL_Log("Failed to save config → %s", CONFIG_PATH);
+        }
+
+        ImGui::Render();
     }
-
-    if (req.sim_loop || req.camera || req.character || req.head || req.arms || req.spline || req.reconstruction
-        || req.walk
-        || req.cm || req.physics || req.terrain) {
-        m_config.sim_loop.time_scale = m_simLoop.getTimeScale();
-        m_config.camera.zoom         = m_camera.getZoom();
-        if (ConfigIO::save(CONFIG_PATH, m_config))
-            SDL_Log("Config saved → %s", CONFIG_PATH);
-        else
-            SDL_Log("Failed to save config → %s", CONFIG_PATH);
-    }
-
-    ImGui::Render();
 
     const double ref_h = terrain.height_at(s.cm.position.x);
+    CharacterConfig render_char_config = m_config.character;
+    HeadConfig render_head_config = m_config.head;
+    ArmConfig render_arm_config = m_config.arms;
+    CMConfig render_cm_config = m_config.cm;
+    SplineRenderConfig render_spline_config = m_config.spline_render;
+
+    if (m_game_view) {
+        render_char_config.show_pelvis_reach_disk = false;
+        render_head_config.show_eye_marker = false;
+        render_head_config.show_gaze_ray = false;
+        render_head_config.show_gaze_target = false;
+        render_arm_config.show_debug_reach_circles = false;
+        render_arm_config.show_debug_swing_points = false;
+        render_arm_config.show_debug_swing_arcs = false;
+        render_cm_config.show_ground_reference = false;
+        render_cm_config.show_projection_line = false;
+        render_cm_config.show_projection_dot = false;
+        render_cm_config.show_target_height_tick = false;
+        render_cm_config.show_trail = false;
+        render_cm_config.show_xcom_line = false;
+        render_cm_config.show_support_line = false;
+        render_spline_config.enabled = true;
+        render_spline_config.draw_under_legacy = false;
+        render_spline_config.show_test_curve = false;
+        render_spline_config.show_control_polygon = false;
+        render_spline_config.show_sample_points = false;
+    }
 
     SDL_SetRenderDrawColor(m_renderer, 18, 18, 18, 255);
     SDL_RenderClear(m_renderer);
 
     m_sceneRenderer.render(m_renderer, m_camera, terrain, GROUND_Y, vw, vh);
 
-    m_debugOverlay.renderBackground(m_renderer, m_camera, m_config.cm,
-                                    m_trail, m_simLoop.getSimulationTime(),
-                                    GROUND_Y, vw, vh);
-
-    m_characterRenderer.render(m_renderer, m_camera, s.cm, s.character,
-                               m_config.character, m_config.spline_render,
-                               m_config.reconstruction, m_config.cm,
-                               terrain, GROUND_Y, vw, vh);
-
-    m_debugOverlay.renderForeground(m_renderer, m_camera, s.cm,
-                                    s.character,
-                                    m_config.character, m_config.head, m_config.arms, m_config.standing, m_config.cm,
-                                    terrain, m_gaze_target_world, ref_h, ACCEL_DISPLAY_SCALE,
-                                    m_drag_vel_active, m_drag_mouse_x, m_drag_mouse_y,
-                                    GROUND_Y, vw, vh);
-
-    // XCoM (ξ) + step target — shown when show_xcom_line is on and feet exist
-    if (m_config.cm.show_xcom_line && s.character.feet_initialized) {
-        const bool show_target = std::abs(s.cm.velocity.x) > 0.05;
-        m_debugOverlay.renderXCoM(m_renderer, m_camera,
-                                   s.xi, s.xi_target_x, s.xi_trigger, show_target,
-                                   terrain, GROUND_Y, vw, vh);
+    if (!m_game_view) {
+        m_debugOverlay.renderBackground(m_renderer, m_camera, render_cm_config,
+                                        m_trail, m_simLoop.getSimulationTime(),
+                                        GROUND_Y, vw, vh);
     }
 
-    ImGui_ImplSDLRenderer2_RenderDrawData(ImGui::GetDrawData(), m_renderer);
+    m_characterRenderer.render(m_renderer, m_camera, s.cm, s.character,
+                               render_char_config, render_spline_config,
+                               m_config.reconstruction, render_cm_config,
+                               m_game_view,
+                               terrain, GROUND_Y, vw, vh);
+
+    if (!m_game_view) {
+        m_debugOverlay.renderForeground(m_renderer, m_camera, s.cm,
+                                        s.character,
+                                        render_char_config, render_head_config, render_arm_config,
+                                        m_config.standing, render_cm_config,
+                                        terrain, m_gaze_target_world, ref_h, ACCEL_DISPLAY_SCALE,
+                                        m_drag_vel_active, m_drag_mouse_x, m_drag_mouse_y,
+                                        GROUND_Y, vw, vh);
+
+        if (render_cm_config.show_xcom_line && s.character.feet_initialized) {
+            const bool show_target = std::abs(s.cm.velocity.x) > 0.05;
+            m_debugOverlay.renderXCoM(m_renderer, m_camera,
+                                      s.xi, s.xi_target_x, s.xi_trigger, show_target,
+                                      terrain, GROUND_Y, vw, vh);
+        }
+    }
+
+    if (!m_game_view)
+        ImGui_ImplSDLRenderer2_RenderDrawData(ImGui::GetDrawData(), m_renderer);
     SDL_RenderPresent(m_renderer);
 }
 

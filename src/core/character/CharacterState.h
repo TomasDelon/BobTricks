@@ -43,6 +43,7 @@ struct CharacterState {
     double head_tilt   = 0.0;
     double arm_phase   = 0.0;
     double arm_phase_velocity = 0.0;
+    double arm_run_blend = 0.0;
     bool   arm_pose_initialized = false;
     double arm_pose_facing      = 1.0;
 

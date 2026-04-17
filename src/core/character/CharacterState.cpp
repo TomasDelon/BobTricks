@@ -47,16 +47,26 @@ void updateCharacterState(CharacterState& ch,
     ch.filtered_slope += (safe_slope - ch.filtered_slope) * dt / tau_slope;
     const double slope_lp = ch.filtered_slope;
 
-    const double theta_slope = rc.slope_lean_factor * std::atan(slope_lp);
     const double move_sign   = (std::abs(vx) > rc.facing_eps)
                              ? std::copysign(1.0, vx)
                              : ch.facing;
+    const double uphill_alignment = move_sign * slope_lp;
+    double slope_lean_scale = 1.0;
+    if (on_floor && run_mode && uphill_alignment > 0.0) {
+        const double uphill_strength = std::clamp(uphill_alignment / 0.35, 0.0, 1.0);
+        slope_lean_scale = std::lerp(1.0, 0.55, uphill_strength);
+    }
+    const double theta_slope = slope_lean_scale
+                             * rc.slope_lean_factor
+                             * std::atan(slope_lp);
     const double airborne_target = on_floor ? 0.0 : 1.0;
     const double airborne_tau = 0.08;
     ch.airborne_lean_blend += (airborne_target - ch.airborne_lean_blend)
                             * dt / airborne_tau;
     ch.airborne_lean_blend = std::clamp(ch.airborne_lean_blend, 0.0, 1.0);
-    const double velocity_lean_dir = 1.0 - 2.0 * ch.airborne_lean_blend;
+    // In air the torso should lean slightly back, but not as strongly as the
+    // forward velocity lean used while grounded.
+    const double velocity_lean_dir = std::lerp(1.0, -0.45, ch.airborne_lean_blend);
     const double theta_vel   = velocity_lean_dir * move_sign * theta_max
                              * std::tanh(std::abs(vx) / v_ref);
     const double theta_tgt = theta_slope + theta_vel;

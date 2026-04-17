@@ -80,6 +80,7 @@ private:
     bool m_key_right      = false;  // D
     bool m_key_run        = false;  // Shift
     bool m_jump_requested = false;  // SPACE
+    bool m_game_view      = false;  // P toggles spline-only presentation mode
 
     // CM trajectory trail
     std::deque<TrailPoint> m_trail;

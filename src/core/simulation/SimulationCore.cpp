@@ -373,11 +373,17 @@ double computeRunLandingX(const RunConfig&       run_cfg,
                           double                 velocity_x,
                           double                 reach_radius,
                           double                 L,
-                          const RunTimingTargets& timing)
+                          const RunTimingTargets& timing,
+                          double                 ref_slope)
 {
     const double facing = ch.facing;
     const double future_pelvis_x = pelvis.x + velocity_x * 0.06;
-    const double front_extent = std::lerp(0.45 * L, 0.80 * L, timing.speed_ratio);
+    double front_extent = std::lerp(0.45 * L, 0.80 * L, timing.speed_ratio);
+    const double uphill_alignment = facing * ref_slope;
+    if (uphill_alignment > 0.0) {
+        const double uphill_strength = std::clamp(uphill_alignment / 0.35, 0.0, 1.0);
+        front_extent += std::lerp(0.0, 0.30 * L, uphill_strength);
+    }
     const double raw_tx = future_pelvis_x + facing * front_extent;
 
     const double max_step = run_cfg.max_step_L * L;
@@ -1611,9 +1617,16 @@ void SimulationCore::step(double dt, const InputFrame& input)
         if (outside_back_window || behind_back > trigger_dist) {
             const double tx = computeRunLandingX(m_config.run, ch, front_foot,
                                                  pelvis, cm.velocity.x,
-                                                 reach_radius, L, run_timing);
+                                                 reach_radius, L, run_timing,
+                                                 ref_slope);
             beginSwingStep(back_foot, front_foot, ch, tx, m_terrain,
                            false, L, eff_step, eff_walk, speed_abs, max_spd);
+            const double uphill_alignment = ch.facing * ref_slope;
+            const double step_rise = back_foot.swing_target.y - back_foot.swing_start.y;
+            if (uphill_alignment > 0.0 && step_rise > 0.0) {
+                const double uphill_strength = std::clamp(uphill_alignment / 0.35, 0.0, 1.0);
+                back_foot.swing_h_clear += std::lerp(0.0, 0.16 * L, uphill_strength);
+            }
             ch.step_cooldown = 0.0;
         }
     } else if (!ch.jump_preload_active

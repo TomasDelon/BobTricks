@@ -26,6 +26,7 @@ public:
                 const SplineRenderConfig& splineConfig,
                 const CharacterReconstructionConfig& reconstruction,
                 const CMConfig&       cmConfig,
+                bool                  spline_only,
                 const Terrain&        terrain,
                 double                ground_y,
                 int                   viewport_w,

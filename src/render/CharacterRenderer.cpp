@@ -59,6 +59,7 @@ void CharacterRenderer::render(SDL_Renderer*         renderer,
                                const SplineRenderConfig& splineConfig,
                                const CharacterReconstructionConfig& /*reconstruction*/,
                                const CMConfig&       /*cmConfig*/,
+                               bool                  spline_only,
                                const Terrain&        terrain,
                                double                ground_y,
                                int                   viewport_w,
@@ -127,6 +128,11 @@ void CharacterRenderer::render(SDL_Renderer*         renderer,
                         character.torso_top, front_elbow, front_hand, 0,
                         splineConfig, ground_y, viewport_w, viewport_h);
     };
+
+    if (spline_only) {
+        renderSplinePass();
+        return;
+    }
 
     if (splineConfig.enabled && splineConfig.draw_under_legacy)
         renderSplinePass();
