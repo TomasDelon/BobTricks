@@ -215,9 +215,8 @@ struct RunConfig {
     double d_rear_max       = 1.2;   // [×L]    rear-foot lag threshold
     double xcom_scale       = 0.75;  // [0-1]   capture-point lookahead
 
-    // Flight phase
-    double flight_release_t = 0.55;  // swing_t at which stance foot releases
-    double flight_vy_min    = 0.3;   // [m/s]   minimum upward CM velocity at toe-off
+    // Phase-based CM oscillation (stickman3 style)
+    double stride_len       = 3.0;   // [×L]    distance per full stride cycle (used for phase advance)
 
     // CoM height and bounce
     double leg_flex_coeff   = 0.35;  // [×L]    knee bend — higher = more SLIP compression

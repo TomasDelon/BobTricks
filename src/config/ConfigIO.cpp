@@ -188,8 +188,7 @@ bool ConfigIO::load(const std::string& path, AppConfig& config)
             else if (key == "max_step_L")          { config.run.max_step_L          = std::stod(value); handled = true; }
             else if (key == "d_rear_max")          { config.run.d_rear_max          = std::stod(value); handled = true; }
             else if (key == "xcom_scale")          { config.run.xcom_scale          = std::stod(value); handled = true; }
-            else if (key == "flight_release_t")    { config.run.flight_release_t    = std::stod(value); handled = true; }
-            else if (key == "flight_vy_min")       { config.run.flight_vy_min       = std::stod(value); handled = true; }
+            else if (key == "stride_len")          { config.run.stride_len          = std::stod(value); handled = true; }
             else if (key == "leg_flex_coeff")      { config.run.leg_flex_coeff      = std::stod(value); handled = true; }
             else if (key == "bob_scale")           { config.run.bob_scale           = std::stod(value); handled = true; }
             else if (key == "bob_amp")             { config.run.bob_amp             = std::stod(value); handled = true; }
@@ -330,6 +329,22 @@ bool ConfigIO::save(const std::string& path, const AppConfig& config)
 
     file << "[Step]\n";
     file << "h_clear_ratio=" << config.step.h_clear_ratio << "\n\n";
+
+    file << "[Run]\n";
+    file << "max_speed="        << config.run.max_speed        << "\n";
+    file << "accel_factor="     << config.run.accel_factor     << "\n";
+    file << "step_speed="       << config.run.step_speed       << "\n";
+    file << "stability_margin=" << config.run.stability_margin << "\n";
+    file << "max_step_L="       << config.run.max_step_L       << "\n";
+    file << "d_rear_max="       << config.run.d_rear_max       << "\n";
+    file << "xcom_scale="       << config.run.xcom_scale       << "\n";
+    file << "stride_len="       << config.run.stride_len       << "\n";
+    file << "leg_flex_coeff="   << config.run.leg_flex_coeff   << "\n";
+    file << "bob_scale="        << config.run.bob_scale        << "\n";
+    file << "bob_amp="          << config.run.bob_amp          << "\n";
+    file << "h_clear_ratio="    << config.run.h_clear_ratio    << "\n";
+    file << "h_clear_min_ratio="<< config.run.h_clear_min_ratio<< "\n";
+    file << "blend_tau="        << config.run.blend_tau        << "\n\n";
 
     file << "[Walk]\n";
     file << "eps_step="            << config.walk.eps_step            << "\n";

@@ -59,9 +59,9 @@ struct CharacterState {
     double downhill_crouch               = 0.0;  // [0,1] filtered downhill crouch / reach state
 
     // Run mode
-    double run_blend        = 0.0;   // [0,1] 0=walk, 1=run — blends parameters smoothly
-    bool   run_mode         = false; // true when run_blend > 0.5
-    bool   run_flight_active = false; // true during the ballistic flight phase of a running stride
+    double run_blend = 0.0;   // [0,1] 0=walk, 1=run — blends parameters smoothly
+    bool   run_mode  = false; // true when run_blend > 0.5
+    double run_phase = 0.0;   // [0,1) continuous stride phase, advances with CM speed
 
     // Persistent terrain-reference samples. These are stored in left/right world
     // order so the reference can slide continuously even when facing changes.

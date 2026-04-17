@@ -962,7 +962,13 @@ void SimulationCore::step(double dt, const InputFrame& input)
         ch.run_blend += (want_run ? 1.0 - ch.run_blend : -ch.run_blend) * run_alpha;
         ch.run_blend  = std::clamp(ch.run_blend, 0.0, 1.0);
         ch.run_mode   = (ch.run_blend > 0.5);
-        if (!ch.run_mode) ch.run_flight_active = false;
+    }
+
+    // ── Running phase advance ─────────────────────────────────────────────────
+    if (ch.run_blend > 0.0) {
+        const double stride_m = std::max(m_config.run.stride_len * L, 0.01);
+        ch.run_phase += std::abs(cm.velocity.x) * dt / stride_m;
+        if (ch.run_phase >= 1.0) ch.run_phase -= 1.0;
     }
 
     // ── Effective walk/run parameters (blended) ──────────────────────────────
@@ -1013,39 +1019,30 @@ void SimulationCore::step(double dt, const InputFrame& input)
     const double slope_drop = height_state.slope_drop;
     double       y_tgt      = height_state.y_tgt;
 
-    // ── Running SLIP height correction ────────────────────────────────────────
-    // The inverted-pendulum model has CM at its MAXIMUM at mid-stance — correct
-    // for walking but wrong for running. In SLIP running:
-    //   • minimum CM height at mid-stance (spring compressed on landing)
-    //   • maximum CM height during flight (ballistic apex)
-    //
-    // Fix: replace the IP arc target with a CONSTANT low target above the stance
-    // foot. The asymmetric spring (upward-only) then acts as a rebound floor:
-    // gravity pulls CM down freely from flight height → CM overshoots the target
-    // → spring fires and sends CM back up → stance foot releases → CM continues
-    // up during flight.
-    //
-    // Disable the spring entirely during the flight phase so the CM is purely
-    // ballistic (only gravity). One-frame lag from the release detection is
-    // acceptable (~16 ms at 60 fps).
-    if (ch.run_flight_active)
-        eff_physics.spring_enabled = false;
+    // ── Running height target (stickman3-style phase oscillation) ────────────
+    // Walking IP: CM peaks at mid-stance. Running SLIP: CM valleys at landing,
+    // peaks during flight. Model this with a cosine oscillation on run_phase:
+    //   phase=0 → landing (target LOW), phase=0.5 → flight apex (target HIGH)
+    // Blend the walk target (y_tgt) toward this run target using run_blend.
+    if (rb > 0.0) {
+        const double run_bob    = -eff_walk.bob_amp * L
+                                * std::cos(2.0 * kPi * ch.run_phase);
+        const double y_tgt_run  = ref_ground + h_nominal + run_bob
+                                + eff_walk.cm_height_offset
+                                - speed_drop - slope_drop;
+        y_tgt = std::lerp(y_tgt, y_tgt_run, rb);
+    }
 
-    if (rb > 0.0 && !ch.run_flight_active) {
-        const bool gL = ch.foot_left.on_ground;
-        const bool gR = ch.foot_right.on_ground;
-        if (gL || gR) {
-            // R_slip: running stance height above the foot.
-            // leg_flex_coeff is blended toward run.leg_flex_coeff which is higher
-            // (more knee bend), so R_slip < R_bob_walk → CM target is lower.
-            const double R_slip = (2.0 - eff_walk.leg_flex_coeff
-                                   + m_config.character.cm_pelvis_ratio) * L;
-            const double base_y = (gL && gR)
-                                ? std::min(ch.foot_left.pos.y, ch.foot_right.pos.y)
-                                : (gL ? ch.foot_left.pos.y : ch.foot_right.pos.y);
-            const double y_slip = base_y + R_slip + eff_walk.cm_height_offset
-                                - height_state.speed_drop - height_state.slope_drop;
-            y_tgt = std::lerp(y_tgt, y_slip, rb);
+    // ── Running downward spring (two-sided correction) ────────────────────────
+    // The normal spring only pushes CM UP. During running the oscillating target
+    // also needs to pull CM DOWN (gravity alone is too slow for energetic running).
+    // Add a symmetric downward corrective acceleration when CM is above target.
+    if (rb > 0.0) {
+        const double delta = y_tgt - cm.position.y;
+        if (delta < 0.0) {
+            const double vy_w = eff_physics.vy_max
+                              * std::tanh(delta / eff_physics.d_soft);
+            accel.y += rb * std::min(0.0, (vy_w - cm.velocity.y) * eff_physics.vy_tau);
         }
     }
 
@@ -1079,26 +1076,6 @@ void SimulationCore::step(double dt, const InputFrame& input)
     advanceSwingFoot(ch.foot_left,  m_terrain, pelvis, dt, reach_radius, eff_walk);
     advanceSwingFoot(ch.foot_right, m_terrain, pelvis, dt, reach_radius, eff_walk);
 
-    // ── Running flight phase: release stance foot to create ballistic interval ──
-    // At swing_t = flight_release_t the stance foot pushes off, giving the CM a
-    // minimum upward velocity. Both feet are then in the air until the swing foot
-    // lands and becomes the new stance.
-    if (ch.run_mode && !ch.run_flight_active && !airborne_final) {
-        const FootState* swing_f = ch.foot_left.swinging  ? &ch.foot_left
-                                 : ch.foot_right.swinging ? &ch.foot_right
-                                                          : nullptr;
-        if (swing_f && swing_f->swing_t >= m_config.run.flight_release_t) {
-            FootState& stance = ch.foot_left.swinging ? ch.foot_right : ch.foot_left;
-            if (stance.on_ground || stance.pinned) {
-                if (cm.velocity.y < m_config.run.flight_vy_min)
-                    cm.velocity.y = m_config.run.flight_vy_min;
-                stance.pinned    = false;
-                stance.on_ground = false;
-                ch.run_flight_active = true;
-            }
-        }
-    }
-
     // ── Double-support enforcement ────────────────────────────────────────────
     // When a foot lands (heel-strike), force a minimum cooldown before the next
     // step fires. In run mode double_support_time blends to 0 so there is no
@@ -1107,7 +1084,6 @@ void SimulationCore::step(double dt, const InputFrame& input)
         const bool heel_strike_L = was_swinging_L && !ch.foot_left.swinging;
         const bool heel_strike_R = was_swinging_R && !ch.foot_right.swinging;
         if (heel_strike_L || heel_strike_R) {
-            ch.run_flight_active = false;
             if (eff_walk.double_support_time > 0.0)
                 ch.step_cooldown = std::max(ch.step_cooldown,
                                             eff_walk.double_support_time);
