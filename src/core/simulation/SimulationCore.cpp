@@ -232,8 +232,23 @@ void beginSwingStep(FootState&       step_foot,
         const double h_speed    = walk_cfg.h_clear_speed_factor * L
                                 * std::clamp(speed_abs / std::max(walk_max_speed, 1e-4),
                                              0.0, 1.0);
-        step_foot.swing_h_clear = std::max(walk_cfg.h_clear_min_ratio * L,
-                                           h_base + h_slope + h_speed);
+        // Sample terrain at 3 midpoints to detect concavity: if the terrain
+        // between start and target rises above the linear baseline, the foot
+        // needs extra clearance or it will trigger early landing near the start.
+        double max_terrain_bulge = 0.0;
+        for (int s = 1; s <= 3; ++s) {
+            const double ts      = s * 0.25;  // t = 0.25, 0.50, 0.75
+            const double x_samp  = step_foot.swing_start.x + ts * dx;
+            const double y_linear = step_foot.swing_start.y + ts * dy;
+            const double bulge   = terrain.height_at(x_samp) - y_linear;
+            max_terrain_bulge    = std::max(max_terrain_bulge, bulge);
+        }
+        // 4t(1-t) peaks at 1.0 at t=0.5; divide by that to get required h_clear.
+        // Add a small margin to avoid just barely grazing.
+        const double h_terrain   = max_terrain_bulge + walk_cfg.h_clear_min_ratio * L;
+        step_foot.swing_h_clear = std::max(h_terrain,
+                                           std::max(walk_cfg.h_clear_min_ratio * L,
+                                                    h_base + h_slope + h_speed));
     }
 
     if (corrective_followthrough) {
