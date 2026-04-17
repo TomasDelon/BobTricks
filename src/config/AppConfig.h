@@ -217,6 +217,11 @@ struct RunConfig {
 
     // Phase-based CM oscillation (stickman3 style)
     double stride_len       = 5.8;   // [×L]    full stride target near max speed
+    double stride_len_min   = 5.4;   // [×L]    stride at minimum running speed
+
+    // Cadence (steps per minute) — interpolated with speed ratio
+    double cadence_spm_min  = 162.0; // [spm]   cadence at minimum run speed
+    double cadence_spm_max  = 176.0; // [spm]   cadence at maximum run speed
 
     // Body lean
     double theta_max_deg    = 18.0;  // [°]     max lean at full run speed (replaces reconstruction theta_max_deg)
@@ -232,6 +237,28 @@ struct RunConfig {
 
     // Walk→run blend
     double blend_tau        = 0.12;  // [s]     transition time constant
+};
+
+/** @brief Paramètres du système de saut (preload, vol, réception). */
+struct JumpConfig {
+    // Preload (accroupissement avant décollage) — durée et profondeur par mode
+    double preload_dur_run    = 0.08;  // [s]   durée du preload en mode course
+    double preload_dur_walk   = 0.11;  // [s]   durée du preload en marche
+    double preload_dur_stand  = 0.14;  // [s]   durée du preload en stationnaire
+    double preload_depth_run  = 0.18;  // [×L]  profondeur du preload en course
+    double preload_depth_walk = 0.22;  // [×L]  profondeur du preload en marche
+    double preload_depth_stand= 0.26;  // [×L]  profondeur du preload en stationnaire
+
+    // Vol
+    double tuck_height_ratio  = 0.24;  // [×L]  remontée max des pieds pendant le vol
+
+    // Réception
+    double landing_dur_jump   = 0.22;  // [s]   durée de la recovery après saut
+    double landing_dur_walk   = 0.18;  // [s]   durée de la recovery après chute légère
+    double landing_boost_base_jump  = 0.50;  // [-]   boost de base (saut)
+    double landing_boost_scale_jump = 0.90;  // [-]   sensibilité à l'impact (saut)
+    double landing_boost_base_walk  = 0.35;  // [-]   boost de base (marche)
+    double landing_boost_scale_walk = 0.70;  // [-]   sensibilité à l'impact (marche)
 };
 
 /** @brief Agrégat racine de toute la configuration de l'application. */
@@ -251,4 +278,5 @@ struct AppConfig {
     StepConfig                    step;
     WalkConfig                    walk;
     RunConfig                     run;
+    JumpConfig                    jump;
 };

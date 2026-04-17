@@ -189,6 +189,9 @@ bool ConfigIO::load(const std::string& path, AppConfig& config)
             else if (key == "d_rear_max")          { config.run.d_rear_max          = std::stod(value); handled = true; }
             else if (key == "xcom_scale")          { config.run.xcom_scale          = std::stod(value); handled = true; }
             else if (key == "stride_len")          { config.run.stride_len          = std::stod(value); handled = true; }
+            else if (key == "stride_len_min")      { config.run.stride_len_min      = std::stod(value); handled = true; }
+            else if (key == "cadence_spm_min")     { config.run.cadence_spm_min     = std::stod(value); handled = true; }
+            else if (key == "cadence_spm_max")     { config.run.cadence_spm_max     = std::stod(value); handled = true; }
             else if (key == "theta_max_deg")       { config.run.theta_max_deg       = std::stod(value); handled = true; }
             else if (key == "leg_flex_coeff")      { config.run.leg_flex_coeff      = std::stod(value); handled = true; }
             else if (key == "bob_scale")           { config.run.bob_scale           = std::stod(value); handled = true; }
@@ -196,6 +199,21 @@ bool ConfigIO::load(const std::string& path, AppConfig& config)
             else if (key == "h_clear_ratio")       { config.run.h_clear_ratio       = std::stod(value); handled = true; }
             else if (key == "h_clear_min_ratio")   { config.run.h_clear_min_ratio   = std::stod(value); handled = true; }
             else if (key == "blend_tau")           { config.run.blend_tau           = std::stod(value); handled = true; }
+        }
+        else if (section == "Jump") {
+            if      (key == "preload_dur_run")          { config.jump.preload_dur_run          = std::stod(value); handled = true; }
+            else if (key == "preload_dur_walk")         { config.jump.preload_dur_walk         = std::stod(value); handled = true; }
+            else if (key == "preload_dur_stand")        { config.jump.preload_dur_stand        = std::stod(value); handled = true; }
+            else if (key == "preload_depth_run")        { config.jump.preload_depth_run        = std::stod(value); handled = true; }
+            else if (key == "preload_depth_walk")       { config.jump.preload_depth_walk       = std::stod(value); handled = true; }
+            else if (key == "preload_depth_stand")      { config.jump.preload_depth_stand      = std::stod(value); handled = true; }
+            else if (key == "tuck_height_ratio")        { config.jump.tuck_height_ratio        = std::stod(value); handled = true; }
+            else if (key == "landing_dur_jump")         { config.jump.landing_dur_jump         = std::stod(value); handled = true; }
+            else if (key == "landing_dur_walk")         { config.jump.landing_dur_walk         = std::stod(value); handled = true; }
+            else if (key == "landing_boost_base_jump")  { config.jump.landing_boost_base_jump  = std::stod(value); handled = true; }
+            else if (key == "landing_boost_scale_jump") { config.jump.landing_boost_scale_jump = std::stod(value); handled = true; }
+            else if (key == "landing_boost_base_walk")  { config.jump.landing_boost_base_walk  = std::stod(value); handled = true; }
+            else if (key == "landing_boost_scale_walk") { config.jump.landing_boost_scale_walk = std::stod(value); handled = true; }
         }
 
         if (!handled) {
@@ -340,6 +358,9 @@ bool ConfigIO::save(const std::string& path, const AppConfig& config)
     file << "d_rear_max="       << config.run.d_rear_max       << "\n";
     file << "xcom_scale="       << config.run.xcom_scale       << "\n";
     file << "stride_len="       << config.run.stride_len       << "\n";
+    file << "stride_len_min="   << config.run.stride_len_min   << "\n";
+    file << "cadence_spm_min="  << config.run.cadence_spm_min  << "\n";
+    file << "cadence_spm_max="  << config.run.cadence_spm_max  << "\n";
     file << "theta_max_deg="    << config.run.theta_max_deg    << "\n";
     file << "leg_flex_coeff="   << config.run.leg_flex_coeff   << "\n";
     file << "bob_scale="        << config.run.bob_scale        << "\n";
@@ -347,6 +368,21 @@ bool ConfigIO::save(const std::string& path, const AppConfig& config)
     file << "h_clear_ratio="    << config.run.h_clear_ratio    << "\n";
     file << "h_clear_min_ratio="<< config.run.h_clear_min_ratio<< "\n";
     file << "blend_tau="        << config.run.blend_tau        << "\n\n";
+
+    file << "[Jump]\n";
+    file << "preload_dur_run="          << config.jump.preload_dur_run          << "\n";
+    file << "preload_dur_walk="         << config.jump.preload_dur_walk         << "\n";
+    file << "preload_dur_stand="        << config.jump.preload_dur_stand        << "\n";
+    file << "preload_depth_run="        << config.jump.preload_depth_run        << "\n";
+    file << "preload_depth_walk="       << config.jump.preload_depth_walk       << "\n";
+    file << "preload_depth_stand="      << config.jump.preload_depth_stand      << "\n";
+    file << "tuck_height_ratio="        << config.jump.tuck_height_ratio        << "\n";
+    file << "landing_dur_jump="         << config.jump.landing_dur_jump         << "\n";
+    file << "landing_dur_walk="         << config.jump.landing_dur_walk         << "\n";
+    file << "landing_boost_base_jump="  << config.jump.landing_boost_base_jump  << "\n";
+    file << "landing_boost_scale_jump=" << config.jump.landing_boost_scale_jump << "\n";
+    file << "landing_boost_base_walk="  << config.jump.landing_boost_base_walk  << "\n";
+    file << "landing_boost_scale_walk=" << config.jump.landing_boost_scale_walk << "\n\n";
 
     file << "[Walk]\n";
     file << "eps_step="            << config.walk.eps_step            << "\n";

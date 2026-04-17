@@ -511,6 +511,7 @@ AppRequests DebugUI::render(const FrameStats&      stats,
                              TerrainConfig&         terrainConfig,
                              TerrainSamplingConfig& terrainSamplingConfig,
                              WalkConfig&            walkConfig,
+                             JumpConfig&            jumpConfig,
                              const Terrain&         terrain)
 {
     AppRequests req;
@@ -540,6 +541,7 @@ AppRequests DebugUI::render(const FrameStats&      stats,
                           terrain, walkConfig, req.walk);
     renderBalancePanel(cmState, charState, charConfig, standConfig, cmConfig, req.cm);
     renderArmsPanel(armConfig, req.arms);
+    renderJumpPanel(jumpConfig, req.jump);
     renderPhysicsPanel(physConfig, req.physics);
     renderIPTestPanel(cmState, charState, charConfig, standConfig, physConfig, simLoop, req);
     ImGui::End();
@@ -860,6 +862,71 @@ void DebugUI::renderBalancePanel(const CMState& /*cmState*/, const CharacterStat
 
     ImGui::Separator();
     if (ImGui::Button("Save Balance Visuals"))
+        saveRequested = true;
+}
+
+// ─── Jump ────────────────────────────────────────────────────────────────────
+
+void DebugUI::renderJumpPanel(JumpConfig& config, bool& saveRequested)
+{
+    if (!ImGui::CollapsingHeader("Jump", ImGuiTreeNodeFlags_None))
+        return;
+
+    ImGui::TextDisabled("Preload (crouch before takeoff)");
+    auto sliderDur = [&](const char* label, double& val) {
+        float v = static_cast<float>(val);
+        ImGui::SetNextItemWidth(180.f);
+        if (ImGui::SliderFloat(label, &v, 0.02f, 0.30f, "%.3f s"))
+            { val = static_cast<double>(v); saveRequested = true; }
+    };
+    auto sliderDepth = [&](const char* label, double& val) {
+        float v = static_cast<float>(val);
+        ImGui::SetNextItemWidth(180.f);
+        if (ImGui::SliderFloat(label, &v, 0.05f, 0.60f, "%.2f ×L"))
+            { val = static_cast<double>(v); saveRequested = true; }
+    };
+    sliderDur  ("Dur run (s)",         config.preload_dur_run);
+    sliderDur  ("Dur walk (s)",        config.preload_dur_walk);
+    sliderDur  ("Dur stand (s)",       config.preload_dur_stand);
+    sliderDepth("Depth run (×L)",      config.preload_depth_run);
+    sliderDepth("Depth walk (×L)",     config.preload_depth_walk);
+    sliderDepth("Depth stand (×L)",    config.preload_depth_stand);
+
+    ImGui::Separator();
+    ImGui::TextDisabled("Flight");
+    sliderDepth("Tuck height (×L)",    config.tuck_height_ratio);
+
+    ImGui::Separator();
+    ImGui::TextDisabled("Landing recovery");
+    sliderDur  ("Dur jump (s)",        config.landing_dur_jump);
+    sliderDur  ("Dur walk land (s)",   config.landing_dur_walk);
+    {
+        float v = static_cast<float>(config.landing_boost_base_jump);
+        ImGui::SetNextItemWidth(180.f);
+        if (ImGui::SliderFloat("Boost base jump", &v, 0.0f, 2.0f, "%.2f"))
+            { config.landing_boost_base_jump = static_cast<double>(v); saveRequested = true; }
+    }
+    {
+        float v = static_cast<float>(config.landing_boost_scale_jump);
+        ImGui::SetNextItemWidth(180.f);
+        if (ImGui::SliderFloat("Boost scale jump", &v, 0.0f, 3.0f, "%.2f"))
+            { config.landing_boost_scale_jump = static_cast<double>(v); saveRequested = true; }
+    }
+    {
+        float v = static_cast<float>(config.landing_boost_base_walk);
+        ImGui::SetNextItemWidth(180.f);
+        if (ImGui::SliderFloat("Boost base walk", &v, 0.0f, 2.0f, "%.2f"))
+            { config.landing_boost_base_walk = static_cast<double>(v); saveRequested = true; }
+    }
+    {
+        float v = static_cast<float>(config.landing_boost_scale_walk);
+        ImGui::SetNextItemWidth(180.f);
+        if (ImGui::SliderFloat("Boost scale walk", &v, 0.0f, 3.0f, "%.2f"))
+            { config.landing_boost_scale_walk = static_cast<double>(v); saveRequested = true; }
+    }
+
+    ImGui::Separator();
+    if (ImGui::Button("Save Jump Config"))
         saveRequested = true;
 }
 

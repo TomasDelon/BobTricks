@@ -206,11 +206,12 @@ double predictLandingTime(const CMState&                           cm,
     return dt_probe * static_cast<double>(max_steps);
 }
 
-void beginJumpPreload(CharacterState& ch,
-                      bool            run_mode,
-                      double          speed_abs,
-                      double          L,
-                      const CMState&  cm)
+void beginJumpPreload(CharacterState&   ch,
+                      bool              run_mode,
+                      double            speed_abs,
+                      double            L,
+                      const CMState&    cm,
+                      const JumpConfig& jump_cfg)
 {
     ch.jump_preload_active = true;
     ch.jump_flight_active  = false;
@@ -221,17 +222,17 @@ void beginJumpPreload(CharacterState& ch,
                                               : LocomotionState::Standing);
     switch (ch.jump_origin_mode) {
         case LocomotionState::Running:
-            ch.jump_preload_duration = 0.08;
-            ch.jump_preload_depth    = 0.18 * L;
+            ch.jump_preload_duration = jump_cfg.preload_dur_run;
+            ch.jump_preload_depth    = jump_cfg.preload_depth_run * L;
             break;
         case LocomotionState::Walking:
-            ch.jump_preload_duration = 0.11;
-            ch.jump_preload_depth    = 0.22 * L;
+            ch.jump_preload_duration = jump_cfg.preload_dur_walk;
+            ch.jump_preload_depth    = jump_cfg.preload_depth_walk * L;
             break;
         case LocomotionState::Standing:
         default:
-            ch.jump_preload_duration = 0.14;
-            ch.jump_preload_depth    = 0.26 * L;
+            ch.jump_preload_duration = jump_cfg.preload_dur_stand;
+            ch.jump_preload_depth    = jump_cfg.preload_depth_stand * L;
             break;
     }
     ch.jump_takeoff_cm_vel = cm.velocity;
@@ -250,7 +251,7 @@ void beginAirborneLandingProtocol(CharacterState&                       ch,
     ch.jump_takeoff_cm_vel = cm.velocity;
     ch.jump_left_start     = ch.foot_left.pos;
     ch.jump_right_start    = ch.foot_right.pos;
-    ch.jump_tuck_height    = 0.24 * L;
+    ch.jump_tuck_height    = config.jump.tuck_height_ratio * L;
     ch.jump_total_flight_time = predictLandingTime(cm, config.character, recon_cfg,
                                                    terrain, g, L);
     ch.jump_time_remaining = ch.jump_total_flight_time;
@@ -336,19 +337,16 @@ RunTimingTargets computeRunTimingTargets(const RunConfig& run_cfg,
     const double usable_max = std::max(max_speed, 1.0e-4);
     out.speed_ratio = std::clamp(speed_abs / usable_max, 0.0, 1.0);
 
-    // Recreational-to-trained running typically lives near 165-180 spm.
-    const double cadence_min = 162.0;
-    const double cadence_max = 176.0;
-    out.cadence_spm = std::lerp(cadence_min, cadence_max, out.speed_ratio);
+    out.cadence_spm = std::lerp(run_cfg.cadence_spm_min, run_cfg.cadence_spm_max, out.speed_ratio);
 
-    const double stride_L_min = 5.4;
+    const double stride_L_min = run_cfg.stride_len_min;
     const double stride_L_max = std::max(run_cfg.stride_len, stride_L_min + 0.2);
     const double stride_len_m = std::lerp(stride_L_min, stride_L_max, out.speed_ratio) * L;
 
     if (speed_abs > 1.0e-4) {
         out.step_period = stride_len_m / (2.0 * speed_abs);
     } else {
-        out.step_period = 60.0 / cadence_min;
+        out.step_period = 60.0 / run_cfg.cadence_spm_min;
     }
 
     const double preferred_step_period = 60.0 / std::max(out.cadence_spm, 1.0e-4);
@@ -1265,7 +1263,7 @@ void SimulationCore::step(double dt, const InputFrame& input)
         && !ch.jump_preload_active
         && !ch.jump_flight_active
         && !ground_state.airborne_ref) {
-        beginJumpPreload(ch, ch.run_mode, std::abs(cm.velocity.x), L, cm);
+        beginJumpPreload(ch, ch.run_mode, std::abs(cm.velocity.x), L, cm, m_config.jump);
     }
 
     // ── Airborne test (pelvis > 2L above terrain) ────────────────────────────
@@ -1381,7 +1379,7 @@ void SimulationCore::step(double dt, const InputFrame& input)
     }
 
     const double landing_recovery_alpha = (ch.landing_recovery_timer > 0.0)
-        ? smooth01(ch.landing_recovery_timer / 0.22)
+        ? smooth01(ch.landing_recovery_timer / m_config.jump.landing_dur_jump)
         : 0.0;
     const double landing_recovery_gain = ch.landing_recovery_boost * landing_recovery_alpha;
     const bool landing_recovery_active = landing_recovery_gain > 0.0;
@@ -1580,8 +1578,9 @@ void SimulationCore::step(double dt, const InputFrame& input)
             const double impact_ratio = std::clamp(
                 impact_speed / std::max(m_config.physics.jump_impulse, 1.0e-4),
                 0.0, 2.0);
-            ch.landing_recovery_timer = 0.22;
-            ch.landing_recovery_boost = 0.5 + 0.9 * impact_ratio;
+            ch.landing_recovery_timer = m_config.jump.landing_dur_jump;
+            ch.landing_recovery_boost = m_config.jump.landing_boost_base_jump
+                                      + m_config.jump.landing_boost_scale_jump * impact_ratio;
         } else {
             // Just landed — re-bootstrap feet at terrain under pelvis.
             bootstrapFeetOnLanding(ch, m_config.standing, m_terrain,
@@ -1590,8 +1589,9 @@ void SimulationCore::step(double dt, const InputFrame& input)
             const double impact_ratio = std::clamp(
                 impact_speed / std::max(m_config.physics.jump_impulse, 1.0e-4),
                 0.0, 2.0);
-            ch.landing_recovery_timer = 0.18;
-            ch.landing_recovery_boost = 0.35 + 0.7 * impact_ratio;
+            ch.landing_recovery_timer = m_config.jump.landing_dur_walk;
+            ch.landing_recovery_boost = m_config.jump.landing_boost_base_walk
+                                      + m_config.jump.landing_boost_scale_walk * impact_ratio;
         }
     }
 

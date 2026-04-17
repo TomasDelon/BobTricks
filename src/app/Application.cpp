@@ -442,6 +442,7 @@ void Application::render()
             m_config.terrain,
             m_config.terrain_sampling,
             m_config.walk,
+            m_config.jump,
             terrain
         );
 
@@ -456,7 +457,7 @@ void Application::render()
         }
 
         if (req.sim_loop || req.camera || req.character || req.head || req.arms || req.spline || req.reconstruction
-            || req.walk
+            || req.walk || req.jump
             || req.cm || req.physics || req.terrain) {
             m_config.sim_loop.time_scale = m_simLoop.getTimeScale();
             m_config.camera.zoom         = m_camera.getZoom();
