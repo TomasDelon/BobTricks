@@ -189,6 +189,7 @@ bool ConfigIO::load(const std::string& path, AppConfig& config)
             else if (key == "d_rear_max")          { config.run.d_rear_max          = std::stod(value); handled = true; }
             else if (key == "xcom_scale")          { config.run.xcom_scale          = std::stod(value); handled = true; }
             else if (key == "stride_len")          { config.run.stride_len          = std::stod(value); handled = true; }
+            else if (key == "theta_max_deg")       { config.run.theta_max_deg       = std::stod(value); handled = true; }
             else if (key == "leg_flex_coeff")      { config.run.leg_flex_coeff      = std::stod(value); handled = true; }
             else if (key == "bob_scale")           { config.run.bob_scale           = std::stod(value); handled = true; }
             else if (key == "bob_amp")             { config.run.bob_amp             = std::stod(value); handled = true; }
@@ -339,6 +340,7 @@ bool ConfigIO::save(const std::string& path, const AppConfig& config)
     file << "d_rear_max="       << config.run.d_rear_max       << "\n";
     file << "xcom_scale="       << config.run.xcom_scale       << "\n";
     file << "stride_len="       << config.run.stride_len       << "\n";
+    file << "theta_max_deg="    << config.run.theta_max_deg    << "\n";
     file << "leg_flex_coeff="   << config.run.leg_flex_coeff   << "\n";
     file << "bob_scale="        << config.run.bob_scale        << "\n";
     file << "bob_amp="          << config.run.bob_amp          << "\n";

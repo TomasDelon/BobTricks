@@ -1182,7 +1182,12 @@ void SimulationCore::step(double dt, const InputFrame& input)
                     speed_drop, slope_drop, eff_walk.cm_height_offset);
 
     // ── Character state (facing, lean, spine, knees) ─────────────────────────
-    updateCharacterState(ch, cm, m_config.character, m_config.reconstruction,
+    // Blend theta_max_deg toward run value so running posture leans further forward.
+    CharacterReconstructionConfig eff_reconstruction = m_config.reconstruction;
+    if (rb > 0.0)
+        eff_reconstruction.theta_max_deg = std::lerp(m_config.reconstruction.theta_max_deg,
+                                                     m_config.run.theta_max_deg, rb);
+    updateCharacterState(ch, cm, m_config.character, eff_reconstruction,
                          !airborne_final, dt, ref_slope);
     UpperBodyControl upper_body;
     upper_body.input_dir = input_dir;

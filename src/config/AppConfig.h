@@ -218,6 +218,9 @@ struct RunConfig {
     // Phase-based CM oscillation (stickman3 style)
     double stride_len       = 3.0;   // [×L]    distance per full stride cycle (used for phase advance)
 
+    // Body lean
+    double theta_max_deg    = 18.0;  // [°]     max lean at full run speed (replaces reconstruction theta_max_deg)
+
     // CoM height and bounce
     double leg_flex_coeff   = 0.35;  // [×L]    knee bend — higher = more SLIP compression
     double bob_scale        = 4.5;   // [×]     IP arc multiplier
