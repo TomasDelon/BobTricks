@@ -8,3 +8,11 @@ analysis/*
 imgui.ini
 *.swp
 .DS_Store
+
+# Local AI / automation artifacts that must never be published.
+CLAUDE.md
+.claude/
+.agents/
+.githooks/
+.tools/ai-browser-debug/
+ai/
