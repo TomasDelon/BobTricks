@@ -6,6 +6,12 @@ la marche, la course, le saut, la chute, l'accroupissement et le relevé.
 Il peut être exécuté soit en mode interactif SDL2 + ImGui, soit en mode
 headless via des scénarios déterministes.
 
+## Démo vidéo
+
+[![Voir la démo BobTricks sur YouTube](https://img.youtube.com/vi/3eavnAWpd80/hqdefault.jpg)](https://www.youtube.com/watch?v=3eavnAWpd80)
+
+Lien direct : https://www.youtube.com/watch?v=3eavnAWpd80
+
 ## Commandes disponibles aujourd'hui
 
 ```sh
