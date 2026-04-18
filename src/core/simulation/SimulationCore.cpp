@@ -1132,6 +1132,27 @@ void applyGroundConstraint(FootState& foot, const Terrain& terrain)
     refreshGroundContact(foot, terrain);
 }
 
+void blendWalkRunConfig(WalkConfig&      eff_walk,
+                        StepConfig&      eff_step,
+                        PhysicsConfig&   eff_physics,
+                        const AppConfig& cfg,
+                        double           rb)
+{
+    eff_walk.step_speed          = std::lerp(cfg.walk.step_speed,         cfg.run.step_speed,        rb);
+    eff_walk.stability_margin    = std::lerp(cfg.walk.stability_margin,   cfg.run.stability_margin,  rb);
+    eff_walk.max_step_L          = std::lerp(cfg.walk.max_step_L,         cfg.run.max_step_L,        rb);
+    eff_walk.d_rear_max          = std::lerp(cfg.walk.d_rear_max,         cfg.run.d_rear_max,        rb);
+    eff_walk.xcom_scale          = std::lerp(cfg.walk.xcom_scale,         cfg.run.xcom_scale,        rb);
+    eff_walk.leg_flex_coeff      = std::lerp(cfg.walk.leg_flex_coeff,     cfg.run.leg_flex_coeff,    rb);
+    eff_walk.bob_scale           = std::lerp(cfg.walk.bob_scale,          cfg.run.bob_scale,         rb);
+    eff_walk.bob_amp             = std::lerp(cfg.walk.bob_amp,            cfg.run.bob_amp,           rb);
+    eff_walk.h_clear_min_ratio   = std::lerp(cfg.walk.h_clear_min_ratio,  cfg.run.h_clear_min_ratio, rb);
+    eff_walk.double_support_time = cfg.walk.double_support_time * (1.0 - rb);
+    eff_step.h_clear_ratio       = std::lerp(cfg.step.h_clear_ratio,      cfg.run.h_clear_ratio,     rb);
+    eff_physics.accel            = cfg.physics.accel * std::lerp(1.0, cfg.run.accel_factor,          rb);
+    eff_physics.walk_max_speed   = std::lerp(cfg.physics.walk_max_speed,  cfg.run.max_speed,         rb);
+}
+
 } // namespace
 
 // ── Constructor / reset / snapshot ───────────────────────────────────────────
@@ -1315,32 +1336,15 @@ void SimulationCore::stepBlendRunMode(StepCtx& ctx, const InputFrame& input, dou
 
 void SimulationCore::stepBlendParams(StepCtx& ctx)
 {
-    CMState& cm = m_state.cm;
-    const double rb = ctx.rb;
-
-    ctx.speed_abs  = std::abs(cm.velocity.x);
+    ctx.speed_abs  = std::abs(m_state.cm.velocity.x);
     ctx.run_timing = computeRunTimingTargets(m_config.run, ctx.speed_abs,
                                              m_config.run.max_speed, ctx.L);
     ctx.eff_walk    = m_config.walk;
     ctx.eff_step    = m_config.step;
     ctx.eff_physics = m_config.physics;
 
-    if (rb > 0.0) {
-        ctx.eff_walk.step_speed         = std::lerp(m_config.walk.step_speed,         m_config.run.step_speed,        rb);
-        ctx.eff_walk.stability_margin   = std::lerp(m_config.walk.stability_margin,   m_config.run.stability_margin,  rb);
-        ctx.eff_walk.max_step_L         = std::lerp(m_config.walk.max_step_L,         m_config.run.max_step_L,        rb);
-        ctx.eff_walk.d_rear_max         = std::lerp(m_config.walk.d_rear_max,         m_config.run.d_rear_max,        rb);
-        ctx.eff_walk.xcom_scale         = std::lerp(m_config.walk.xcom_scale,         m_config.run.xcom_scale,        rb);
-        ctx.eff_walk.leg_flex_coeff     = std::lerp(m_config.walk.leg_flex_coeff,     m_config.run.leg_flex_coeff,    rb);
-        ctx.eff_walk.bob_scale          = std::lerp(m_config.walk.bob_scale,          m_config.run.bob_scale,         rb);
-        ctx.eff_walk.bob_amp            = std::lerp(m_config.walk.bob_amp,            m_config.run.bob_amp,           rb);
-        ctx.eff_walk.h_clear_min_ratio  = std::lerp(m_config.walk.h_clear_min_ratio,  m_config.run.h_clear_min_ratio, rb);
-        ctx.eff_walk.double_support_time = m_config.walk.double_support_time * (1.0 - rb);
-        ctx.eff_step.h_clear_ratio      = std::lerp(m_config.step.h_clear_ratio,      m_config.run.h_clear_ratio,     rb);
-        ctx.eff_physics.accel           = m_config.physics.accel
-                                        * std::lerp(1.0, m_config.run.accel_factor, rb);
-        ctx.eff_physics.walk_max_speed  = std::lerp(m_config.physics.walk_max_speed,  m_config.run.max_speed,         rb);
-    }
+    if (ctx.rb > 0.0)
+        blendWalkRunConfig(ctx.eff_walk, ctx.eff_step, ctx.eff_physics, m_config, ctx.rb);
 
     ctx.max_spd = ctx.eff_physics.walk_max_speed;
 }
