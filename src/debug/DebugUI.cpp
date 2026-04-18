@@ -343,6 +343,21 @@ void renderReconstructionLeanControls(CharacterReconstructionConfig& config)
     ImGui::SetNextItemWidth(180.f);
     if (ImGui::SliderFloat("V ref (m/s)", &vref, 0.1f, 5.f, "%.2f"))
         config.v_ref = static_cast<double>(vref);
+
+    float hunch_min = static_cast<float>(config.hunch_min_deg);
+    ImGui::SetNextItemWidth(180.f);
+    if (ImGui::SliderFloat("Hunch min (deg)", &hunch_min, 0.f, 20.f, "%.1f"))
+        config.hunch_min_deg = static_cast<double>(hunch_min);
+
+    float hunch_max = static_cast<float>(config.hunch_max_deg);
+    ImGui::SetNextItemWidth(180.f);
+    if (ImGui::SliderFloat("Hunch max (deg)", &hunch_max, 0.f, 20.f, "%.1f"))
+        config.hunch_max_deg = static_cast<double>(hunch_max);
+
+    float hunch_current = static_cast<float>(config.hunch_current_deg);
+    ImGui::SetNextItemWidth(180.f);
+    if (ImGui::SliderFloat("Hunch current (deg)", &hunch_current, 0.f, 20.f, "%.1f"))
+        config.hunch_current_deg = static_cast<double>(hunch_current);
 }
 
 void renderBalanceReachMetrics(const CharacterState& charState, double L)

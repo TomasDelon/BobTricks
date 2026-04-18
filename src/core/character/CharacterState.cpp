@@ -72,15 +72,21 @@ void updateCharacterState(CharacterState& ch,
     const double tau  = (rc.tau_lean > 0.0) ? rc.tau_lean : dt;
     ch.theta += (theta_tgt - ch.theta) * dt / tau;
     const double theta = ch.theta;
+    const double hunch_min = std::max(0.0, rc.hunch_min_deg);
+    const double hunch_max = std::max(hunch_min, rc.hunch_max_deg);
+    const double hunch_deg = std::clamp(rc.hunch_current_deg, hunch_min, hunch_max);
+    const double hunch = hunch_deg * kDegToRad;
+    const double hunch_sign = ch.facing;
+    const double lower_theta = theta - hunch_sign * hunch;
+    const double upper_theta = theta + hunch_sign * hunch;
 
-    const double dx = std::sin(theta);
-    const double dy = std::cos(theta);
-    ch.pelvis.x       = cm.position.x - d         * dx;
-    ch.pelvis.y       = cm.position.y - d         * dy;
-    ch.torso_center.x = ch.pelvis.x   + L         * dx;
-    ch.torso_center.y = ch.pelvis.y   + L         * dy;
-    ch.torso_top.x    = ch.pelvis.x   + 2.0 * L   * dx;
-    ch.torso_top.y    = ch.pelvis.y   + 2.0 * L   * dy;
+    const Vec2 spine_dir{std::sin(theta), std::cos(theta)};
+    const Vec2 lower_dir{std::sin(lower_theta), std::cos(lower_theta)};
+    const Vec2 upper_dir{std::sin(upper_theta), std::cos(upper_theta)};
+
+    ch.pelvis = cm.position - spine_dir * d;
+    ch.torso_center = ch.pelvis + lower_dir * L;
+    ch.torso_top = ch.torso_center + upper_dir * L;
 
     // ── Knee positions (analytic IK) ──────────────────────────────────────────
     if (ch.feet_initialized) {

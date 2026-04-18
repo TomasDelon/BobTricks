@@ -68,6 +68,9 @@ bool ConfigIO::load(const std::string& path, AppConfig& config)
             else if (key == "tau_lean")          { config.reconstruction.tau_lean          = std::stod(value); handled = true; }
             else if (key == "tau_slope")         { config.reconstruction.tau_slope         = std::stod(value); handled = true; }
             else if (key == "slope_lean_factor") { config.reconstruction.slope_lean_factor = std::stod(value); handled = true; }
+            else if (key == "hunch_min_deg")     { config.reconstruction.hunch_min_deg     = std::stod(value); handled = true; }
+            else if (key == "hunch_max_deg")     { config.reconstruction.hunch_max_deg     = std::stod(value); handled = true; }
+            else if (key == "hunch_current_deg") { config.reconstruction.hunch_current_deg = std::stod(value); handled = true; }
         }
         else if (section == "Head") {
             if      (key == "center_offset_L")  { config.head.center_offset_L  = std::stod(value); handled = true; }
@@ -257,7 +260,10 @@ bool ConfigIO::save(const std::string& path, const AppConfig& config)
     file << "v_ref="             << config.reconstruction.v_ref             << "\n";
     file << "tau_lean="          << config.reconstruction.tau_lean          << "\n";
     file << "tau_slope="         << config.reconstruction.tau_slope         << "\n";
-    file << "slope_lean_factor=" << config.reconstruction.slope_lean_factor << "\n\n";
+    file << "slope_lean_factor=" << config.reconstruction.slope_lean_factor << "\n";
+    file << "hunch_min_deg="     << config.reconstruction.hunch_min_deg     << "\n";
+    file << "hunch_max_deg="     << config.reconstruction.hunch_max_deg     << "\n";
+    file << "hunch_current_deg=" << config.reconstruction.hunch_current_deg << "\n\n";
 
     file << "[Head]\n";
     file << "center_offset_L="  << config.head.center_offset_L  << "\n";

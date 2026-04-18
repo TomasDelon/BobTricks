@@ -91,6 +91,25 @@ int main()
     {
         CharacterState ch;
         CharacterConfig char_cfg;
+        CharacterReconstructionConfig recon_cfg;
+        CMState cm;
+        cm.position = {0.0, 1.2};
+        cm.velocity = {1.5, 0.0};
+
+        for (int i = 0; i < 120; ++i)
+            updateCharacterState(ch, cm, char_cfg, recon_cfg, true, false, 1.0 / 60.0, 0.0);
+
+        const double L = char_cfg.body_height_m / 5.0;
+        const Vec2 lower = ch.torso_center - ch.pelvis;
+        const Vec2 upper = ch.torso_top - ch.torso_center;
+        TEST_EXPECT_NEAR(suite, lower.length(), L, 1e-6);
+        TEST_EXPECT_NEAR(suite, upper.length(), L, 1e-6);
+        TEST_EXPECT(suite, upper.x > lower.x + 1e-4);
+    }
+
+    {
+        CharacterState ch;
+        CharacterConfig char_cfg;
         HeadConfig head_cfg;
         ch.facing = 1.0;
         ch.torso_center = {0.0, 1.0};

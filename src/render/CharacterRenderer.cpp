@@ -173,7 +173,8 @@ void CharacterRenderer::render(SDL_Renderer*         renderer,
     SDL_RenderDrawLineF(renderer, el_s.x, el_s.y, hl_s.x, hl_s.y);
     SDL_RenderDrawLineF(renderer, tt_s.x, tt_s.y, er_s.x, er_s.y);
     SDL_RenderDrawLineF(renderer, er_s.x, er_s.y, hr_s.x, hr_s.y);
-    SDL_RenderDrawLineF(renderer, pelvis_s.x, pelvis_s.y, tt_s.x, tt_s.y);
+    SDL_RenderDrawLineF(renderer, pelvis_s.x, pelvis_s.y, tc_s.x, tc_s.y);
+    SDL_RenderDrawLineF(renderer, tc_s.x, tc_s.y, tt_s.x, tt_s.y);
     SDL_RenderDrawLineF(renderer, tt_s.x, tt_s.y, neck_s.x, neck_s.y);
 
     SDL_SetRenderDrawColor(renderer, 220, 220, 220, 255);

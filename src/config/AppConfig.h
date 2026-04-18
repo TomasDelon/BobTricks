@@ -38,6 +38,9 @@ struct CharacterReconstructionConfig {
     double tau_lean          = 0.15;  // s    — lean angle filter time constant
     double tau_slope         = 0.10;  // s    — terrain slope low-pass filter
     double slope_lean_factor = 0.25;  // [-]  fraction of slope that transfers to body tilt
+    double hunch_min_deg     = 0.0;   // °    — lower clamp for forward hunch amount
+    double hunch_max_deg     = 8.0;   // °    — upper clamp for forward hunch amount
+    double hunch_current_deg = 3.0;   // °    — current static hunch amount, clamped to [min,max]
 };
 
 /** @brief Paramètres cinématiques et debug de la tête. */
