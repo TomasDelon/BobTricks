@@ -291,6 +291,81 @@ static ScenarioDef makeUpperBodyWalkGaze(const AppConfig& cfg)
     return def;
 }
 
+// jump_from_stand — press jump once from standing; verify arc and clean landing.
+static ScenarioDef makeJumpFromStand(const AppConfig& cfg)
+{
+    ScenarioDef def;
+    def.name          = "jump_from_stand";
+    def.duration_s    = 3.0;
+    def.init.cm_pos   = { 0.0, nominalCMHeight(cfg) };
+    def.init.cm_vel   = { 0.0, 0.0 };
+    def.init.terrain_seed = 42;
+
+    def.input_fn = [](double t) -> InputFrame {
+        InputFrame f;
+        f.jump = (t >= 0.4 && t < 0.5);
+        return f;
+    };
+
+    def.setup_asserts = [](TelemetryRecorder& rec) {
+        rec.addAssertion("jump_from_stand reaches Airborne", [](const std::vector<TelemetryRow>& rows) {
+            return std::any_of(rows.begin(), rows.end(),
+                [](const TelemetryRow& r){ return r.loco_state == LocomotionState::Airborne; });
+        });
+        rec.addAssertion("jump_from_stand cm_vy peaks", [](const std::vector<TelemetryRow>& rows) {
+            return std::any_of(rows.begin(), rows.end(),
+                [](const TelemetryRow& r){ return r.cm_vy > 2.0; });
+        });
+        rec.addAssertion("jump_from_stand lands cleanly", [](const std::vector<TelemetryRow>& rows) {
+            return !rows.empty() && rows.back().loco_state != LocomotionState::Airborne;
+        });
+        rec.addAssertion("jump_from_stand no NaN in cm_y", [](const std::vector<TelemetryRow>& rows) {
+            return std::none_of(rows.begin(), rows.end(),
+                [](const TelemetryRow& r){ return r.cm_y != r.cm_y; });
+        });
+    };
+
+    return def;
+}
+
+// jump_from_walk — jump while walking; verify arc, landing, and no NaN.
+static ScenarioDef makeJumpFromWalk(const AppConfig& cfg)
+{
+    ScenarioDef def;
+    def.name          = "jump_from_walk";
+    def.duration_s    = 4.0;
+    def.init.cm_pos   = { 0.0, nominalCMHeight(cfg) };
+    def.init.cm_vel   = { 1.5, 0.0 };
+    def.init.terrain_seed = 42;
+
+    def.input_fn = [](double t) -> InputFrame {
+        InputFrame f;
+        f.key_right = (t < 3.0);
+        f.jump = (t >= 0.5 && t < 0.6);
+        return f;
+    };
+
+    def.setup_asserts = [](TelemetryRecorder& rec) {
+        rec.addAssertion("jump_from_walk reaches Airborne", [](const std::vector<TelemetryRow>& rows) {
+            return std::any_of(rows.begin(), rows.end(),
+                [](const TelemetryRow& r){ return r.loco_state == LocomotionState::Airborne; });
+        });
+        rec.addAssertion("jump_from_walk cm_vy peaks", [](const std::vector<TelemetryRow>& rows) {
+            return std::any_of(rows.begin(), rows.end(),
+                [](const TelemetryRow& r){ return r.cm_vy > 2.0; });
+        });
+        rec.addAssertion("jump_from_walk lands cleanly", [](const std::vector<TelemetryRow>& rows) {
+            return !rows.empty() && rows.back().loco_state != LocomotionState::Airborne;
+        });
+        rec.addAssertion("jump_from_walk no NaN in cm_x", [](const std::vector<TelemetryRow>& rows) {
+            return std::none_of(rows.begin(), rows.end(),
+                [](const TelemetryRow& r){ return r.cm_x != r.cm_x; });
+        });
+    };
+
+    return def;
+}
+
 // ── catalog ───────────────────────────────────────────────────────────────────
 
 const std::map<std::string, ScenarioFactory>& scenarioLibrary()
@@ -304,6 +379,8 @@ const std::map<std::string, ScenarioFactory>& scenarioLibrary()
         { "walk_left",             makeWalkLeft             },
         { "perturbation_recovery", makePerturbationRecovery },
         { "upper_body_walk_gaze",  makeUpperBodyWalkGaze    },
+        { "jump_from_stand",       makeJumpFromStand        },
+        { "jump_from_walk",        makeJumpFromWalk         },
     };
     return lib;
 }

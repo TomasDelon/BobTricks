@@ -132,7 +132,10 @@ $(UNIT_TEST_BIN): tests/unit/test_core_math.cpp tests/TestSupport.h \
                   src/core/math/StrokePath.cpp \
                   src/core/character/ArmController.cpp \
                   src/core/character/HeadController.cpp \
-                  src/core/locomotion/LegIK.cpp
+                  src/core/locomotion/BalanceComputer.cpp \
+                  src/core/locomotion/LegIK.cpp \
+                  src/core/locomotion/StandingController.cpp \
+                  src/core/terrain/Terrain.cpp
 	@mkdir -p $(@D)
 	$(CXX) -std=c++20 -Wall -Wextra -O2 -Isrc -I. \
 	    tests/unit/test_core_math.cpp \
@@ -140,7 +143,10 @@ $(UNIT_TEST_BIN): tests/unit/test_core_math.cpp tests/TestSupport.h \
 	    src/core/math/StrokePath.cpp \
 	    src/core/character/ArmController.cpp \
 	    src/core/character/HeadController.cpp \
-	    src/core/locomotion/LegIK.cpp -lm -o $@
+	    src/core/locomotion/BalanceComputer.cpp \
+	    src/core/locomotion/LegIK.cpp \
+	    src/core/locomotion/StandingController.cpp \
+	    src/core/terrain/Terrain.cpp -lm -o $@
 
 $(REGRESSION_TEST_BIN): tests/regression/test_headless_scenarios.cpp \
                         tests/TestSupport.h src/headless/ScenarioLibrary.cpp \

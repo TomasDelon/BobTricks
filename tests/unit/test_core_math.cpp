@@ -8,8 +8,10 @@
 #include "core/character/HeadController.h"
 #include "core/math/Bezier.h"
 #include "core/math/StrokePath.h"
+#include "core/locomotion/BalanceComputer.h"
 #include "core/locomotion/LegIK.h"
 #include "core/physics/Geometry.h"
+#include "core/terrain/Terrain.h"
 
 int main()
 {
@@ -308,6 +310,134 @@ int main()
         const double slow_deviation = (slow.hand_right - mid_target).length();
         const double fast_deviation = (fast.hand_right - mid_target).length();
         TEST_EXPECT(suite, fast_deviation > slow_deviation + 1e-3);
+    }
+
+    // ── computeBalanceState ───────────────────────────────────────────────────
+
+    {
+        // omega0 is positive for any valid grounded support
+        CMState cm;
+        cm.position = {0.0, 1.0};
+        cm.velocity = {0.0, 0.0};
+        SupportState support;
+        support.x_left  = -0.2;  support.y_left  = 0.0;
+        support.x_right =  0.2;  support.y_right = 0.0;
+        support.left_planted = support.right_planted = true;
+        CharacterConfig char_cfg;
+        PhysicsConfig phys_cfg;
+
+        const BalanceState bal = computeBalanceState(cm, support, char_cfg, phys_cfg);
+        TEST_EXPECT(suite, bal.omega0 > 0.0);
+    }
+
+    {
+        // xcom is ahead of CM when moving forward
+        CMState cm;
+        cm.position = {0.0, 1.0};
+        cm.velocity = {1.5, 0.0};
+        SupportState support;
+        support.x_left  = -0.4;  support.y_left  = 0.0;
+        support.x_right =  0.4;  support.y_right = 0.0;
+        support.left_planted = support.right_planted = true;
+        CharacterConfig char_cfg;
+        PhysicsConfig phys_cfg;
+
+        const BalanceState bal = computeBalanceState(cm, support, char_cfg, phys_cfg);
+        TEST_EXPECT(suite, bal.xcom > cm.position.x);
+    }
+
+    {
+        // MoS > 0 when CM is stationary inside support polygon
+        CMState cm;
+        cm.position = {0.0, 1.0};
+        cm.velocity = {0.0, 0.0};
+        SupportState support;
+        support.x_left  = -0.2;  support.y_left  = 0.0;
+        support.x_right =  0.2;  support.y_right = 0.0;
+        support.left_planted = support.right_planted = true;
+        CharacterConfig char_cfg;
+        PhysicsConfig phys_cfg;
+
+        const BalanceState bal = computeBalanceState(cm, support, char_cfg, phys_cfg);
+        TEST_EXPECT(suite, bal.mos > 0.0);
+    }
+
+    {
+        // Higher velocity pushes xcom outside the support base → MoS decreases
+        SupportState support;
+        support.x_left  = -0.2;  support.y_left  = 0.0;
+        support.x_right =  0.2;  support.y_right = 0.0;
+        support.left_planted = support.right_planted = true;
+        CharacterConfig char_cfg;
+        PhysicsConfig phys_cfg;
+
+        CMState cm_slow, cm_fast;
+        cm_slow.position = cm_fast.position = {0.0, 1.0};
+        cm_slow.velocity = {0.3, 0.0};
+        cm_fast.velocity = {1.5, 0.0};
+
+        const BalanceState bal_slow = computeBalanceState(cm_slow, support, char_cfg, phys_cfg);
+        const BalanceState bal_fast = computeBalanceState(cm_fast, support, char_cfg, phys_cfg);
+        TEST_EXPECT(suite, bal_fast.mos < bal_slow.mos);
+    }
+
+    // ── Terrain ───────────────────────────────────────────────────────────────
+
+    {
+        // Flat terrain (enabled=false): height=0, vertical normal, zero slope
+        TerrainConfig cfg;
+        cfg.enabled = false;
+        Terrain terrain(cfg);
+        terrain.generate();
+
+        TEST_EXPECT_NEAR(suite, terrain.height_at(0.0),   0.0, 1e-9);
+        TEST_EXPECT_NEAR(suite, terrain.height_at(10.0),  0.0, 1e-9);
+        TEST_EXPECT_NEAR(suite, terrain.height_at(-5.0),  0.0, 1e-9);
+        TEST_EXPECT_NEAR(suite, terrain.normal_at(0.0).x, 0.0, 1e-6);
+        TEST_EXPECT_NEAR(suite, terrain.normal_at(0.0).y, 1.0, 1e-6);
+        TEST_EXPECT_NEAR(suite, terrain.slope_at(0.0),    0.0, 1e-9);
+    }
+
+    {
+        // Normal is always unit length regardless of slope
+        TerrainConfig cfg;
+        cfg.enabled = true;
+        cfg.seed    = 42;
+        Terrain terrain(cfg);
+        terrain.generate();
+
+        for (double x : {-10.0, 0.0, 5.0, 15.0, 30.0}) {
+            const Vec2 n = terrain.normal_at(x);
+            TEST_EXPECT_NEAR(suite, n.x * n.x + n.y * n.y, 1.0, 1e-9);
+        }
+    }
+
+    {
+        // Same seed produces identical terrain
+        TerrainConfig cfg;
+        cfg.enabled = true;
+        cfg.seed    = 42;
+        Terrain t1(cfg);
+        t1.generate();
+        Terrain t2(cfg);
+        t2.generate();
+
+        TEST_EXPECT_NEAR(suite, t1.height_at(5.0),  t2.height_at(5.0),  1e-12);
+        TEST_EXPECT_NEAR(suite, t1.height_at(20.0), t2.height_at(20.0), 1e-12);
+    }
+
+    {
+        // Different seeds produce different terrain
+        TerrainConfig cfg;
+        cfg.enabled = true;
+        cfg.seed    = 42;
+        Terrain t1(cfg);
+        t1.generate();
+        cfg.seed = 99;
+        Terrain t2(cfg);
+        t2.generate();
+
+        TEST_EXPECT(suite, std::fabs(t1.height_at(20.0) - t2.height_at(20.0)) > 1e-3);
     }
 
     return suite.finish();
