@@ -792,28 +792,6 @@ void cacheXCoMState(SimState&              state,
         && (xi - front_x) * ch.facing > 0.0;
 }
 
-void writeDebugState(CharacterState&             ch,
-                     bool                        airborne_final,
-                     double                      y_tgt,
-                     const GroundReferenceSample& ground_ref,
-                     double                      ref_slope,
-                     double                      h_ip,
-                     double                      speed_drop,
-                     double                      slope_drop,
-                     double                      cm_height_offset)
-{
-    ch.debug_on_floor    = !airborne_final;
-    ch.debug_cm_target_y = y_tgt;
-    ch.debug_ref_ground  = ground_ref.mean_y;
-    ch.debug_ref_slope   = ref_slope;
-    ch.debug_h_ip        = h_ip;
-    ch.debug_speed_drop  = speed_drop;
-    ch.debug_slope_drop  = slope_drop;
-    ch.debug_cm_offset   = cm_height_offset;
-    ch.debug_ground_back = ground_ref.back;
-    ch.debug_ground_fwd  = ground_ref.fwd;
-}
-
 GroundReferenceSample computeGroundReferenceSample(const Terrain& terrain,
                                                    const Vec2&    pelvis,
                                                    double         cm_x,

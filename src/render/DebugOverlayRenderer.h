@@ -49,7 +49,7 @@ public:
                           const ArmConfig&       armConfig,
                           const StandingConfig&  standConfig,
                           const CMConfig&        cmConfig,
-                          const Terrain&         terrain,
+                          const Terrain&,
                           const std::optional<Vec2>& gaze_target_world,
                           double                 ref_h,
                           double                 accel_display_scale,

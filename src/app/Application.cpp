@@ -254,7 +254,7 @@ void Application::render()
     SDL_SetRenderDrawColor(m_renderer, 18, 18, 18, 255);
     SDL_RenderClear(m_renderer);
 
-    m_sceneRenderer.render(m_renderer, m_camera, terrain, m_config.particles, m_effectsSystem.dustParticles(),
+    m_sceneRenderer.render(m_renderer, m_camera, terrain, m_effectsSystem.dustParticles(),
                            m_simLoop.getSimulationTime(), GROUND_Y, vw, vh);
 
     if (!m_inputController.isGameView()) {

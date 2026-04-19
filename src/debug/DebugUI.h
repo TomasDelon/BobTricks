@@ -83,9 +83,9 @@ private:
     void renderPresentationPanel(PresentationConfig& config, bool& saveRequested);
     void renderCMKinematicsPanel(const CMState& state, CMConfig& config, bool& saveRequested, bool& clearTrail);
     void renderLocomotionPanel  (const CMState& cmState, const CharacterState& charState,
-                                 const CharacterConfig& charConfig,
+                                 const CharacterConfig&,
                                  const CharacterReconstructionConfig& reconstructionConfig,
-                                 const Terrain& terrain,
+                                 const Terrain&,
                                  WalkConfig& walkConfig, bool& saveRequested);
     void renderBalancePanel     (const CMState& cmState, const CharacterState& charState,
                                  const CharacterConfig& charConfig, const StandingConfig& standConfig,

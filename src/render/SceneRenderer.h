@@ -20,7 +20,6 @@ public:
     void render(SDL_Renderer* renderer,
                 const Camera2D& camera,
                 const Terrain& terrain,
-                const ParticlesConfig& particlesConfig,
                 const std::deque<DustParticle>& dustParticles,
                 double sim_time,
                 double ground_y,
