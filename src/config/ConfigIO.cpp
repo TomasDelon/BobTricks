@@ -97,6 +97,16 @@ bool ConfigIO::load(const std::string& path, AppConfig& config)
             else if (key == "walk_hand_speed_arc_gain")    { config.arms.walk_hand_speed_arc_gain    = std::stod(value); handled = true; }
             else if (key == "walk_hand_phase_response")    { config.arms.walk_hand_phase_response    = std::stod(value); handled = true; }
             else if (key == "walk_hand_phase_friction")    { config.arms.walk_hand_phase_friction    = std::stod(value); handled = true; }
+            else if (key == "run_hand_reach_reduction_L")  { config.arms.run_hand_reach_reduction_L  = std::stod(value); handled = true; }
+            else if (key == "run_front_hand_start_deg")    { config.arms.run_front_hand_start_deg    = std::stod(value); handled = true; }
+            else if (key == "run_front_hand_end_deg")      { config.arms.run_front_hand_end_deg      = std::stod(value); handled = true; }
+            else if (key == "run_back_hand_start_deg")     { config.arms.run_back_hand_start_deg     = std::stod(value); handled = true; }
+            else if (key == "run_back_hand_end_deg")       { config.arms.run_back_hand_end_deg       = std::stod(value); handled = true; }
+            else if (key == "run_hand_phase_speed_scale")  { config.arms.run_hand_phase_speed_scale  = std::stod(value); handled = true; }
+            else if (key == "run_hand_speed_arc_gain")     { config.arms.run_hand_speed_arc_gain     = std::stod(value); handled = true; }
+            else if (key == "run_hand_phase_response")     { config.arms.run_hand_phase_response     = std::stod(value); handled = true; }
+            else if (key == "run_hand_phase_friction")     { config.arms.run_hand_phase_friction     = std::stod(value); handled = true; }
+            else if (key == "run_blend_tau")               { config.arms.run_blend_tau               = std::stod(value); handled = true; }
             else if (key == "show_debug_reach_circles")    { config.arms.show_debug_reach_circles    = (value == "1" || value == "true"); handled = true; }
             else if (key == "show_debug_swing_points")     { config.arms.show_debug_swing_points     = (value == "1" || value == "true"); handled = true; }
             else if (key == "show_debug_swing_arcs")       { config.arms.show_debug_swing_arcs       = (value == "1" || value == "true"); handled = true; }
@@ -317,6 +327,16 @@ bool ConfigIO::save(const std::string& path, const AppConfig& config)
     file << "walk_hand_speed_arc_gain="    << config.arms.walk_hand_speed_arc_gain    << "\n";
     file << "walk_hand_phase_response="    << config.arms.walk_hand_phase_response    << "\n";
     file << "walk_hand_phase_friction="    << config.arms.walk_hand_phase_friction    << "\n";
+    file << "run_hand_reach_reduction_L="  << config.arms.run_hand_reach_reduction_L  << "\n";
+    file << "run_front_hand_start_deg="    << config.arms.run_front_hand_start_deg    << "\n";
+    file << "run_front_hand_end_deg="      << config.arms.run_front_hand_end_deg      << "\n";
+    file << "run_back_hand_start_deg="     << config.arms.run_back_hand_start_deg     << "\n";
+    file << "run_back_hand_end_deg="       << config.arms.run_back_hand_end_deg       << "\n";
+    file << "run_hand_phase_speed_scale="  << config.arms.run_hand_phase_speed_scale  << "\n";
+    file << "run_hand_speed_arc_gain="     << config.arms.run_hand_speed_arc_gain     << "\n";
+    file << "run_hand_phase_response="     << config.arms.run_hand_phase_response     << "\n";
+    file << "run_hand_phase_friction="     << config.arms.run_hand_phase_friction     << "\n";
+    file << "run_blend_tau="               << config.arms.run_blend_tau               << "\n";
     file << "show_debug_reach_circles="    << (config.arms.show_debug_reach_circles ? "1" : "0") << "\n";
     file << "show_debug_swing_points="     << (config.arms.show_debug_swing_points ? "1" : "0") << "\n";
     file << "show_debug_swing_arcs="       << (config.arms.show_debug_swing_arcs ? "1" : "0") << "\n\n";

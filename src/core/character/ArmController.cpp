@@ -128,24 +128,30 @@ void updateArmState(CharacterState& ch,
     const bool use_leg_coupled_cycle = left_foot_active || right_foot_active;
     if (!ch.arm_pose_initialized)
         ch.arm_run_blend = std::clamp(ch.run_blend, 0.0, 1.0);
-    const double arm_run_tau = 0.18;
+    const double arm_run_tau = std::max(arm_config.run_blend_tau, 1.0e-4);
     const double arm_run_alpha = std::clamp(dt / std::max(arm_run_tau, 1.0e-4), 0.0, 1.0);
     ch.arm_run_blend += (std::clamp(ch.run_blend, 0.0, 1.0) - ch.arm_run_blend) * arm_run_alpha;
     ch.arm_run_blend = std::clamp(ch.arm_run_blend, 0.0, 1.0);
     const double rb = ch.arm_run_blend;
 
-    // Run arm targets, tuned from the desired in-editor pose.
-    // These are blended continuously from walk -> run so the transition
-    // does not snap when toggling the run modifier.
-    const double hand_reach_reduction_L = std::lerp(arm_config.walk_hand_reach_reduction_L, 0.59, rb);
-    const double hand_phase_speed_scale = std::lerp(arm_config.walk_hand_phase_speed_scale, 0.50, rb);
-    const double hand_speed_arc_gain    = std::lerp(arm_config.walk_hand_speed_arc_gain,    0.22, rb);
-    const double hand_phase_response    = std::lerp(arm_config.walk_hand_phase_response,    10.0, rb);
-    const double hand_phase_friction    = std::lerp(arm_config.walk_hand_phase_friction,     3.5, rb);
-    const double front_hand_start_deg   = std::lerp(arm_config.walk_front_hand_start_deg,   -93.0, rb);
-    const double front_hand_end_deg     = std::lerp(arm_config.walk_front_hand_end_deg,     -30.7, rb);
-    const double back_hand_start_deg    = std::lerp(arm_config.walk_back_hand_start_deg,    -34.9, rb);
-    const double back_hand_end_deg      = std::lerp(arm_config.walk_back_hand_end_deg,     -109.8, rb);
+    const double hand_reach_reduction_L =
+        std::lerp(arm_config.walk_hand_reach_reduction_L, arm_config.run_hand_reach_reduction_L, rb);
+    const double hand_phase_speed_scale =
+        std::lerp(arm_config.walk_hand_phase_speed_scale, arm_config.run_hand_phase_speed_scale, rb);
+    const double hand_speed_arc_gain =
+        std::lerp(arm_config.walk_hand_speed_arc_gain, arm_config.run_hand_speed_arc_gain, rb);
+    const double hand_phase_response =
+        std::lerp(arm_config.walk_hand_phase_response, arm_config.run_hand_phase_response, rb);
+    const double hand_phase_friction =
+        std::lerp(arm_config.walk_hand_phase_friction, arm_config.run_hand_phase_friction, rb);
+    const double front_hand_start_deg =
+        std::lerp(arm_config.walk_front_hand_start_deg, arm_config.run_front_hand_start_deg, rb);
+    const double front_hand_end_deg =
+        std::lerp(arm_config.walk_front_hand_end_deg, arm_config.run_front_hand_end_deg, rb);
+    const double back_hand_start_deg =
+        std::lerp(arm_config.walk_back_hand_start_deg, arm_config.run_back_hand_start_deg, rb);
+    const double back_hand_end_deg =
+        std::lerp(arm_config.walk_back_hand_end_deg, arm_config.run_back_hand_end_deg, rb);
 
     const double cycle_hz = hand_phase_speed_scale * walk_config.step_speed;
     const double natural_swing_speed = std::max(0.25, cycle_hz);

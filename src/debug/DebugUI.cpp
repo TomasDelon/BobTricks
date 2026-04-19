@@ -452,6 +452,39 @@ void renderArmReachControls(ArmConfig& config)
     ImGui::SetNextItemWidth(180.f);
     if (ImGui::SliderFloat("walk_hand_phase_friction", &phase_friction, 0.1f, 12.0f, "%.1f"))
         config.walk_hand_phase_friction = static_cast<double>(phase_friction);
+
+    ImGui::Separator();
+    ImGui::TextDisabled("Run blend");
+
+    float run_blend_tau = static_cast<float>(config.run_blend_tau);
+    ImGui::SetNextItemWidth(180.f);
+    if (ImGui::SliderFloat("run_blend_tau (s)", &run_blend_tau, 0.02f, 0.60f, "%.2f"))
+        config.run_blend_tau = static_cast<double>(run_blend_tau);
+
+    float run_retract = static_cast<float>(config.run_hand_reach_reduction_L);
+    ImGui::SetNextItemWidth(180.f);
+    if (ImGui::SliderFloat("run_hand_reach_reduction_L (xL)", &run_retract, 0.0f, 1.25f, "%.2f"))
+        config.run_hand_reach_reduction_L = static_cast<double>(run_retract);
+
+    float run_phase_scale = static_cast<float>(config.run_hand_phase_speed_scale);
+    ImGui::SetNextItemWidth(180.f);
+    if (ImGui::SliderFloat("run_hand_phase_speed_scale", &run_phase_scale, 0.1f, 2.0f, "%.2f"))
+        config.run_hand_phase_speed_scale = static_cast<double>(run_phase_scale);
+
+    float run_speed_arc_gain = static_cast<float>(config.run_hand_speed_arc_gain);
+    ImGui::SetNextItemWidth(180.f);
+    if (ImGui::SliderFloat("run_hand_speed_arc_gain", &run_speed_arc_gain, 0.0f, 1.0f, "%.2f"))
+        config.run_hand_speed_arc_gain = static_cast<double>(run_speed_arc_gain);
+
+    float run_phase_response = static_cast<float>(config.run_hand_phase_response);
+    ImGui::SetNextItemWidth(180.f);
+    if (ImGui::SliderFloat("run_hand_phase_response", &run_phase_response, 1.0f, 30.0f, "%.1f"))
+        config.run_hand_phase_response = static_cast<double>(run_phase_response);
+
+    float run_phase_friction = static_cast<float>(config.run_hand_phase_friction);
+    ImGui::SetNextItemWidth(180.f);
+    if (ImGui::SliderFloat("run_hand_phase_friction", &run_phase_friction, 0.1f, 12.0f, "%.1f"))
+        config.run_hand_phase_friction = static_cast<double>(run_phase_friction);
 }
 
 void renderArmArcControls(ArmConfig& config)
@@ -481,6 +514,32 @@ void renderArmArcControls(ArmConfig& config)
     ImGui::SetNextItemWidth(180.f);
     if (ImGui::SliderFloat("back_end_deg", &back_end, -180.f, 180.f, "%.1f"))
         config.walk_back_hand_end_deg = static_cast<double>(back_end);
+
+    ImGui::Separator();
+    ImGui::TextDisabled("Run front hand arc");
+
+    float run_front_start = static_cast<float>(config.run_front_hand_start_deg);
+    ImGui::SetNextItemWidth(180.f);
+    if (ImGui::SliderFloat("run_front_start_deg", &run_front_start, -180.f, 180.f, "%.1f"))
+        config.run_front_hand_start_deg = static_cast<double>(run_front_start);
+
+    float run_front_end = static_cast<float>(config.run_front_hand_end_deg);
+    ImGui::SetNextItemWidth(180.f);
+    if (ImGui::SliderFloat("run_front_end_deg", &run_front_end, -180.f, 180.f, "%.1f"))
+        config.run_front_hand_end_deg = static_cast<double>(run_front_end);
+
+    ImGui::Separator();
+    ImGui::TextDisabled("Run back hand arc");
+
+    float run_back_start = static_cast<float>(config.run_back_hand_start_deg);
+    ImGui::SetNextItemWidth(180.f);
+    if (ImGui::SliderFloat("run_back_start_deg", &run_back_start, -180.f, 180.f, "%.1f"))
+        config.run_back_hand_start_deg = static_cast<double>(run_back_start);
+
+    float run_back_end = static_cast<float>(config.run_back_hand_end_deg);
+    ImGui::SetNextItemWidth(180.f);
+    if (ImGui::SliderFloat("run_back_end_deg", &run_back_end, -180.f, 180.f, "%.1f"))
+        config.run_back_hand_end_deg = static_cast<double>(run_back_end);
 }
 
 void renderArmOverlayControls(ArmConfig& config)

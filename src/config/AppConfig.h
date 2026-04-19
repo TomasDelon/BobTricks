@@ -71,6 +71,16 @@ struct ArmConfig {
     double walk_hand_speed_arc_gain       = 0.35;   // [-] how much low speed shrinks hand arc amplitude
     double walk_hand_phase_response       = 10.0;   // [s^-1] how quickly swing angular velocity follows walking intent
     double walk_hand_phase_friction       = 3.5;    // [s^-1] angular damping applied after releasing walking input
+    double run_hand_reach_reduction_L     = 0.59;   // [×L] retract hand target from the 2L circle while running
+    double run_front_hand_start_deg       = -93.0;  // [deg] front-hand arc start angle in torso local frame while running
+    double run_front_hand_end_deg         = -30.7;  // [deg] front-hand arc end angle in torso local frame while running
+    double run_back_hand_start_deg        = -34.9;  // [deg] back-hand arc start angle in torso local frame while running
+    double run_back_hand_end_deg          = -109.8; // [deg] back-hand arc end angle in torso local frame while running
+    double run_hand_phase_speed_scale     = 0.50;   // [-] fraction of step_speed used as hand cycle Hz while running
+    double run_hand_speed_arc_gain        = 0.22;   // [-] how much low speed shrinks hand arc amplitude while running
+    double run_hand_phase_response        = 10.0;   // [s^-1] how quickly swing angular velocity follows run intent
+    double run_hand_phase_friction        = 3.5;    // [s^-1] angular damping applied after releasing run input
+    double run_blend_tau                  = 0.18;   // [s] low-pass on walk->run arm blending
 
     bool   show_debug_reach_circles       = false;
     bool   show_debug_swing_points        = false;
