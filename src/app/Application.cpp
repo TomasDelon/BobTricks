@@ -17,10 +17,6 @@ static constexpr int         WINDOW_H    = 720;
 static constexpr const char* CONFIG_PATH = "data/config.ini";
 static constexpr const char* FOOTSTEP_WAV_PATH = "data/audio/footstep.wav";
 static constexpr double      GROUND_Y    = World::GROUND_Y;
-static constexpr double      ZOOM_STEP   = 1.1;
-static constexpr float  CM_HIT_RADIUS_PX    = 20.f;
-static constexpr float  FOOT_HIT_RADIUS_PX  = 15.f;
-static constexpr float  HAND_HIT_RADIUS_PX  = 15.f;
 static constexpr double ACCEL_DISPLAY_SCALE = 1.0 / 9.81;
 
 namespace {
@@ -243,34 +239,7 @@ void Application::stepSimulation(double dt)
     if (m_history.size() >= MAX_HISTORY) m_history.pop_front();
     m_history.push_back({ m_core->state(), m_simLoop.getTotalStepCount() });
 
-    // Build input frame and advance the simulation core.
-    InputFrame input;
-    input.key_left       = m_key_left;
-    input.key_right      = m_key_right;
-    input.key_run        = m_key_run && (m_key_left || m_key_right);
-    input.jump           = m_jump_requested;
-    input.set_velocity   = m_pending_set_velocity;
-    input.gaze_target_world = m_gaze_target_world;
-    m_jump_requested     = false;
-    m_pending_set_velocity.reset();
-
-    if (m_dragging_foot_left) {
-        input.foot_left_drag = true;
-        input.foot_left_pos  = m_foot_drag_world;
-    }
-    if (m_dragging_foot_right) {
-        input.foot_right_drag = true;
-        input.foot_right_pos  = m_foot_drag_world;
-    }
-    if (m_dragging_hand_left) {
-        input.hand_left_drag = true;
-        input.hand_left_pos  = m_hand_drag_world;
-    }
-    if (m_dragging_hand_right) {
-        input.hand_right_drag = true;
-        input.hand_right_pos  = m_hand_drag_world;
-    }
-
+    InputFrame input = m_inputController.consumeInputFrame();
     m_core->step(dt, input);
 
     // Trail — record CM position, prune old entries.
@@ -408,232 +377,15 @@ void Application::pruneDustParticles(double sim_time)
 
 void Application::handleEvent(const SDL_Event& event)
 {
-    if (!m_game_view)
+    if (!m_inputController.isGameView())
         ImGui_ImplSDL2_ProcessEvent(&event);
     const ImGuiIO& io = ImGui::GetIO();
-    const bool ui_captures_mouse = !m_game_view && io.WantCaptureMouse;
-
-    if (event.type == SDL_QUIT)
+    const bool ui_captures_mouse = !m_inputController.isGameView() && io.WantCaptureMouse;
+    const InputController::EventResult result =
+        m_inputController.handleEvent(event, m_camera, m_config.camera,
+                                      *m_core, m_renderer, GROUND_Y, ui_captures_mouse);
+    if (result.quit_requested)
         m_running = false;
-    if (event.type == SDL_KEYDOWN && event.key.keysym.sym == SDLK_ESCAPE)
-        m_running = false;
-
-    // ZQSD locomotion (AZERTY layout)
-    if (event.type == SDL_KEYDOWN || event.type == SDL_KEYUP) {
-        const bool pressed = (event.type == SDL_KEYDOWN);
-        switch (event.key.keysym.sym) {
-            case SDLK_q:      m_key_left  = pressed; break;
-            case SDLK_d:      m_key_right = pressed; break;
-            case SDLK_LSHIFT:
-            case SDLK_RSHIFT: m_key_run   = pressed; break;
-            case SDLK_SPACE:  if (pressed && !event.key.repeat) m_jump_requested = true; break;
-            case SDLK_p:
-                if (pressed && !event.key.repeat)
-                    m_game_view = !m_game_view;
-                break;
-            default: break;
-        }
-    }
-
-    // Scroll → zoom
-    if (event.type == SDL_MOUSEWHEEL && !ui_captures_mouse) {
-        if (event.wheel.y > 0)      m_camera.zoomBy(ZOOM_STEP);
-        else if (event.wheel.y < 0) m_camera.zoomBy(1.0 / ZOOM_STEP);
-        m_config.camera.zoom = m_camera.getZoom();
-    }
-
-    // Left-click: hand/foot drag takes priority over camera pan
-    if (event.type == SDL_MOUSEBUTTONDOWN
-        && event.button.button == SDL_BUTTON_LEFT
-        && !ui_captures_mouse)
-    {
-        int vw = 0, vh = 0;
-        SDL_GetRendererOutputSize(m_renderer, &vw, &vh);
-        m_gaze_target_world = m_camera.screenToWorld(
-            static_cast<float>(event.button.x),
-            static_cast<float>(event.button.y),
-            GROUND_Y, vw, vh);
-
-        const SimState& s = m_core->state();
-        bool grabbed_body_part = false;
-        if (s.character.feet_initialized) {
-            const float mx = static_cast<float>(event.button.x);
-            const float my = static_cast<float>(event.button.y);
-            const SDL_FPoint lh_s = m_camera.worldToScreen(
-                s.character.hand_left.x, s.character.hand_left.y,
-                GROUND_Y, vw, vh);
-            const SDL_FPoint rh_s = m_camera.worldToScreen(
-                s.character.hand_right.x, s.character.hand_right.y,
-                GROUND_Y, vw, vh);
-            const SDL_FPoint lf_s = m_camera.worldToScreen(
-                s.character.foot_left.pos.x, s.character.foot_left.pos.y,
-                GROUND_Y, vw, vh);
-            const SDL_FPoint rf_s = m_camera.worldToScreen(
-                s.character.foot_right.pos.x, s.character.foot_right.pos.y,
-                GROUND_Y, vw, vh);
-            const float dlh = std::sqrt((mx-lh_s.x)*(mx-lh_s.x)+(my-lh_s.y)*(my-lh_s.y));
-            const float drh = std::sqrt((mx-rh_s.x)*(mx-rh_s.x)+(my-rh_s.y)*(my-rh_s.y));
-            const float dl = std::sqrt((mx-lf_s.x)*(mx-lf_s.x)+(my-lf_s.y)*(my-lf_s.y));
-            const float dr = std::sqrt((mx-rf_s.x)*(mx-rf_s.x)+(my-rf_s.y)*(my-rf_s.y));
-            float best_d = HAND_HIT_RADIUS_PX;
-            enum class DragPart { None, HandLeft, HandRight, FootLeft, FootRight };
-            DragPart picked = DragPart::None;
-            if (dlh <= best_d) {
-                best_d = dlh;
-                picked = DragPart::HandLeft;
-            }
-            if (drh <= best_d) {
-                best_d = drh;
-                picked = DragPart::HandRight;
-            }
-            if (dl <= std::min(best_d, FOOT_HIT_RADIUS_PX)) {
-                best_d = dl;
-                picked = DragPart::FootLeft;
-            }
-            if (dr <= std::min(best_d, FOOT_HIT_RADIUS_PX)) {
-                picked = DragPart::FootRight;
-            }
-
-            const Vec2 mouse_world = m_camera.screenToWorld(mx, my, GROUND_Y, vw, vh);
-            if (picked == DragPart::HandLeft) {
-                m_dragging_hand_left = true;
-                m_hand_drag_world = mouse_world;
-                grabbed_body_part = true;
-            } else if (picked == DragPart::HandRight) {
-                m_dragging_hand_right = true;
-                m_hand_drag_world = mouse_world;
-                grabbed_body_part = true;
-            } else if (picked == DragPart::FootLeft) {
-                m_dragging_foot_left = true;
-                m_foot_drag_world = mouse_world;
-                grabbed_body_part = true;
-            } else if (picked == DragPart::FootRight) {
-                m_dragging_foot_right = true;
-                m_foot_drag_world = mouse_world;
-                grabbed_body_part = true;
-            }
-        }
-        if (!grabbed_body_part)
-            m_is_panning = true;
-    }
-    if (event.type == SDL_MOUSEBUTTONUP && event.button.button == SDL_BUTTON_LEFT) {
-        m_is_panning         = false;
-        m_dragging_foot_left  = false;
-        m_dragging_foot_right = false;
-        m_dragging_hand_left  = false;
-        m_dragging_hand_right = false;
-    }
-    if (event.type == SDL_MOUSEMOTION && !ui_captures_mouse) {
-        int vw = 0, vh = 0;
-        SDL_GetRendererOutputSize(m_renderer, &vw, &vh);
-        m_gaze_target_world = m_camera.screenToWorld(
-            static_cast<float>(event.motion.x),
-            static_cast<float>(event.motion.y),
-            GROUND_Y, vw, vh);
-        if (m_dragging_foot_left || m_dragging_foot_right) {
-            m_foot_drag_world = m_camera.screenToWorld(
-                static_cast<float>(event.motion.x),
-                static_cast<float>(event.motion.y),
-                GROUND_Y, vw, vh);
-        } else if (m_dragging_hand_left || m_dragging_hand_right) {
-            m_hand_drag_world = m_camera.screenToWorld(
-                static_cast<float>(event.motion.x),
-                static_cast<float>(event.motion.y),
-                GROUND_Y, vw, vh);
-        } else if (m_is_panning) {
-            const float dx = m_config.camera.follow_x ? 0.f : static_cast<float>(event.motion.xrel);
-            const float dy = m_config.camera.follow_y ? 0.f : static_cast<float>(event.motion.yrel);
-            if (dx != 0.f || dy != 0.f)
-                m_camera.panByScreenDelta(dx, dy);
-        }
-    }
-
-    // Right-click: pin/unpin hand/foot or drag CM velocity (near CM)
-    if (event.type == SDL_MOUSEBUTTONDOWN
-        && event.button.button == SDL_BUTTON_RIGHT
-        && !ui_captures_mouse)
-    {
-        int vw, vh;
-        SDL_GetRendererOutputSize(m_renderer, &vw, &vh);
-        const float mx = static_cast<float>(event.button.x);
-        const float my = static_cast<float>(event.button.y);
-        const SimState& s = m_core->state();
-
-        bool handled_body_part = false;
-        if (s.character.feet_initialized) {
-            const SDL_FPoint lh_s = m_camera.worldToScreen(
-                s.character.hand_left.x, s.character.hand_left.y, GROUND_Y, vw, vh);
-            const SDL_FPoint rh_s = m_camera.worldToScreen(
-                s.character.hand_right.x, s.character.hand_right.y, GROUND_Y, vw, vh);
-            const SDL_FPoint lf_s = m_camera.worldToScreen(
-                s.character.foot_left.pos.x, s.character.foot_left.pos.y, GROUND_Y, vw, vh);
-            const SDL_FPoint rf_s = m_camera.worldToScreen(
-                s.character.foot_right.pos.x, s.character.foot_right.pos.y, GROUND_Y, vw, vh);
-            const float dlh = std::sqrt((mx-lh_s.x)*(mx-lh_s.x)+(my-lh_s.y)*(my-lh_s.y));
-            const float drh = std::sqrt((mx-rh_s.x)*(mx-rh_s.x)+(my-rh_s.y)*(my-rh_s.y));
-            const float dl = std::sqrt((mx-lf_s.x)*(mx-lf_s.x)+(my-lf_s.y)*(my-lf_s.y));
-            const float dr = std::sqrt((mx-rf_s.x)*(mx-rf_s.x)+(my-rf_s.y)*(my-rf_s.y));
-            float best_d = HAND_HIT_RADIUS_PX;
-            enum class HitPart { None, HandLeft, HandRight, FootLeft, FootRight };
-            HitPart picked = HitPart::None;
-            if (dlh <= best_d) {
-                best_d = dlh;
-                picked = HitPart::HandLeft;
-            }
-            if (drh <= best_d) {
-                best_d = drh;
-                picked = HitPart::HandRight;
-            }
-            if (dl <= std::min(best_d, FOOT_HIT_RADIUS_PX)) {
-                best_d = dl;
-                picked = HitPart::FootLeft;
-            }
-            if (dr <= std::min(best_d, FOOT_HIT_RADIUS_PX)) {
-                picked = HitPart::FootRight;
-            }
-
-            if (picked == HitPart::HandLeft) {
-                m_core->toggleHandPin(true);
-                handled_body_part = true;
-            } else if (picked == HitPart::HandRight) {
-                m_core->toggleHandPin(false);
-                handled_body_part = true;
-            } else if (picked == HitPart::FootLeft) {
-                m_core->toggleFootPin(true);
-                handled_body_part = true;
-            } else if (picked == HitPart::FootRight) {
-                m_core->toggleFootPin(false);
-                handled_body_part = true;
-            }
-        }
-
-        if (!handled_body_part) {
-            const Vec2& cm_pos = s.cm.position;
-            const SDL_FPoint cm_s = m_camera.worldToScreen(
-                cm_pos.x, cm_pos.y, GROUND_Y, vw, vh);
-            const float d = std::sqrt((mx-cm_s.x)*(mx-cm_s.x)+(my-cm_s.y)*(my-cm_s.y));
-            if (d <= CM_HIT_RADIUS_PX) {
-                m_drag_vel_active = true;
-                m_drag_mouse_x = mx;
-                m_drag_mouse_y = my;
-            }
-        }
-    }
-    if (event.type == SDL_MOUSEMOTION && m_drag_vel_active) {
-        m_drag_mouse_x = static_cast<float>(event.motion.x);
-        m_drag_mouse_y = static_cast<float>(event.motion.y);
-    }
-    if (event.type == SDL_MOUSEBUTTONUP
-        && event.button.button == SDL_BUTTON_RIGHT
-        && m_drag_vel_active)
-    {
-        int vw, vh;
-        SDL_GetRendererOutputSize(m_renderer, &vw, &vh);
-        const Vec2 mouse_world = m_camera.screenToWorld(
-            m_drag_mouse_x, m_drag_mouse_y, GROUND_Y, vw, vh);
-        m_pending_set_velocity = mouse_world - m_core->state().cm.position;
-        m_drag_vel_active = false;
-    }
 }
 
 void Application::render()
@@ -643,7 +395,7 @@ void Application::render()
 
     const SimState& s = m_core->state();
     const Terrain& terrain = m_core->terrain();
-    if (!m_game_view) {
+    if (!m_inputController.isGameView()) {
         ImGui_ImplSDLRenderer2_NewFrame();
         ImGui_ImplSDL2_NewFrame();
         ImGui::NewFrame();
@@ -701,7 +453,7 @@ void Application::render()
     CMConfig render_cm_config = m_config.cm;
     SplineRenderConfig render_spline_config = m_config.spline_render;
 
-    if (m_game_view)
+    if (m_inputController.isGameView())
         applyPresentationModeOverrides(render_char_config, render_head_config, render_arm_config,
                                        render_cm_config, render_spline_config);
 
@@ -711,7 +463,7 @@ void Application::render()
     m_sceneRenderer.render(m_renderer, m_camera, terrain, m_config.particles, m_dust_particles,
                            m_simLoop.getSimulationTime(), GROUND_Y, vw, vh);
 
-    if (!m_game_view) {
+    if (!m_inputController.isGameView()) {
         m_debugOverlay.renderBackground(m_renderer, m_camera, render_cm_config,
                                         m_trail, m_simLoop.getSimulationTime(),
                                         GROUND_Y, vw, vh);
@@ -720,16 +472,18 @@ void Application::render()
     m_characterRenderer.render(m_renderer, m_camera, s.cm, s.character,
                                render_char_config, render_spline_config,
                                m_config.reconstruction, render_cm_config,
-                               m_game_view,
+                               m_inputController.isGameView(),
                                terrain, GROUND_Y, vw, vh);
 
-    if (!m_game_view) {
+    if (!m_inputController.isGameView()) {
         m_debugOverlay.renderForeground(m_renderer, m_camera, s.cm,
                                         s.character,
                                         render_char_config, render_head_config, render_arm_config,
                                         m_config.standing, render_cm_config,
-                                        terrain, m_gaze_target_world, ref_h, ACCEL_DISPLAY_SCALE,
-                                        m_drag_vel_active, m_drag_mouse_x, m_drag_mouse_y,
+                                        terrain, m_inputController.gazeTargetWorld(), ref_h, ACCEL_DISPLAY_SCALE,
+                                        m_inputController.isVelocityDragActive(),
+                                        m_inputController.dragMouseX(),
+                                        m_inputController.dragMouseY(),
                                         GROUND_Y, vw, vh);
 
         if (render_cm_config.show_xcom_line && s.character.feet_initialized) {
@@ -740,7 +494,7 @@ void Application::render()
         }
     }
 
-    if (!m_game_view)
+    if (!m_inputController.isGameView())
         ImGui_ImplSDLRenderer2_RenderDrawData(ImGui::GetDrawData(), m_renderer);
     SDL_RenderPresent(m_renderer);
 }

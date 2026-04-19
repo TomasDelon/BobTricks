@@ -8,6 +8,7 @@
 #include <vector>
 
 #include "config/AppConfig.h"
+#include "app/InputController.h"
 #include "core/math/Vec2.h"
 #include "core/character/TrailPoint.h"
 #include "core/runtime/SimulationLoop.h"
@@ -78,26 +79,7 @@ private:
     bool m_is_panning     = false;
 
     // Right-click drag → set CM velocity (queued for next step via InputFrame)
-    bool              m_drag_vel_active    = false;
-    float             m_drag_mouse_x       = 0.f;
-    float             m_drag_mouse_y       = 0.f;
-    std::optional<Vec2> m_pending_set_velocity;  // consumed once in stepSimulation()
-    std::optional<Vec2> m_gaze_target_world;
-
-    // Left-click drag → move foot (world-space target updated on motion)
-    bool m_dragging_foot_left  = false;
-    bool m_dragging_foot_right = false;
-    Vec2 m_foot_drag_world     = {0.0, 0.0};
-    bool m_dragging_hand_left  = false;
-    bool m_dragging_hand_right = false;
-    Vec2 m_hand_drag_world     = {0.0, 0.0};
-
-    // AZERTY locomotion input
-    bool m_key_left       = false;  // Q
-    bool m_key_right      = false;  // D
-    bool m_key_run        = false;  // Shift
-    bool m_jump_requested = false;  // SPACE
-    bool m_game_view      = false;  // P toggles spline-only presentation mode
+    InputController m_inputController;
 
     // CM trajectory trail
     std::deque<TrailPoint> m_trail;
