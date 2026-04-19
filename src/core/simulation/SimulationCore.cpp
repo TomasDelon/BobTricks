@@ -902,6 +902,15 @@ void updateDownhillCrouch(CharacterState&      ch,
     ch.downhill_crouch = std::clamp(ch.downhill_crouch, 0.0, 1.0);
 }
 
+bool isSlideActive(const FootState& foot, double velocity_x)
+{
+    if (!foot.on_ground || foot.swinging) return false;
+
+    const double slope_strength = std::abs(foot.ground_normal.x);
+    const double speed = std::abs(velocity_x);
+    return slope_strength >= 0.14 && speed >= 0.55;
+}
+
 HeightTargetState computeHeightTargetState(const CharacterState& ch,
                                            const CMState&        cm,
                                            const WalkConfig&     walk_cfg,
@@ -1253,6 +1262,10 @@ void SimulationCore::stepBootstrapCM(StepCtx& ctx, const InputFrame& input)
 {
     CMState&        cm = m_state.cm;
     CharacterState& ch = m_state.character;
+
+    ctx.prev_contact_left = ch.foot_left.on_ground;
+    ctx.prev_contact_right = ch.foot_right.on_ground;
+    ctx.prev_jump_flight_active = ch.jump_flight_active;
 
     if (!ch.feet_initialized) {
         cm.position.y = m_terrain.height_at(cm.position.x) + ctx.h_nominal;
@@ -1665,6 +1678,29 @@ void SimulationCore::stepWriteOutput(StepCtx& ctx, const InputFrame& input, doub
 {
     CMState&        cm = m_state.cm;
     CharacterState& ch = m_state.character;
+    SimEvents&      events = m_state.events;
+
+    events.left_touchdown = !ctx.prev_contact_left && ch.foot_left.on_ground;
+    events.right_touchdown = !ctx.prev_contact_right && ch.foot_right.on_ground;
+    events.landed_from_jump = ctx.prev_jump_flight_active && !ch.jump_flight_active
+                           && (events.left_touchdown || events.right_touchdown);
+
+    ch.left_slide_emit_timer = std::max(0.0, ch.left_slide_emit_timer - dt);
+    ch.right_slide_emit_timer = std::max(0.0, ch.right_slide_emit_timer - dt);
+
+    const bool left_slide_active_now = isSlideActive(ch.foot_left, cm.velocity.x);
+    const bool right_slide_active_now = isSlideActive(ch.foot_right, cm.velocity.x);
+    events.left_slide_active = left_slide_active_now && ch.left_slide_emit_timer <= 0.0;
+    events.right_slide_active = right_slide_active_now && ch.right_slide_emit_timer <= 0.0;
+
+    if (events.left_slide_active)
+        ch.left_slide_emit_timer = 0.07;
+    if (events.right_slide_active)
+        ch.right_slide_emit_timer = 0.07;
+    if (!left_slide_active_now)
+        ch.left_slide_emit_timer = 0.0;
+    if (!right_slide_active_now)
+        ch.right_slide_emit_timer = 0.0;
 
     cacheXCoMState(m_state, ch, cm, ctx.eff_walk, ctx.eff_lx, ctx.eff_rx, ctx.xi, ctx.L);
 

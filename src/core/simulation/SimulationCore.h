@@ -77,6 +77,9 @@ private:
 
         // Phase 4: input
         double input_dir    = 0.0;
+        bool   prev_contact_left  = false;
+        bool   prev_contact_right = false;
+        bool   prev_jump_flight_active = false;
 
         // Phase 5-6: run mode + blended params
         double           rb  = 0.0;

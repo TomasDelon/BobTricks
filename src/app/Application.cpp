@@ -234,8 +234,6 @@ void Application::stepBack()
     m_history.pop_back();
     m_trail.clear();
     m_dust_particles.clear();
-    m_prev_foot_contact_left  = m_core->state().character.foot_left.on_ground;
-    m_prev_foot_contact_right = m_core->state().character.foot_right.on_ground;
     m_simLoop.setPaused(true);
 }
 
@@ -288,30 +286,26 @@ void Application::stepSimulation(double dt)
     }
 
     if (s.character.feet_initialized) {
-        const bool left_touchdown  = s.character.foot_left.on_ground  && !m_prev_foot_contact_left;
-        const bool right_touchdown = s.character.foot_right.on_ground && !m_prev_foot_contact_right;
-        const bool landed_from_jump = m_prev_jump_flight_active && !s.character.jump_flight_active
-                                   && (left_touchdown || right_touchdown);
         const double move_sign = (std::abs(s.cm.velocity.x) > 0.05)
                                ? ((s.cm.velocity.x > 0.0) ? 1.0 : -1.0)
                                : s.character.facing;
 
-        if (left_touchdown)
+        if (s.events.left_touchdown)
             queueFootstep(0.65f);
-        if (right_touchdown)
+        if (s.events.right_touchdown)
             queueFootstep(0.65f);
-        if (landed_from_jump)
+        if (s.events.landed_from_jump)
             queueFootstep(1.0f);
 
         if (m_config.particles.enabled && m_config.particles.dust_enabled && m_config.particles.impact_enabled) {
-            if (left_touchdown)
+            if (s.events.left_touchdown)
                 emitFootDust(s.character.foot_left, sim_time, 1.2, move_sign, 0.9);
-            if (right_touchdown)
+            if (s.events.right_touchdown)
                 emitFootDust(s.character.foot_right, sim_time, 1.2, move_sign, 0.9);
         }
 
         if (m_config.particles.enabled && m_config.particles.dust_enabled
-            && m_config.particles.landing_enabled && landed_from_jump) {
+            && m_config.particles.landing_enabled && s.events.landed_from_jump) {
             const double landing_scale = std::max(1.0, m_config.particles.landing_burst_scale);
             if (s.character.foot_left.on_ground)
                 emitFootDust(s.character.foot_left, sim_time, landing_scale, move_sign, 1.3);
@@ -319,32 +313,23 @@ void Application::stepSimulation(double dt)
                 emitFootDust(s.character.foot_right, sim_time, landing_scale, move_sign, 1.3);
         }
 
-        auto maybeEmitSlide = [&](const FootState& foot, double& timer) {
-            timer = std::max(0.0, timer - dt);
-            if (!m_config.particles.slide_enabled || timer > 0.0) return;
-            if (!foot.on_ground || foot.swinging) return;
-
-            const double slope_strength = std::abs(foot.ground_normal.x);
-            const double speed = std::abs(s.cm.velocity.x);
-            if (slope_strength < 0.14 || speed < 0.55) return;
-
-            const double uphill_dir = (foot.ground_normal.x >= 0.0) ? -1.0 : 1.0;
-            const double motion_dir = (s.cm.velocity.x >= 0.0) ? 1.0 : -1.0;
-            const bool braking_on_slope = motion_dir != uphill_dir;
-            const double tangent_dir = braking_on_slope ? motion_dir : uphill_dir;
-            emitSlideDust(foot, sim_time, tangent_dir);
-            timer = std::max(0.02, m_config.particles.slide_emit_interval_s);
-        };
-
         if (m_config.particles.enabled && m_config.particles.dust_enabled) {
-            maybeEmitSlide(s.character.foot_left, m_left_slide_emit_timer);
-            maybeEmitSlide(s.character.foot_right, m_right_slide_emit_timer);
+            if (m_config.particles.slide_enabled && s.events.left_slide_active) {
+                const double uphill_dir = (s.character.foot_left.ground_normal.x >= 0.0) ? -1.0 : 1.0;
+                const double motion_dir = (s.cm.velocity.x >= 0.0) ? 1.0 : -1.0;
+                const bool braking_on_slope = motion_dir != uphill_dir;
+                const double tangent_dir = braking_on_slope ? motion_dir : uphill_dir;
+                emitSlideDust(s.character.foot_left, sim_time, tangent_dir);
+            }
+            if (m_config.particles.slide_enabled && s.events.right_slide_active) {
+                const double uphill_dir = (s.character.foot_right.ground_normal.x >= 0.0) ? -1.0 : 1.0;
+                const double motion_dir = (s.cm.velocity.x >= 0.0) ? 1.0 : -1.0;
+                const bool braking_on_slope = motion_dir != uphill_dir;
+                const double tangent_dir = braking_on_slope ? motion_dir : uphill_dir;
+                emitSlideDust(s.character.foot_right, sim_time, tangent_dir);
+            }
         }
     }
-
-    m_prev_foot_contact_left  = s.character.foot_left.on_ground;
-    m_prev_foot_contact_right = s.character.foot_right.on_ground;
-    m_prev_jump_flight_active = s.character.jump_flight_active;
     pruneDustParticles(sim_time);
 }
 

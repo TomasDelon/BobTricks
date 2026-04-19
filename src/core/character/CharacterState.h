@@ -61,6 +61,8 @@ struct CharacterState {
     double downhill_crouch               = 0.0;  // [0,1] filtered downhill crouch / reach state
     double landing_recovery_timer        = 0.0;  // [s] short post-touchdown window for faster recovery steps
     double landing_recovery_boost        = 0.0;  // [-] impact-scaled step-speed boost during landing recovery
+    double left_slide_emit_timer         = 0.0;  // [s] cadence timer for repeated slide events
+    double right_slide_emit_timer        = 0.0;  // [s] cadence timer for repeated slide events
 
     // Jump protocol
     bool   jump_preload_active     = false;

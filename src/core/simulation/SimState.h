@@ -7,9 +7,19 @@
 #include <cstdint>
 
 /** @brief Instantané complet de l'état de simulation à un instant donné. */
+struct SimEvents {
+    bool left_touchdown  = false;
+    bool right_touchdown = false;
+    bool landed_from_jump = false;
+    bool left_slide_active  = false;
+    bool right_slide_active = false;
+};
+
+/** @brief Instantané complet de l'état de simulation à un instant donné. */
 struct SimState {
     CMState        cm;
     CharacterState character;
+    SimEvents      events;
     double         sim_time = 0.0;
 
     // XCoM (ξ = x_cm + α·v/ω₀) — computed in SimulationCore::step, cached here

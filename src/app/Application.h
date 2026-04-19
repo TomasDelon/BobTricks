@@ -97,11 +97,6 @@ private:
     // CM trajectory trail
     std::deque<TrailPoint> m_trail;
     std::deque<DustParticle> m_dust_particles;
-    bool m_prev_foot_contact_left  = false;
-    bool m_prev_foot_contact_right = false;
-    bool m_prev_jump_flight_active = false;
-    double m_left_slide_emit_timer = 0.0;
-    double m_right_slide_emit_timer = 0.0;
     std::vector<float> m_footstep_sample;
 
     // Step-back history — snapshot before each fixed step
