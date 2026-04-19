@@ -33,10 +33,70 @@ public:
                 int                   viewport_h) const;
 
 private:
+    struct ScreenSpacePose {
+        SDL_FPoint cm{};
+        SDL_FPoint pelvis{};
+        SDL_FPoint torso_center{};
+        SDL_FPoint torso_top{};
+        SDL_FPoint head{};
+        SDL_FPoint neck{};
+        SDL_FPoint elbow_left{};
+        SDL_FPoint elbow_right{};
+        SDL_FPoint hand_left{};
+        SDL_FPoint hand_right{};
+        SDL_FPoint hand_left_target{};
+        SDL_FPoint hand_right_target{};
+        SDL_FPoint knee_left{};
+        SDL_FPoint knee_right{};
+        SDL_FPoint foot_left{};
+        SDL_FPoint foot_right{};
+        float      reach_radius = 0.0f;
+        float      head_radius  = 0.0f;
+    };
+
     /** @brief Dessine un disque plein en coordonnées écran. */
     static void drawFilledCircle(SDL_Renderer* renderer, float cx, float cy, float radius);
     /** @brief Dessine un cercle filaire en coordonnées écran. */
     static void drawCircleOutline(SDL_Renderer* renderer, float cx, float cy, float radius);
+
+    ScreenSpacePose computeScreenSpacePose(const Camera2D& camera,
+                                           const CMState& cm,
+                                           const CharacterState& character,
+                                           const CharacterConfig& charConfig,
+                                           double ground_y,
+                                           int viewport_w,
+                                           int viewport_h) const;
+
+    void renderSplinePass(SDL_Renderer* renderer,
+                          const Camera2D& camera,
+                          const CharacterState& character,
+                          const CharacterConfig& charConfig,
+                          const SplineRenderConfig& splineConfig,
+                          double ground_y,
+                          int viewport_w,
+                          int viewport_h) const;
+
+    void renderLegacyBody(SDL_Renderer* renderer,
+                          const CharacterState& character,
+                          const ScreenSpacePose& pose) const;
+
+    void renderDebugMarkersBeforeBody(SDL_Renderer* renderer,
+                                      const Camera2D& camera,
+                                      const CharacterState& character,
+                                      const CharacterConfig& charConfig,
+                                      const Terrain& terrain,
+                                      const ScreenSpacePose& pose,
+                                      double ground_y,
+                                      int viewport_w,
+                                      int viewport_h) const;
+
+    void renderDebugMarkersAfterBody(SDL_Renderer* renderer,
+                                     const Camera2D& camera,
+                                     const CharacterState& character,
+                                     const ScreenSpacePose& pose,
+                                     double ground_y,
+                                     int viewport_w,
+                                     int viewport_h) const;
 
     /** @brief Dessine une courbe de test pour le renderer spline. */
     void renderSplineTest(SDL_Renderer* renderer,

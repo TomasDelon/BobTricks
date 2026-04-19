@@ -41,6 +41,11 @@ private:
     void applyFrameRateLimit(std::uint64_t frame_start);
     void stepBack();
     void stepSimulation(double dt);
+    void applyPresentationModeOverrides(CharacterConfig& charConfig,
+                                        HeadConfig& headConfig,
+                                        ArmConfig& armConfig,
+                                        CMConfig& cmConfig,
+                                        SplineRenderConfig& splineConfig) const;
     bool initAudio();
     bool loadFootstepSample();
     void queueFootstep(float gain);

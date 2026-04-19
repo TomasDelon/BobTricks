@@ -522,6 +522,7 @@ AppRequests DebugUI::render(const FrameStats&      stats,
                              HeadConfig&            headConfig,
                              ArmConfig&             armConfig,
                              SplineRenderConfig&    splineConfig,
+                             PresentationConfig&    presentationConfig,
                              CharacterReconstructionConfig& reconstructionConfig,
                              const CMState&         cmState,   CMConfig&        cmConfig,
                              const CharacterState&  charState,
@@ -557,6 +558,7 @@ AppRequests DebugUI::render(const FrameStats&      stats,
     renderHeadPanel(charState, headConfig, req.head);
     renderReconstructionPanel(reconstructionConfig, req.reconstruction);
     renderSplinePanel(splineConfig, req.spline);
+    renderPresentationPanel(presentationConfig, req.presentation);
     renderTorsoPanel(charState, charConfig, reconstructionConfig, terrain, req.reconstruction);
     renderLegsPanel(charState, charConfig, cmConfig, req.character);
     renderLocomotionPanel(cmState, charState, charConfig, reconstructionConfig,
@@ -764,6 +766,23 @@ void DebugUI::renderSplinePanel(SplineRenderConfig& config, bool& saveRequested)
 
     ImGui::Separator();
     if (ImGui::Button("Save Spline Config"))
+        saveRequested = true;
+}
+
+void DebugUI::renderPresentationPanel(PresentationConfig& config, bool& saveRequested)
+{
+    if (!ImGui::CollapsingHeader("Presentation", ImGuiTreeNodeFlags_None))
+        return;
+
+    ImGui::Checkbox("Force spline renderer", &config.force_spline_renderer);
+    ImGui::Checkbox("Hide head debug", &config.hide_head_debug);
+    ImGui::Checkbox("Hide arm debug", &config.hide_arm_debug);
+    ImGui::Checkbox("Hide CM debug", &config.hide_cm_debug);
+    ImGui::Checkbox("Hide balance debug", &config.hide_balance_debug);
+    ImGui::Checkbox("Hide spline debug", &config.hide_spline_debug);
+
+    ImGui::Separator();
+    if (ImGui::Button("Save Presentation Config"))
         saveRequested = true;
 }
 

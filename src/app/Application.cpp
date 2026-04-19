@@ -656,6 +656,7 @@ void Application::render()
             m_config.head,
             m_config.arms,
             m_config.spline_render,
+            m_config.presentation,
             m_config.reconstruction,
             s.cm, m_config.cm,
             s.character,
@@ -679,7 +680,7 @@ void Application::render()
                     req.ip_test_cm_x, req.ip_test_cm_vx);
         }
 
-        if (req.sim_loop || req.camera || req.character || req.head || req.arms || req.spline || req.reconstruction
+        if (req.sim_loop || req.camera || req.character || req.head || req.arms || req.spline || req.presentation || req.reconstruction
             || req.walk || req.jump
             || req.cm || req.physics || req.terrain || req.particles) {
             m_config.sim_loop.time_scale = m_simLoop.getTimeScale();
@@ -700,27 +701,9 @@ void Application::render()
     CMConfig render_cm_config = m_config.cm;
     SplineRenderConfig render_spline_config = m_config.spline_render;
 
-    if (m_game_view) {
-        render_char_config.show_pelvis_reach_disk = false;
-        render_head_config.show_eye_marker = false;
-        render_head_config.show_gaze_ray = false;
-        render_head_config.show_gaze_target = false;
-        render_arm_config.show_debug_reach_circles = false;
-        render_arm_config.show_debug_swing_points = false;
-        render_arm_config.show_debug_swing_arcs = false;
-        render_cm_config.show_ground_reference = false;
-        render_cm_config.show_projection_line = false;
-        render_cm_config.show_projection_dot = false;
-        render_cm_config.show_target_height_tick = false;
-        render_cm_config.show_trail = false;
-        render_cm_config.show_xcom_line = false;
-        render_cm_config.show_support_line = false;
-        render_spline_config.enabled = true;
-        render_spline_config.draw_under_legacy = false;
-        render_spline_config.show_test_curve = false;
-        render_spline_config.show_control_polygon = false;
-        render_spline_config.show_sample_points = false;
-    }
+    if (m_game_view)
+        applyPresentationModeOverrides(render_char_config, render_head_config, render_arm_config,
+                                       render_cm_config, render_spline_config);
 
     SDL_SetRenderDrawColor(m_renderer, 18, 18, 18, 255);
     SDL_RenderClear(m_renderer);
@@ -760,6 +743,50 @@ void Application::render()
     if (!m_game_view)
         ImGui_ImplSDLRenderer2_RenderDrawData(ImGui::GetDrawData(), m_renderer);
     SDL_RenderPresent(m_renderer);
+}
+
+void Application::applyPresentationModeOverrides(CharacterConfig& charConfig,
+                                                 HeadConfig& headConfig,
+                                                 ArmConfig& armConfig,
+                                                 CMConfig& cmConfig,
+                                                 SplineRenderConfig& splineConfig) const
+{
+    charConfig.show_pelvis_reach_disk = false;
+
+    if (m_config.presentation.hide_head_debug) {
+        headConfig.show_eye_marker = false;
+        headConfig.show_gaze_ray = false;
+        headConfig.show_gaze_target = false;
+    }
+
+    if (m_config.presentation.hide_arm_debug) {
+        armConfig.show_debug_reach_circles = false;
+        armConfig.show_debug_swing_points = false;
+        armConfig.show_debug_swing_arcs = false;
+    }
+
+    if (m_config.presentation.hide_cm_debug) {
+        cmConfig.show_ground_reference = false;
+        cmConfig.show_projection_line = false;
+        cmConfig.show_projection_dot = false;
+        cmConfig.show_target_height_tick = false;
+        cmConfig.show_trail = false;
+    }
+
+    if (m_config.presentation.hide_balance_debug) {
+        cmConfig.show_xcom_line = false;
+        cmConfig.show_support_line = false;
+    }
+
+    if (m_config.presentation.force_spline_renderer)
+        splineConfig.enabled = true;
+
+    if (m_config.presentation.hide_spline_debug) {
+        splineConfig.draw_under_legacy = false;
+        splineConfig.show_test_curve = false;
+        splineConfig.show_control_polygon = false;
+        splineConfig.show_sample_points = false;
+    }
 }
 
 void Application::applyFrameRateLimit(std::uint64_t frame_start)

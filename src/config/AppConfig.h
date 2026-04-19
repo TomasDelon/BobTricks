@@ -92,6 +92,16 @@ struct SplineRenderConfig {
     bool   show_sample_points   = false;
 };
 
+/** @brief Overrides appliqués quand le mode présentation est actif. */
+struct PresentationConfig {
+    bool force_spline_renderer     = true;
+    bool hide_head_debug           = true;
+    bool hide_arm_debug            = true;
+    bool hide_cm_debug             = true;
+    bool hide_balance_debug        = true;
+    bool hide_spline_debug         = true;
+};
+
 /** @brief Paramètres d'affichage et d'overlay liés au centre de masse. */
 struct CMConfig {
     bool show_ground_reference   = true;
@@ -295,6 +305,7 @@ struct AppConfig {
     HeadConfig                    head;
     ArmConfig                     arms;
     SplineRenderConfig            spline_render;
+    PresentationConfig            presentation;
     CMConfig                      cm;
     PhysicsConfig                 physics;
     TerrainConfig                 terrain;

@@ -21,6 +21,7 @@ struct AppRequests {
     bool head      = false;
     bool arms      = false;
     bool spline    = false;
+    bool presentation = false;
     bool cm        = false;
     bool walk      = false;
     bool jump      = false;
@@ -52,6 +53,7 @@ public:
                         HeadConfig&            headConfig,
                         ArmConfig&             armConfig,
                         SplineRenderConfig&    splineConfig,
+                        PresentationConfig&    presentationConfig,
                         CharacterReconstructionConfig& reconstructionConfig,
                         const CMState&         cmState,   CMConfig&        cmConfig,
                              const CharacterState&  charState,
@@ -78,6 +80,7 @@ private:
                          CMConfig& cmConfig, bool& saveRequested);
     void renderArmsPanel     (ArmConfig& config, bool& saveRequested);
     void renderSplinePanel   (SplineRenderConfig& config, bool& saveRequested);
+    void renderPresentationPanel(PresentationConfig& config, bool& saveRequested);
     void renderCMKinematicsPanel(const CMState& state, CMConfig& config, bool& saveRequested, bool& clearTrail);
     void renderLocomotionPanel  (const CMState& cmState, const CharacterState& charState,
                                  const CharacterConfig& charConfig,

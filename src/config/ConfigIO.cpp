@@ -114,6 +114,14 @@ bool ConfigIO::load(const std::string& path, AppConfig& config)
             else if (key == "show_control_polygon") { config.spline_render.show_control_polygon = (value == "1" || value == "true"); handled = true; }
             else if (key == "show_sample_points")   { config.spline_render.show_sample_points   = (value == "1" || value == "true"); handled = true; }
         }
+        else if (section == "Presentation") {
+            if      (key == "force_spline_renderer") { config.presentation.force_spline_renderer = (value == "1" || value == "true"); handled = true; }
+            else if (key == "hide_head_debug")       { config.presentation.hide_head_debug       = (value == "1" || value == "true"); handled = true; }
+            else if (key == "hide_arm_debug")        { config.presentation.hide_arm_debug        = (value == "1" || value == "true"); handled = true; }
+            else if (key == "hide_cm_debug")         { config.presentation.hide_cm_debug         = (value == "1" || value == "true"); handled = true; }
+            else if (key == "hide_balance_debug")    { config.presentation.hide_balance_debug    = (value == "1" || value == "true"); handled = true; }
+            else if (key == "hide_spline_debug")     { config.presentation.hide_spline_debug     = (value == "1" || value == "true"); handled = true; }
+        }
         else if (section == "CM") {
             if      (key == "show_ground_reference")   { config.cm.show_ground_reference   = (value == "1" || value == "true"); handled = true; }
             else if (key == "show_projection_line")    { config.cm.show_projection_line    = (value == "1" || value == "true"); handled = true; }
@@ -325,6 +333,14 @@ bool ConfigIO::save(const std::string& path, const AppConfig& config)
     file << "show_test_curve="      << (config.spline_render.show_test_curve ? "1" : "0") << "\n";
     file << "show_control_polygon=" << (config.spline_render.show_control_polygon ? "1" : "0") << "\n";
     file << "show_sample_points="   << (config.spline_render.show_sample_points ? "1" : "0") << "\n\n";
+
+    file << "[Presentation]\n";
+    file << "force_spline_renderer=" << (config.presentation.force_spline_renderer ? "1" : "0") << "\n";
+    file << "hide_head_debug="       << (config.presentation.hide_head_debug ? "1" : "0") << "\n";
+    file << "hide_arm_debug="        << (config.presentation.hide_arm_debug ? "1" : "0") << "\n";
+    file << "hide_cm_debug="         << (config.presentation.hide_cm_debug ? "1" : "0") << "\n";
+    file << "hide_balance_debug="    << (config.presentation.hide_balance_debug ? "1" : "0") << "\n";
+    file << "hide_spline_debug="     << (config.presentation.hide_spline_debug ? "1" : "0") << "\n\n";
 
     file << "[CM]\n";
     file << "show_ground_reference="   << (config.cm.show_ground_reference   ? "1" : "0") << "\n";
