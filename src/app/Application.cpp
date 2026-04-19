@@ -2,7 +2,6 @@
 
 #include <cmath>
 #include <optional>
-#include <vector>
 #include <SDL2/SDL.h>
 #include "imgui.h"
 #include "imgui_impl_sdl2.h"
@@ -73,7 +72,7 @@ bool Application::init()
     m_camera.reset({0.0, 0.0});
     m_camera.zoomBy(m_config.camera.zoom);
 
-    if (!initAudio())
+    if (!m_audioSystem.init() || !m_audioSystem.loadFootstepSample(FOOTSTEP_WAV_PATH))
         SDL_Log("Audio init disabled: %s", SDL_GetError());
 
     IMGUI_CHECKVERSION();
@@ -87,91 +86,6 @@ bool Application::init()
     m_prev_counter = SDL_GetPerformanceCounter();
     m_running = true;
     return true;
-}
-
-bool Application::initAudio()
-{
-    SDL_AudioSpec desired{};
-    desired.freq = 44100;
-    desired.format = AUDIO_F32SYS;
-    desired.channels = 1;
-    desired.samples = 2048;
-
-    SDL_AudioSpec obtained{};
-    m_audio_device = SDL_OpenAudioDevice(nullptr, 0, &desired, &obtained, 0);
-    if (m_audio_device == 0)
-        return false;
-
-    if (obtained.format != AUDIO_F32SYS || obtained.channels != 1) {
-        SDL_Log("Unexpected audio format obtained; closing device");
-        SDL_CloseAudioDevice(m_audio_device);
-        m_audio_device = 0;
-        return false;
-    }
-
-    if (!loadFootstepSample()) {
-        SDL_CloseAudioDevice(m_audio_device);
-        m_audio_device = 0;
-        return false;
-    }
-
-    SDL_PauseAudioDevice(m_audio_device, 0);
-    return true;
-}
-
-bool Application::loadFootstepSample()
-{
-    SDL_AudioSpec wav_spec{};
-    Uint8* wav_buffer = nullptr;
-    Uint32 wav_length = 0;
-    if (SDL_LoadWAV(FOOTSTEP_WAV_PATH, &wav_spec, &wav_buffer, &wav_length) == nullptr) {
-        SDL_Log("SDL_LoadWAV failed for %s: %s", FOOTSTEP_WAV_PATH, SDL_GetError());
-        return false;
-    }
-
-    SDL_AudioCVT cvt{};
-    if (SDL_BuildAudioCVT(&cvt,
-                          wav_spec.format, wav_spec.channels, wav_spec.freq,
-                          AUDIO_F32SYS, 1, 44100) < 0) {
-        SDL_Log("SDL_BuildAudioCVT failed: %s", SDL_GetError());
-        SDL_FreeWAV(wav_buffer);
-        return false;
-    }
-
-    cvt.len = static_cast<int>(wav_length);
-    cvt.buf = static_cast<Uint8*>(SDL_malloc(static_cast<std::size_t>(cvt.len) * cvt.len_mult));
-    if (!cvt.buf) {
-        SDL_Log("SDL_malloc failed for audio conversion");
-        SDL_FreeWAV(wav_buffer);
-        return false;
-    }
-    SDL_memcpy(cvt.buf, wav_buffer, wav_length);
-    SDL_FreeWAV(wav_buffer);
-
-    if (SDL_ConvertAudio(&cvt) < 0) {
-        SDL_Log("SDL_ConvertAudio failed: %s", SDL_GetError());
-        SDL_free(cvt.buf);
-        return false;
-    }
-
-    const std::size_t sample_count = static_cast<std::size_t>(cvt.len_cvt) / sizeof(float);
-    const float* sample_data = reinterpret_cast<const float*>(cvt.buf);
-    m_footstep_sample.assign(sample_data, sample_data + sample_count);
-    SDL_free(cvt.buf);
-    return !m_footstep_sample.empty();
-}
-
-void Application::queueFootstep(float gain)
-{
-    if (m_audio_device == 0 || m_footstep_sample.empty()) return;
-
-    const float clamped_gain = std::max(0.0f, std::min(gain, 2.0f));
-    std::vector<float> scaled = m_footstep_sample;
-    for (float& sample : scaled)
-        sample *= clamped_gain;
-
-    SDL_QueueAudio(m_audio_device, scaled.data(),
-                   static_cast<Uint32>(scaled.size() * sizeof(float)));
 }
 
 int Application::run()
@@ -260,11 +174,11 @@ void Application::stepSimulation(double dt)
                                : s.character.facing;
 
         if (s.events.left_touchdown)
-            queueFootstep(0.65f);
+            m_audioSystem.playFootstep(0.65f);
         if (s.events.right_touchdown)
-            queueFootstep(0.65f);
+            m_audioSystem.playFootstep(0.65f);
         if (s.events.landed_from_jump)
-            queueFootstep(1.0f);
+            m_audioSystem.playFootstep(1.0f);
 
         if (m_config.particles.enabled && m_config.particles.dust_enabled && m_config.particles.impact_enabled) {
             if (s.events.left_touchdown)
@@ -559,11 +473,7 @@ void Application::shutdown()
     ImGui_ImplSDLRenderer2_Shutdown();
     ImGui_ImplSDL2_Shutdown();
     ImGui::DestroyContext();
-    if (m_audio_device != 0) {
-        SDL_ClearQueuedAudio(m_audio_device);
-        SDL_CloseAudioDevice(m_audio_device);
-        m_audio_device = 0;
-    }
+    m_audioSystem.shutdown();
     if (m_renderer) { SDL_DestroyRenderer(m_renderer); m_renderer = nullptr; }
     if (m_window)   { SDL_DestroyWindow(m_window);     m_window   = nullptr; }
     SDL_Quit();

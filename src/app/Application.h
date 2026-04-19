@@ -8,6 +8,7 @@
 #include <vector>
 
 #include "config/AppConfig.h"
+#include "app/AudioSystem.h"
 #include "app/InputController.h"
 #include "core/math/Vec2.h"
 #include "core/character/TrailPoint.h"
@@ -47,9 +48,6 @@ private:
                                         ArmConfig& armConfig,
                                         CMConfig& cmConfig,
                                         SplineRenderConfig& splineConfig) const;
-    bool initAudio();
-    bool loadFootstepSample();
-    void queueFootstep(float gain);
     void emitFootDust(const FootState& foot,
                       double sim_time,
                       double burst_scale,
@@ -60,7 +58,6 @@ private:
 
     SDL_Window*   m_window   = nullptr;
     SDL_Renderer* m_renderer = nullptr;
-    SDL_AudioDeviceID m_audio_device = 0;
     bool          m_running  = false;
 
     AppConfig                       m_config;
@@ -71,6 +68,7 @@ private:
     CharacterRenderer               m_characterRenderer;
     DebugOverlayRenderer            m_debugOverlay;
     DebugUI                         m_debugUI;
+    AudioSystem                     m_audioSystem;
 
     std::uint64_t m_prev_counter  = 0;
     float         m_current_fps   = 0.f;
@@ -84,7 +82,6 @@ private:
     // CM trajectory trail
     std::deque<TrailPoint> m_trail;
     std::deque<DustParticle> m_dust_particles;
-    std::vector<float> m_footstep_sample;
 
     // Step-back history — snapshot before each fixed step
     /** @brief Instantané stocké avant chaque pas fixe pour le step-back. */
