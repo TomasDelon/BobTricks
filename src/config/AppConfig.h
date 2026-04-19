@@ -19,6 +19,8 @@ struct CameraConfig {
     bool   follow_y   = false;
     double smooth_x   = 0.0;   // seconds time constant, 0 = instant
     double smooth_y   = 0.0;
+    double deadzone_x = 0.35;  // m  — horizontal follow-free half-window around the target
+    double deadzone_y = 0.15;  // m  — vertical follow-free half-window around the target
 };
 
 /** @brief Paramètres morphologiques globaux du personnage. */
@@ -79,6 +81,10 @@ struct ArmConfig {
 struct SplineRenderConfig {
     bool   enabled              = false;
     bool   draw_under_legacy    = false;
+    bool   show_head            = true;
+    bool   show_torso           = true;
+    bool   show_arms            = true;
+    bool   show_legs            = true;
     float  stroke_width_px      = 8.0f;
     int    samples_per_curve    = 24;
     bool   show_test_curve      = true;

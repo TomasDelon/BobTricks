@@ -496,6 +496,10 @@ void renderSplineControls(SplineRenderConfig& config)
 {
     ImGui::Checkbox("Use spline renderer", &config.enabled);
     ImGui::Checkbox("Draw spline under legacy", &config.draw_under_legacy);
+    ImGui::Checkbox("Render head", &config.show_head);
+    ImGui::Checkbox("Render torso", &config.show_torso);
+    ImGui::Checkbox("Render arms", &config.show_arms);
+    ImGui::Checkbox("Render legs", &config.show_legs);
     ImGui::Checkbox("Show test curve", &config.show_test_curve);
     ImGui::Checkbox("Show control polygon", &config.show_control_polygon);
     ImGui::Checkbox("Show sample points", &config.show_sample_points);
@@ -643,6 +647,8 @@ void DebugUI::renderCameraPanel(Camera2D& camera, CameraConfig& config, bool& sa
 
     float sx = static_cast<float>(config.smooth_x);
     float sy = static_cast<float>(config.smooth_y);
+    float dzx = static_cast<float>(config.deadzone_x);
+    float dzy = static_cast<float>(config.deadzone_y);
 
     ImGui::SetNextItemWidth(200.f);
     if (ImGui::SliderFloat("Smooth X", &sx, 0.f, 5.f, sx <= 0.f ? "instant" : "%.2f s"))
@@ -651,6 +657,14 @@ void DebugUI::renderCameraPanel(Camera2D& camera, CameraConfig& config, bool& sa
     ImGui::SetNextItemWidth(200.f);
     if (ImGui::SliderFloat("Smooth Y", &sy, 0.f, 5.f, sy <= 0.f ? "instant" : "%.2f s"))
         config.smooth_y = static_cast<double>(sy);
+
+    ImGui::SetNextItemWidth(200.f);
+    if (ImGui::SliderFloat("Deadzone X", &dzx, 0.f, 2.f, "%.2f m"))
+        config.deadzone_x = static_cast<double>(dzx);
+
+    ImGui::SetNextItemWidth(200.f);
+    if (ImGui::SliderFloat("Deadzone Y", &dzy, 0.f, 2.f, "%.2f m"))
+        config.deadzone_y = static_cast<double>(dzy);
 
     ImGui::Separator();
     if (ImGui::Button("Save Camera Config"))

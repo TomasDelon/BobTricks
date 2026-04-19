@@ -54,6 +54,8 @@ bool ConfigIO::load(const std::string& path, AppConfig& config)
             else if (key == "follow_y") { config.camera.follow_y = (value == "1" || value == "true"); handled = true; }
             else if (key == "smooth_x") { config.camera.smooth_x = std::stod(value); handled = true; }
             else if (key == "smooth_y") { config.camera.smooth_y = std::stod(value); handled = true; }
+            else if (key == "deadzone_x") { config.camera.deadzone_x = std::stod(value); handled = true; }
+            else if (key == "deadzone_y") { config.camera.deadzone_y = std::stod(value); handled = true; }
         }
         else if (section == "Character") {
             if      (key == "body_height_m")   { config.character.body_height_m   = std::stod(value); handled = true; }
@@ -102,6 +104,10 @@ bool ConfigIO::load(const std::string& path, AppConfig& config)
         else if (section == "SplineRender") {
             if      (key == "enabled")              { config.spline_render.enabled              = (value == "1" || value == "true"); handled = true; }
             else if (key == "draw_under_legacy")    { config.spline_render.draw_under_legacy    = (value == "1" || value == "true"); handled = true; }
+            else if (key == "show_head")            { config.spline_render.show_head            = (value == "1" || value == "true"); handled = true; }
+            else if (key == "show_torso")           { config.spline_render.show_torso           = (value == "1" || value == "true"); handled = true; }
+            else if (key == "show_arms")            { config.spline_render.show_arms            = (value == "1" || value == "true"); handled = true; }
+            else if (key == "show_legs")            { config.spline_render.show_legs            = (value == "1" || value == "true"); handled = true; }
             else if (key == "stroke_width_px")      { config.spline_render.stroke_width_px      = std::stof(value); handled = true; }
             else if (key == "samples_per_curve")    { config.spline_render.samples_per_curve    = std::stoi(value); handled = true; }
             else if (key == "show_test_curve")      { config.spline_render.show_test_curve      = (value == "1" || value == "true"); handled = true; }
@@ -246,7 +252,9 @@ bool ConfigIO::save(const std::string& path, const AppConfig& config)
     file << "follow_x=" << (config.camera.follow_x ? "1" : "0")  << "\n";
     file << "follow_y=" << (config.camera.follow_y ? "1" : "0")  << "\n";
     file << "smooth_x=" << config.camera.smooth_x                 << "\n";
-    file << "smooth_y=" << config.camera.smooth_y                 << "\n\n";
+    file << "smooth_y=" << config.camera.smooth_y                 << "\n";
+    file << "deadzone_x=" << config.camera.deadzone_x             << "\n";
+    file << "deadzone_y=" << config.camera.deadzone_y             << "\n\n";
 
     file << "[Character]\n";
     file << "body_height_m="   << config.character.body_height_m   << "\n";
@@ -295,6 +303,10 @@ bool ConfigIO::save(const std::string& path, const AppConfig& config)
     file << "[SplineRender]\n";
     file << "enabled="              << (config.spline_render.enabled ? "1" : "0") << "\n";
     file << "draw_under_legacy="    << (config.spline_render.draw_under_legacy ? "1" : "0") << "\n";
+    file << "show_head="            << (config.spline_render.show_head ? "1" : "0") << "\n";
+    file << "show_torso="           << (config.spline_render.show_torso ? "1" : "0") << "\n";
+    file << "show_arms="            << (config.spline_render.show_arms ? "1" : "0") << "\n";
+    file << "show_legs="            << (config.spline_render.show_legs ? "1" : "0") << "\n";
     file << "stroke_width_px="      << config.spline_render.stroke_width_px << "\n";
     file << "samples_per_curve="    << config.spline_render.samples_per_curve << "\n";
     file << "show_test_curve="      << (config.spline_render.show_test_curve ? "1" : "0") << "\n";

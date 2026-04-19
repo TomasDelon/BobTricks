@@ -111,22 +111,34 @@ void CharacterRenderer::render(SDL_Renderer*         renderer,
         const Vec2& back_hand   = facing_right ? character.hand_right  : character.hand_left;
         const Vec2& front_elbow = facing_right ? character.elbow_left  : character.elbow_right;
         const Vec2& front_hand  = facing_right ? character.hand_left   : character.hand_right;
-        renderSplineLeg(renderer, camera,
-                        character.pelvis, back_knee, back_foot, 2,
-                        splineConfig, ground_y, viewport_w, viewport_h);
-        renderSplineArm(renderer, camera,
-                        character.torso_top, back_elbow, back_hand, 2,
-                        splineConfig, ground_y, viewport_w, viewport_h);
-        renderSplineTorso(renderer, camera, character, splineConfig,
-                          ground_y, viewport_w, viewport_h);
-        renderSplineHead(renderer, camera, character, splineConfig,
-                         ground_y, viewport_w, viewport_h);
-        renderSplineLeg(renderer, camera,
-                        character.pelvis, front_knee, front_foot, 0,
-                        splineConfig, ground_y, viewport_w, viewport_h);
-        renderSplineArm(renderer, camera,
-                        character.torso_top, front_elbow, front_hand, 0,
-                        splineConfig, ground_y, viewport_w, viewport_h);
+        if (splineConfig.show_legs) {
+            renderSplineLeg(renderer, camera,
+                            character.pelvis, back_knee, back_foot, 2,
+                            splineConfig, ground_y, viewport_w, viewport_h);
+        }
+        if (splineConfig.show_arms) {
+            renderSplineArm(renderer, camera,
+                            character.torso_top, back_elbow, back_hand, 2,
+                            splineConfig, ground_y, viewport_w, viewport_h);
+        }
+        if (splineConfig.show_torso) {
+            renderSplineTorso(renderer, camera, character, splineConfig,
+                              ground_y, viewport_w, viewport_h);
+        }
+        if (splineConfig.show_head) {
+            renderSplineHead(renderer, camera, character, splineConfig,
+                             ground_y, viewport_w, viewport_h);
+        }
+        if (splineConfig.show_legs) {
+            renderSplineLeg(renderer, camera,
+                            character.pelvis, front_knee, front_foot, 0,
+                            splineConfig, ground_y, viewport_w, viewport_h);
+        }
+        if (splineConfig.show_arms) {
+            renderSplineArm(renderer, camera,
+                            character.torso_top, front_elbow, front_hand, 0,
+                            splineConfig, ground_y, viewport_w, viewport_h);
+        }
     };
 
     if (spline_only) {
@@ -402,13 +414,11 @@ void CharacterRenderer::renderSplineTorso(SDL_Renderer* renderer,
     const Vec2 torso_top = character.torso_top;
     const Vec2 neck = neck_attach_world;
 
-    const Vec2 handle0 = pelvis + (torso_center - pelvis) * 0.5;
-    const Vec2 handle1 = torso_center - (torso_top - pelvis) * (1.0 / 6.0);
-    const Vec2 handle2 = torso_center + (neck - pelvis) * (1.0 / 6.0);
     StrokePath path;
+    const Vec2 handle0 = pelvis + (torso_center - pelvis) * 0.85;
+    const Vec2 handle1 = neck - (neck - torso_top) * 0.85;
     path.moveTo(pelvis);
-    path.cubicTo(handle0, handle1, torso_top);
-    path.quadTo(handle2, neck);
+    path.cubicTo(handle0, handle1, neck);
 
     const std::vector<Vec2> world_points = path.flatten(splineConfig.samples_per_curve);
     std::vector<SDL_FPoint> screen_points;

@@ -4,6 +4,10 @@
 
 namespace {
 
+constexpr float kEpsilon = 1.0e-4f;
+constexpr int   kCapSegments = 16;
+constexpr float kPi = 3.14159265358979323846f;
+
 SDL_FPoint add(const SDL_FPoint& a, const SDL_FPoint& b)
 {
     return {a.x + b.x, a.y + b.y};
@@ -40,6 +44,35 @@ SDL_Vertex makeVertex(const SDL_FPoint& p, SDL_Color color)
     return v;
 }
 
+bool pointsNear(const SDL_FPoint& a, const SDL_FPoint& b)
+{
+    return std::abs(a.x - b.x) <= kEpsilon && std::abs(a.y - b.y) <= kEpsilon;
+}
+
+void appendRoundDot(std::vector<SDL_Vertex>& vertices,
+                    std::vector<int>& indices,
+                    const SDL_FPoint& center,
+                    float radius,
+                    SDL_Color color)
+{
+    const int center_index = static_cast<int>(vertices.size());
+    vertices.push_back(makeVertex(center, color));
+
+    for (int i = 0; i <= kCapSegments; ++i) {
+        const float theta = (2.0f * kPi) * static_cast<float>(i) / static_cast<float>(kCapSegments);
+        const float cs = std::cos(theta) * radius;
+        const float sn = std::sin(theta) * radius;
+        const SDL_FPoint offset{cs, sn};
+        vertices.push_back(makeVertex(add(center, offset), color));
+    }
+
+    for (int i = 0; i < kCapSegments; ++i) {
+        indices.push_back(center_index);
+        indices.push_back(center_index + i + 1);
+        indices.push_back(center_index + i + 2);
+    }
+}
+
 } // namespace
 
 void StrokeRenderer::renderPolyline(SDL_Renderer* renderer,
@@ -50,9 +83,10 @@ void StrokeRenderer::renderPolyline(SDL_Renderer* renderer,
     if (!renderer || points.size() < 2 || width_px <= 0.0f) return;
 
     const float half_w = 0.5f * width_px;
+    const bool closed = pointsNear(points.front(), points.back());
     std::vector<SDL_Vertex> vertices;
     std::vector<int> indices;
-    vertices.reserve(points.size() * 2);
+    vertices.reserve(points.size() * 2 + (closed ? 0 : 2 * (kCapSegments + 2)));
     indices.reserve((points.size() - 1) * 6);
 
     for (std::size_t i = 0; i < points.size(); ++i) {
@@ -80,6 +114,11 @@ void StrokeRenderer::renderPolyline(SDL_Renderer* renderer,
         indices.push_back(base + 1);
         indices.push_back(base + 3);
         indices.push_back(base + 2);
+    }
+
+    if (!closed) {
+        appendRoundDot(vertices, indices, points.front(), half_w, color);
+        appendRoundDot(vertices, indices, points.back(), half_w, color);
     }
 
     SDL_RenderGeometry(renderer, nullptr,
