@@ -238,7 +238,6 @@ bool ConfigIO::load(const std::string& path, AppConfig& config)
             else if (key == "landing_boost_base_walk")  { config.jump.landing_boost_base_walk  = std::stod(value); handled = true; }
             else if (key == "landing_boost_scale_walk") { config.jump.landing_boost_scale_walk = std::stod(value); handled = true; }
         }
-
         if (!handled) {
             std::fprintf(stderr,
                          "[ConfigIO] Ignoring unknown key '%s' in section [%s] at line %d\n",

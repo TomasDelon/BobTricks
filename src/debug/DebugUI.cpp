@@ -550,6 +550,7 @@ AppRequests DebugUI::render(const FrameStats&      stats,
     renderCameraPanel(camera, camConfig, req.camera);
     renderTerrainPanel(terrainConfig, req.terrain, req.regenerate_terrain);
     renderParticlesPanel(particlesConfig, req.particles);
+    renderHelpPanel();
     renderCMKinematicsPanel(cmState, cmConfig, req.cm, req.clear_trail);
     renderTerrainSamplingPanel(terrainSamplingConfig, cmConfig, req.terrain);
     renderCharacterPanel(charConfig, standConfig, req.character);
@@ -1064,6 +1065,35 @@ void DebugUI::renderParticlesPanel(ParticlesConfig& config, bool& saveRequested)
     ImGui::Separator();
     if (ImGui::Button("Save Particles Config"))
         saveRequested = true;
+}
+
+void DebugUI::renderHelpPanel()
+{
+    if (!ImGui::CollapsingHeader("Help", ImGuiTreeNodeFlags_None))
+        return;
+
+    ImGui::Separator();
+    ImGui::TextWrapped("Keyboard");
+    ImGui::BulletText("Q / D: move left / right");
+    ImGui::BulletText("Shift: run");
+    ImGui::BulletText("Space: jump");
+    ImGui::BulletText("P: toggle presentation mode");
+    ImGui::BulletText("Escape: quit");
+
+    ImGui::Separator();
+    ImGui::TextWrapped("Mouse");
+    ImGui::BulletText("Mouse wheel: zoom camera");
+    ImGui::BulletText("Left drag on empty space: pan camera");
+    ImGui::BulletText("Left drag on a foot: drag that foot");
+    ImGui::BulletText("Left drag on a hand: drag that hand");
+    ImGui::BulletText("Right click on a foot: pin or unpin that foot");
+    ImGui::BulletText("Right click on a hand: pin or unpin that hand");
+    ImGui::BulletText("Right drag near CM: set center-of-mass velocity");
+
+    ImGui::Separator();
+    ImGui::TextWrapped("Notes");
+    ImGui::BulletText("In presentation mode, most debug overlays are hidden.");
+    ImGui::BulletText("Hands and feet can only be picked when the hit target is close enough.");
 }
 
 // ─── Terrain Sampling ────────────────────────────────────────────────────────

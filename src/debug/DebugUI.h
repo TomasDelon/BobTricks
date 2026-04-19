@@ -54,15 +54,15 @@ public:
                         SplineRenderConfig&    splineConfig,
                         CharacterReconstructionConfig& reconstructionConfig,
                         const CMState&         cmState,   CMConfig&        cmConfig,
-                        const CharacterState&  charState,
-                        const StandingConfig&  standConfig,
-                        PhysicsConfig&         physConfig,
-                        TerrainConfig&         terrainConfig,
-                        ParticlesConfig&       particlesConfig,
-                        TerrainSamplingConfig& terrainSamplingConfig,
-                        WalkConfig&            walkConfig,
-                        JumpConfig&            jumpConfig,
-                        const Terrain&         terrain);
+                             const CharacterState&  charState,
+                             const StandingConfig&  standConfig,
+                             PhysicsConfig&         physConfig,
+                             TerrainConfig&         terrainConfig,
+                             ParticlesConfig&       particlesConfig,
+                             TerrainSamplingConfig& terrainSamplingConfig,
+                             WalkConfig&            walkConfig,
+                             JumpConfig&            jumpConfig,
+                             const Terrain&         terrain);
 
 private:
     void renderSimLoopPanel  (const FrameStats& stats, SimulationLoop& simLoop,
@@ -91,6 +91,7 @@ private:
     void renderPhysicsPanel (PhysicsConfig& config,  bool& saveRequested);
     void renderTerrainPanel        (TerrainConfig& config,         bool& saveRequested, bool& regenerateRequested);
     void renderParticlesPanel      (ParticlesConfig& config,       bool& saveRequested);
+    void renderHelpPanel           ();
     void renderTerrainSamplingPanel(TerrainSamplingConfig& config, CMConfig& cmConfig, bool& saveRequested);
     void renderIPTestPanel  (const CMState& cmState, const CharacterState& charState,
                              const CharacterConfig& charConfig, const StandingConfig& standConfig,
