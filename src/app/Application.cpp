@@ -18,16 +18,6 @@ static constexpr const char* FOOTSTEP_WAV_PATH = "data/audio/footstep.wav";
 static constexpr double      GROUND_Y    = World::GROUND_Y;
 static constexpr double ACCEL_DISPLAY_SCALE = 1.0 / 9.81;
 
-namespace {
-
-double hash01(int seed)
-{
-    const double x = std::sin(static_cast<double>(seed) * 12.9898 + 78.233) * 43758.5453123;
-    return x - std::floor(x);
-}
-
-} // namespace
-
 bool Application::init()
 {
     if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_TIMER | SDL_INIT_AUDIO) != 0) {
@@ -143,7 +133,7 @@ void Application::stepBack()
     m_simLoop.setTotalStepCount(snap.step_count);
     m_history.pop_back();
     m_trail.clear();
-    m_dust_particles.clear();
+    m_effectsSystem.clear();
     m_simLoop.setPaused(true);
 }
 
@@ -169,124 +159,14 @@ void Application::stepSimulation(double dt)
     }
 
     if (s.character.feet_initialized) {
-        const double move_sign = (std::abs(s.cm.velocity.x) > 0.05)
-                               ? ((s.cm.velocity.x > 0.0) ? 1.0 : -1.0)
-                               : s.character.facing;
-
         if (s.events.left_touchdown)
             m_audioSystem.playFootstep(0.65f);
         if (s.events.right_touchdown)
             m_audioSystem.playFootstep(0.65f);
         if (s.events.landed_from_jump)
             m_audioSystem.playFootstep(1.0f);
-
-        if (m_config.particles.enabled && m_config.particles.dust_enabled && m_config.particles.impact_enabled) {
-            if (s.events.left_touchdown)
-                emitFootDust(s.character.foot_left, sim_time, 1.2, move_sign, 0.9);
-            if (s.events.right_touchdown)
-                emitFootDust(s.character.foot_right, sim_time, 1.2, move_sign, 0.9);
-        }
-
-        if (m_config.particles.enabled && m_config.particles.dust_enabled
-            && m_config.particles.landing_enabled && s.events.landed_from_jump) {
-            const double landing_scale = std::max(1.0, m_config.particles.landing_burst_scale);
-            if (s.character.foot_left.on_ground)
-                emitFootDust(s.character.foot_left, sim_time, landing_scale, move_sign, 1.3);
-            if (s.character.foot_right.on_ground)
-                emitFootDust(s.character.foot_right, sim_time, landing_scale, move_sign, 1.3);
-        }
-
-        if (m_config.particles.enabled && m_config.particles.dust_enabled) {
-            if (m_config.particles.slide_enabled && s.events.left_slide_active) {
-                const double uphill_dir = (s.character.foot_left.ground_normal.x >= 0.0) ? -1.0 : 1.0;
-                const double motion_dir = (s.cm.velocity.x >= 0.0) ? 1.0 : -1.0;
-                const bool braking_on_slope = motion_dir != uphill_dir;
-                const double tangent_dir = braking_on_slope ? motion_dir : uphill_dir;
-                emitSlideDust(s.character.foot_left, sim_time, tangent_dir);
-            }
-            if (m_config.particles.slide_enabled && s.events.right_slide_active) {
-                const double uphill_dir = (s.character.foot_right.ground_normal.x >= 0.0) ? -1.0 : 1.0;
-                const double motion_dir = (s.cm.velocity.x >= 0.0) ? 1.0 : -1.0;
-                const bool braking_on_slope = motion_dir != uphill_dir;
-                const double tangent_dir = braking_on_slope ? motion_dir : uphill_dir;
-                emitSlideDust(s.character.foot_right, sim_time, tangent_dir);
-            }
-        }
     }
-    pruneDustParticles(sim_time);
-}
-
-void Application::emitFootDust(const FootState& foot,
-                               double sim_time,
-                               double burst_scale,
-                               double tangent_bias,
-                               double vertical_scale)
-{
-    const int burst_count = std::max(0, static_cast<int>(std::lround(
-        static_cast<double>(m_config.particles.dust_burst_count) * burst_scale)));
-    if (burst_count == 0 || m_config.particles.dust_lifetime_s <= 0.0) return;
-
-    const Vec2 normal = foot.on_ground ? foot.ground_normal : Vec2{0.0, 1.0};
-    Vec2 tangent{normal.y, -normal.x};
-    if (tangent.length() < 1.0e-6) tangent = {1.0, 0.0};
-    else tangent = tangent / tangent.length();
-    const Vec2 up = (normal.length() < 1.0e-6) ? Vec2{0.0, 1.0} : (normal / normal.length());
-
-    const int seed_base = static_cast<int>(sim_time * 1000.0);
-    for (int i = 0; i < burst_count; ++i) {
-        const double spread = (hash01(seed_base + 31 * i) - 0.5) * 1.1;
-        const double forward = 0.55 + 0.75 * hash01(seed_base + 67 * i);
-        const double upward = vertical_scale * (0.25 + 0.70 * hash01(seed_base + 101 * i));
-        DustParticle particle;
-        particle.spawn_time = sim_time;
-        particle.lifetime_s = m_config.particles.dust_lifetime_s
-                            * (0.75 + 0.5 * hash01(seed_base + 149 * i))
-                            * std::max(0.8, burst_scale * 0.8);
-        particle.pos = foot.pos + up * 0.015 + tangent * (0.02 * spread);
-        particle.vel = tangent * (m_config.particles.dust_speed_mps * (0.45 * spread + 0.55 * tangent_bias) * forward)
-                     + up * (m_config.particles.dust_speed_mps * 0.75 * upward);
-        particle.radius_px = m_config.particles.dust_radius_px
-                           * static_cast<float>((0.7 + 0.8 * hash01(seed_base + 193 * i))
-                           * std::max(0.85, burst_scale * 0.75));
-        particle.alpha = m_config.particles.dust_alpha
-                       * static_cast<float>((0.55 + 0.45 * hash01(seed_base + 239 * i))
-                       * std::max(0.85, burst_scale * 0.7));
-        m_dust_particles.push_back(particle);
-    }
-}
-
-void Application::emitSlideDust(const FootState& foot, double sim_time, double tangent_dir)
-{
-    if (m_config.particles.dust_lifetime_s <= 0.0) return;
-
-    const Vec2 normal = foot.on_ground ? foot.ground_normal : Vec2{0.0, 1.0};
-    Vec2 tangent{normal.y, -normal.x};
-    if (tangent.length() < 1.0e-6) tangent = {1.0, 0.0};
-    else tangent = tangent / tangent.length();
-    const Vec2 up = (normal.length() < 1.0e-6) ? Vec2{0.0, 1.0} : (normal / normal.length());
-
-    const int seed_base = static_cast<int>(sim_time * 1000.0) + 7000;
-    for (int i = 0; i < 3; ++i) {
-        const double jitter = (hash01(seed_base + 17 * i) - 0.5) * 0.6;
-        DustParticle particle;
-        particle.spawn_time = sim_time;
-        particle.lifetime_s = m_config.particles.dust_lifetime_s * (0.45 + 0.15 * hash01(seed_base + 29 * i));
-        particle.pos = foot.pos + up * 0.01 + tangent * (0.016 * jitter);
-        particle.vel = tangent * (m_config.particles.dust_speed_mps * (0.45 * tangent_dir + 0.25 * jitter))
-                     + up * (m_config.particles.dust_speed_mps * (0.10 + 0.15 * hash01(seed_base + 43 * i)));
-        particle.radius_px = m_config.particles.dust_radius_px * static_cast<float>(0.45 + 0.20 * hash01(seed_base + 59 * i));
-        particle.alpha = m_config.particles.dust_alpha * static_cast<float>(0.35 + 0.15 * hash01(seed_base + 71 * i));
-        m_dust_particles.push_back(particle);
-    }
-}
-
-void Application::pruneDustParticles(double sim_time)
-{
-    while (!m_dust_particles.empty()) {
-        const DustParticle& particle = m_dust_particles.front();
-        if (sim_time - particle.spawn_time <= particle.lifetime_s) break;
-        m_dust_particles.pop_front();
-    }
+    m_effectsSystem.update(s, m_config.particles, sim_time);
 }
 
 void Application::handleEvent(const SDL_Event& event)
@@ -374,7 +254,7 @@ void Application::render()
     SDL_SetRenderDrawColor(m_renderer, 18, 18, 18, 255);
     SDL_RenderClear(m_renderer);
 
-    m_sceneRenderer.render(m_renderer, m_camera, terrain, m_config.particles, m_dust_particles,
+    m_sceneRenderer.render(m_renderer, m_camera, terrain, m_config.particles, m_effectsSystem.dustParticles(),
                            m_simLoop.getSimulationTime(), GROUND_Y, vw, vh);
 
     if (!m_inputController.isGameView()) {

@@ -9,6 +9,7 @@
 
 #include "config/AppConfig.h"
 #include "app/AudioSystem.h"
+#include "app/EffectsSystem.h"
 #include "app/InputController.h"
 #include "core/math/Vec2.h"
 #include "core/character/TrailPoint.h"
@@ -48,13 +49,6 @@ private:
                                         ArmConfig& armConfig,
                                         CMConfig& cmConfig,
                                         SplineRenderConfig& splineConfig) const;
-    void emitFootDust(const FootState& foot,
-                      double sim_time,
-                      double burst_scale,
-                      double tangent_bias,
-                      double vertical_scale);
-    void emitSlideDust(const FootState& foot, double sim_time, double tangent_dir);
-    void pruneDustParticles(double sim_time);
 
     SDL_Window*   m_window   = nullptr;
     SDL_Renderer* m_renderer = nullptr;
@@ -69,6 +63,7 @@ private:
     DebugOverlayRenderer            m_debugOverlay;
     DebugUI                         m_debugUI;
     AudioSystem                     m_audioSystem;
+    EffectsSystem                   m_effectsSystem;
 
     std::uint64_t m_prev_counter  = 0;
     float         m_current_fps   = 0.f;
@@ -81,7 +76,6 @@ private:
 
     // CM trajectory trail
     std::deque<TrailPoint> m_trail;
-    std::deque<DustParticle> m_dust_particles;
 
     // Step-back history — snapshot before each fixed step
     /** @brief Instantané stocké avant chaque pas fixe pour le step-back. */

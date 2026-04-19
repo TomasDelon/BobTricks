@@ -3,17 +3,9 @@
 #include <SDL2/SDL.h>
 #include <deque>
 #include "render/Camera2D.h"
+#include "render/DustParticle.h"
 #include "core/terrain/Terrain.h"
 #include "config/AppConfig.h"
-
-struct DustParticle {
-    double spawn_time = 0.0;
-    double lifetime_s = 0.0;
-    Vec2   pos        = {0.0, 0.0};
-    Vec2   vel        = {0.0, 0.0};
-    float  radius_px  = 1.0f;
-    float  alpha      = 0.0f;
-};
 
 /**
  * @brief Renderer du décor de fond.
