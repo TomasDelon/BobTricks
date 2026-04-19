@@ -18,19 +18,29 @@ void Camera2D::reset(const Vec2& center)
 void Camera2D::update(double dt,
                       double target_x, double target_y,
                       bool   follow_x, bool   follow_y,
-                      double smooth_x, double smooth_y)
+                      double smooth_x, double smooth_y,
+                      double deadzone_x, double deadzone_y)
 {
+    auto clampToDeadzone = [](double center, double target, double deadzone) {
+        const double dz = std::max(0.0, deadzone);
+        if (target > center + dz) return target - dz;
+        if (target < center - dz) return target + dz;
+        return center;
+    };
+
     if (follow_x) {
+        const double desired_x = clampToDeadzone(m_center.x, target_x, deadzone_x);
         if (smooth_x <= 0.0)
-            m_center.x = target_x;
+            m_center.x = desired_x;
         else
-            m_center.x += (target_x - m_center.x) * (1.0 - std::exp(-dt / smooth_x));
+            m_center.x += (desired_x - m_center.x) * (1.0 - std::exp(-dt / smooth_x));
     }
     if (follow_y) {
+        const double desired_y = clampToDeadzone(m_center.y, target_y, deadzone_y);
         if (smooth_y <= 0.0)
-            m_center.y = target_y;
+            m_center.y = desired_y;
         else
-            m_center.y += (target_y - m_center.y) * (1.0 - std::exp(-dt / smooth_y));
+            m_center.y += (desired_y - m_center.y) * (1.0 - std::exp(-dt / smooth_y));
     }
 }
 

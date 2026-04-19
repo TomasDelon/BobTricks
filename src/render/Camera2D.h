@@ -32,7 +32,8 @@ public:
     void update(double dt,
                 double target_x, double target_y,
                 bool   follow_x, bool   follow_y,
-                double smooth_x, double smooth_y);
+                double smooth_x, double smooth_y,
+                double deadzone_x, double deadzone_y);
 
     /** @brief Translate la caméra à partir d'un delta exprimé en pixels écran. */
     void panByScreenDelta(float delta_x_px, float delta_y_px);
