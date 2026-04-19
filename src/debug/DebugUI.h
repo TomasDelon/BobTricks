@@ -25,6 +25,7 @@ struct AppRequests {
     bool walk      = false;
     bool jump      = false;
     bool physics   = false;
+    bool particles = false;
     bool terrain            = false;
     bool regenerate_terrain = false;
     bool clear_trail        = false;
@@ -57,6 +58,7 @@ public:
                         const StandingConfig&  standConfig,
                         PhysicsConfig&         physConfig,
                         TerrainConfig&         terrainConfig,
+                        ParticlesConfig&       particlesConfig,
                         TerrainSamplingConfig& terrainSamplingConfig,
                         WalkConfig&            walkConfig,
                         JumpConfig&            jumpConfig,
@@ -88,6 +90,7 @@ private:
     void renderJumpPanel    (JumpConfig&    config,  bool& saveRequested);
     void renderPhysicsPanel (PhysicsConfig& config,  bool& saveRequested);
     void renderTerrainPanel        (TerrainConfig& config,         bool& saveRequested, bool& regenerateRequested);
+    void renderParticlesPanel      (ParticlesConfig& config,       bool& saveRequested);
     void renderTerrainSamplingPanel(TerrainSamplingConfig& config, CMConfig& cmConfig, bool& saveRequested);
     void renderIPTestPanel  (const CMState& cmState, const CharacterState& charState,
                              const CharacterConfig& charConfig, const StandingConfig& standConfig,

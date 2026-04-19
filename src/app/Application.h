@@ -5,6 +5,7 @@
 #include <deque>
 #include <memory>
 #include <optional>
+#include <vector>
 
 #include "config/AppConfig.h"
 #include "core/math/Vec2.h"
@@ -40,9 +41,20 @@ private:
     void applyFrameRateLimit(std::uint64_t frame_start);
     void stepBack();
     void stepSimulation(double dt);
+    bool initAudio();
+    bool loadFootstepSample();
+    void queueFootstep(float gain);
+    void emitFootDust(const FootState& foot,
+                      double sim_time,
+                      double burst_scale,
+                      double tangent_bias,
+                      double vertical_scale);
+    void emitSlideDust(const FootState& foot, double sim_time, double tangent_dir);
+    void pruneDustParticles(double sim_time);
 
     SDL_Window*   m_window   = nullptr;
     SDL_Renderer* m_renderer = nullptr;
+    SDL_AudioDeviceID m_audio_device = 0;
     bool          m_running  = false;
 
     AppConfig                       m_config;
@@ -84,6 +96,13 @@ private:
 
     // CM trajectory trail
     std::deque<TrailPoint> m_trail;
+    std::deque<DustParticle> m_dust_particles;
+    bool m_prev_foot_contact_left  = false;
+    bool m_prev_foot_contact_right = false;
+    bool m_prev_jump_flight_active = false;
+    double m_left_slide_emit_timer = 0.0;
+    double m_right_slide_emit_timer = 0.0;
+    std::vector<float> m_footstep_sample;
 
     // Step-back history — snapshot before each fixed step
     /** @brief Instantané stocké avant chaque pas fixe pour le step-back. */

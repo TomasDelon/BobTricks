@@ -158,6 +158,20 @@ bool ConfigIO::load(const std::string& path, AppConfig& config)
             else if (key == "height_min")  { config.terrain.height_min  = std::stod(value); handled = true; }
             else if (key == "height_max")  { config.terrain.height_max  = std::stod(value); handled = true; }
         }
+        else if (section == "Particles") {
+            if      (key == "enabled")        { config.particles.enabled        = (value == "1" || value == "true"); handled = true; }
+            else if (key == "dust_enabled")   { config.particles.dust_enabled   = (value == "1" || value == "true"); handled = true; }
+            else if (key == "impact_enabled") { config.particles.impact_enabled = (value == "1" || value == "true"); handled = true; }
+            else if (key == "slide_enabled")  { config.particles.slide_enabled  = (value == "1" || value == "true"); handled = true; }
+            else if (key == "landing_enabled"){ config.particles.landing_enabled= (value == "1" || value == "true"); handled = true; }
+            else if (key == "dust_burst_count"){ config.particles.dust_burst_count = std::stoi(value); handled = true; }
+            else if (key == "dust_radius_px") { config.particles.dust_radius_px = std::stof(value); handled = true; }
+            else if (key == "dust_alpha")     { config.particles.dust_alpha     = std::stof(value); handled = true; }
+            else if (key == "dust_lifetime_s"){ config.particles.dust_lifetime_s = std::stod(value); handled = true; }
+            else if (key == "dust_speed_mps") { config.particles.dust_speed_mps = std::stod(value); handled = true; }
+            else if (key == "slide_emit_interval_s") { config.particles.slide_emit_interval_s = std::stod(value); handled = true; }
+            else if (key == "landing_burst_scale")   { config.particles.landing_burst_scale   = std::stod(value); handled = true; }
+        }
         else if (section == "Standing") {
             if      (key == "d_pref")   { config.standing.d_pref   = std::stod(value); handled = true; }
             else if (key == "d_min")    { config.standing.d_min    = std::stod(value); handled = true; }
@@ -357,6 +371,20 @@ bool ConfigIO::save(const std::string& path, const AppConfig& config)
     file << "slope_max="   << config.terrain.slope_max   << "\n";
     file << "height_min="  << config.terrain.height_min  << "\n";
     file << "height_max="  << config.terrain.height_max  << "\n\n";
+
+    file << "[Particles]\n";
+    file << "enabled="        << (config.particles.enabled ? "1" : "0") << "\n";
+    file << "dust_enabled="   << (config.particles.dust_enabled ? "1" : "0") << "\n";
+    file << "impact_enabled=" << (config.particles.impact_enabled ? "1" : "0") << "\n";
+    file << "slide_enabled="  << (config.particles.slide_enabled ? "1" : "0") << "\n";
+    file << "landing_enabled="<< (config.particles.landing_enabled ? "1" : "0") << "\n";
+    file << "dust_burst_count=" << config.particles.dust_burst_count << "\n";
+    file << "dust_radius_px=" << config.particles.dust_radius_px << "\n";
+    file << "dust_alpha="     << config.particles.dust_alpha << "\n";
+    file << "dust_lifetime_s="<< config.particles.dust_lifetime_s << "\n";
+    file << "dust_speed_mps=" << config.particles.dust_speed_mps << "\n";
+    file << "slide_emit_interval_s=" << config.particles.slide_emit_interval_s << "\n";
+    file << "landing_burst_scale="   << config.particles.landing_burst_scale << "\n\n";
 
     file << "[Standing]\n";
     file << "d_pref=" << config.standing.d_pref << "\n";

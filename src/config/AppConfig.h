@@ -152,6 +152,22 @@ struct TerrainConfig {
     double height_max  =  3.0;  // m
 };
 
+/** @brief Paramètres des particules visuelles de fond. */
+struct ParticlesConfig {
+    bool   enabled         = false;
+    bool   dust_enabled    = true;
+    bool   impact_enabled  = true;
+    bool   slide_enabled   = true;
+    bool   landing_enabled = true;
+    int    dust_burst_count = 10;
+    float  dust_radius_px  = 5.0f;
+    float  dust_alpha      = 90.0f;
+    double dust_lifetime_s = 0.40;
+    double dust_speed_mps  = 0.90;
+    double slide_emit_interval_s = 0.07;
+    double landing_burst_scale   = 2.4;
+};
+
 /** @brief Paramètres géométriques du régime debout. */
 struct StandingConfig {
     double d_pref          = 0.90;  // [×L] preferred foot separation
@@ -282,6 +298,7 @@ struct AppConfig {
     CMConfig                      cm;
     PhysicsConfig                 physics;
     TerrainConfig                 terrain;
+    ParticlesConfig               particles;
     TerrainSamplingConfig         terrain_sampling;
     StandingConfig                standing;
     StepConfig                    step;

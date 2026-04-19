@@ -528,6 +528,7 @@ AppRequests DebugUI::render(const FrameStats&      stats,
                              const StandingConfig&  standConfig,
                              PhysicsConfig&         physConfig,
                              TerrainConfig&         terrainConfig,
+                             ParticlesConfig&       particlesConfig,
                              TerrainSamplingConfig& terrainSamplingConfig,
                              WalkConfig&            walkConfig,
                              JumpConfig&            jumpConfig,
@@ -548,6 +549,7 @@ AppRequests DebugUI::render(const FrameStats&      stats,
     renderSimLoopPanel(stats, simLoop, simConfig, req.sim_loop, req.step_back);
     renderCameraPanel(camera, camConfig, req.camera);
     renderTerrainPanel(terrainConfig, req.terrain, req.regenerate_terrain);
+    renderParticlesPanel(particlesConfig, req.particles);
     renderCMKinematicsPanel(cmState, cmConfig, req.cm, req.clear_trail);
     renderTerrainSamplingPanel(terrainSamplingConfig, cmConfig, req.terrain);
     renderCharacterPanel(charConfig, standConfig, req.character);
@@ -1013,6 +1015,54 @@ void DebugUI::renderTerrainPanel(TerrainConfig& config, bool& saveRequested, boo
         regenerateRequested = true;
     ImGui::SameLine();
     if (ImGui::Button("Save Terrain Config"))
+        saveRequested = true;
+}
+
+void DebugUI::renderParticlesPanel(ParticlesConfig& config, bool& saveRequested)
+{
+    if (!ImGui::CollapsingHeader("Particles", ImGuiTreeNodeFlags_None))
+        return;
+
+    ImGui::Checkbox("Enable particles", &config.enabled);
+    ImGui::BeginDisabled(!config.enabled);
+    ImGui::Checkbox("Enable dust", &config.dust_enabled);
+    ImGui::Checkbox("Impact puffs", &config.impact_enabled);
+    ImGui::Checkbox("Slope slide motes", &config.slide_enabled);
+    ImGui::Checkbox("Landing splash", &config.landing_enabled);
+
+    ImGui::SetNextItemWidth(180.f);
+    ImGui::SliderInt("dust_burst_count", &config.dust_burst_count, 0, 32);
+
+    ImGui::SetNextItemWidth(180.f);
+    ImGui::SliderFloat("dust_radius_px", &config.dust_radius_px, 1.0f, 24.0f, "%.1f");
+
+    ImGui::SetNextItemWidth(180.f);
+    ImGui::SliderFloat("dust_alpha", &config.dust_alpha, 1.0f, 160.0f, "%.1f");
+
+    float dust_lifetime = static_cast<float>(config.dust_lifetime_s);
+    ImGui::SetNextItemWidth(180.f);
+    if (ImGui::SliderFloat("dust_lifetime_s", &dust_lifetime, 0.05f, 1.50f, "%.2f"))
+        config.dust_lifetime_s = static_cast<double>(dust_lifetime);
+
+    float dust_speed = static_cast<float>(config.dust_speed_mps);
+    ImGui::SetNextItemWidth(180.f);
+    if (ImGui::SliderFloat("dust_speed_mps", &dust_speed, 0.0f, 3.0f, "%.2f"))
+        config.dust_speed_mps = static_cast<double>(dust_speed);
+
+    float slide_interval = static_cast<float>(config.slide_emit_interval_s);
+    ImGui::SetNextItemWidth(180.f);
+    if (ImGui::SliderFloat("slide_emit_interval_s", &slide_interval, 0.02f, 0.25f, "%.2f"))
+        config.slide_emit_interval_s = static_cast<double>(slide_interval);
+
+    float landing_scale = static_cast<float>(config.landing_burst_scale);
+    ImGui::SetNextItemWidth(180.f);
+    if (ImGui::SliderFloat("landing_burst_scale", &landing_scale, 1.0f, 5.0f, "%.2f"))
+        config.landing_burst_scale = static_cast<double>(landing_scale);
+
+    ImGui::EndDisabled();
+
+    ImGui::Separator();
+    if (ImGui::Button("Save Particles Config"))
         saveRequested = true;
 }
 

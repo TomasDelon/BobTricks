@@ -7,6 +7,20 @@
 static constexpr double GRID_SPACING_M         = 1.0;
 static constexpr float  GROUND_THICKNESS_PX    = 4.0f;
 
+namespace {
+
+void drawFilledCircle(SDL_Renderer* renderer, float cx, float cy, float radius)
+{
+    const int ir = static_cast<int>(std::ceil(radius));
+    for (int dy = -ir; dy <= ir; ++dy) {
+        const float fy = static_cast<float>(dy);
+        const float dx = std::sqrt(std::max(0.f, radius * radius - fy * fy));
+        SDL_RenderDrawLineF(renderer, cx - dx, cy + fy, cx + dx, cy + fy);
+    }
+}
+
+} // namespace
+
 void SceneRenderer::drawGrid(SDL_Renderer* renderer,
                              const Camera2D& camera,
                              double ground_y,
@@ -146,12 +160,43 @@ void SceneRenderer::drawGround(SDL_Renderer* renderer,
                                 pts[i+1].x,   pts[i+1].y   + static_cast<float>(off));
 }
 
+void SceneRenderer::drawDust(SDL_Renderer* renderer,
+                             const Camera2D& camera,
+                             const std::deque<DustParticle>& dustParticles,
+                             double sim_time,
+                             double ground_y,
+                             int viewport_w,
+                             int viewport_h) const
+{
+    if (dustParticles.empty()) return;
+
+    SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
+    for (const DustParticle& particle : dustParticles) {
+        if (particle.lifetime_s <= 0.0) continue;
+        const double age = sim_time - particle.spawn_time;
+        if (age < 0.0 || age >= particle.lifetime_s) continue;
+
+        const double life = age / particle.lifetime_s;
+        const Vec2 world_pos = particle.pos + particle.vel * age;
+        const SDL_FPoint ps = camera.worldToScreen(world_pos.x, world_pos.y, ground_y, viewport_w, viewport_h);
+        const float radius = std::max(0.5f, particle.radius_px * static_cast<float>(1.0 - 0.35 * life));
+        const Uint8 alpha = static_cast<Uint8>(std::clamp(particle.alpha * static_cast<float>(1.0 - life),
+                                                          0.0f, 255.0f));
+        SDL_SetRenderDrawColor(renderer, 214, 198, 170, alpha);
+        drawFilledCircle(renderer, ps.x, ps.y, radius);
+    }
+}
+
 void SceneRenderer::render(SDL_Renderer* renderer,
                            const Camera2D& camera,
                            const Terrain& terrain,
+                           const ParticlesConfig& particlesConfig,
+                           const std::deque<DustParticle>& dustParticles,
+                           double sim_time,
                            double ground_y,
                            int viewport_w, int viewport_h) const
 {
     drawGrid(renderer, camera, ground_y, viewport_w, viewport_h);
     drawGround(renderer, camera, terrain, ground_y, viewport_w, viewport_h);
+    drawDust(renderer, camera, dustParticles, sim_time, ground_y, viewport_w, viewport_h);
 }

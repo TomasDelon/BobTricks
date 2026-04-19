@@ -2,6 +2,7 @@
 
 #include <cmath>
 #include <optional>
+#include <vector>
 #include <SDL2/SDL.h>
 #include "imgui.h"
 #include "imgui_impl_sdl2.h"
@@ -14,6 +15,7 @@
 static constexpr int         WINDOW_W    = 1280;
 static constexpr int         WINDOW_H    = 720;
 static constexpr const char* CONFIG_PATH = "data/config.ini";
+static constexpr const char* FOOTSTEP_WAV_PATH = "data/audio/footstep.wav";
 static constexpr double      GROUND_Y    = World::GROUND_Y;
 static constexpr double      ZOOM_STEP   = 1.1;
 static constexpr float  CM_HIT_RADIUS_PX    = 20.f;
@@ -21,9 +23,19 @@ static constexpr float  FOOT_HIT_RADIUS_PX  = 15.f;
 static constexpr float  HAND_HIT_RADIUS_PX  = 15.f;
 static constexpr double ACCEL_DISPLAY_SCALE = 1.0 / 9.81;
 
+namespace {
+
+double hash01(int seed)
+{
+    const double x = std::sin(static_cast<double>(seed) * 12.9898 + 78.233) * 43758.5453123;
+    return x - std::floor(x);
+}
+
+} // namespace
+
 bool Application::init()
 {
-    if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_TIMER) != 0) {
+    if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_TIMER | SDL_INIT_AUDIO) != 0) {
         SDL_Log("SDL_Init failed: %s", SDL_GetError());
         return false;
     }
@@ -65,6 +77,9 @@ bool Application::init()
     m_camera.reset({0.0, 0.0});
     m_camera.zoomBy(m_config.camera.zoom);
 
+    if (!initAudio())
+        SDL_Log("Audio init disabled: %s", SDL_GetError());
+
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
     // This app does not persist ImGui window layout between runs.
@@ -76,6 +91,91 @@ bool Application::init()
     m_prev_counter = SDL_GetPerformanceCounter();
     m_running = true;
     return true;
+}
+
+bool Application::initAudio()
+{
+    SDL_AudioSpec desired{};
+    desired.freq = 44100;
+    desired.format = AUDIO_F32SYS;
+    desired.channels = 1;
+    desired.samples = 2048;
+
+    SDL_AudioSpec obtained{};
+    m_audio_device = SDL_OpenAudioDevice(nullptr, 0, &desired, &obtained, 0);
+    if (m_audio_device == 0)
+        return false;
+
+    if (obtained.format != AUDIO_F32SYS || obtained.channels != 1) {
+        SDL_Log("Unexpected audio format obtained; closing device");
+        SDL_CloseAudioDevice(m_audio_device);
+        m_audio_device = 0;
+        return false;
+    }
+
+    if (!loadFootstepSample()) {
+        SDL_CloseAudioDevice(m_audio_device);
+        m_audio_device = 0;
+        return false;
+    }
+
+    SDL_PauseAudioDevice(m_audio_device, 0);
+    return true;
+}
+
+bool Application::loadFootstepSample()
+{
+    SDL_AudioSpec wav_spec{};
+    Uint8* wav_buffer = nullptr;
+    Uint32 wav_length = 0;
+    if (SDL_LoadWAV(FOOTSTEP_WAV_PATH, &wav_spec, &wav_buffer, &wav_length) == nullptr) {
+        SDL_Log("SDL_LoadWAV failed for %s: %s", FOOTSTEP_WAV_PATH, SDL_GetError());
+        return false;
+    }
+
+    SDL_AudioCVT cvt{};
+    if (SDL_BuildAudioCVT(&cvt,
+                          wav_spec.format, wav_spec.channels, wav_spec.freq,
+                          AUDIO_F32SYS, 1, 44100) < 0) {
+        SDL_Log("SDL_BuildAudioCVT failed: %s", SDL_GetError());
+        SDL_FreeWAV(wav_buffer);
+        return false;
+    }
+
+    cvt.len = static_cast<int>(wav_length);
+    cvt.buf = static_cast<Uint8*>(SDL_malloc(static_cast<std::size_t>(cvt.len) * cvt.len_mult));
+    if (!cvt.buf) {
+        SDL_Log("SDL_malloc failed for audio conversion");
+        SDL_FreeWAV(wav_buffer);
+        return false;
+    }
+    SDL_memcpy(cvt.buf, wav_buffer, wav_length);
+    SDL_FreeWAV(wav_buffer);
+
+    if (SDL_ConvertAudio(&cvt) < 0) {
+        SDL_Log("SDL_ConvertAudio failed: %s", SDL_GetError());
+        SDL_free(cvt.buf);
+        return false;
+    }
+
+    const std::size_t sample_count = static_cast<std::size_t>(cvt.len_cvt) / sizeof(float);
+    const float* sample_data = reinterpret_cast<const float*>(cvt.buf);
+    m_footstep_sample.assign(sample_data, sample_data + sample_count);
+    SDL_free(cvt.buf);
+    return !m_footstep_sample.empty();
+}
+
+void Application::queueFootstep(float gain)
+{
+    if (m_audio_device == 0 || m_footstep_sample.empty()) return;
+
+    const float clamped_gain = std::max(0.0f, std::min(gain, 2.0f));
+    std::vector<float> scaled = m_footstep_sample;
+    for (float& sample : scaled)
+        sample *= clamped_gain;
+
+    SDL_QueueAudio(m_audio_device, scaled.data(),
+                   static_cast<Uint32>(scaled.size() * sizeof(float)));
 }
 
 int Application::run()
@@ -112,7 +212,8 @@ int Application::run()
                 static_cast<double>(m_frame_dt_s),
                 cm_pos.x, cam_target_y,
                 m_config.camera.follow_x, m_config.camera.follow_y,
-                m_config.camera.smooth_x, m_config.camera.smooth_y
+                m_config.camera.smooth_x, m_config.camera.smooth_y,
+                m_config.camera.deadzone_x, m_config.camera.deadzone_y
             );
         }
 
@@ -132,6 +233,9 @@ void Application::stepBack()
     m_simLoop.setTotalStepCount(snap.step_count);
     m_history.pop_back();
     m_trail.clear();
+    m_dust_particles.clear();
+    m_prev_foot_contact_left  = m_core->state().character.foot_left.on_ground;
+    m_prev_foot_contact_right = m_core->state().character.foot_right.on_ground;
     m_simLoop.setPaused(true);
 }
 
@@ -173,14 +277,147 @@ void Application::stepSimulation(double dt)
 
     // Trail — record CM position, prune old entries.
     const SimState& s = m_core->state();
+    const double sim_time = m_simLoop.getSimulationTime();
     if (m_config.cm.show_trail) {
-        const double now = m_simLoop.getSimulationTime();
-        m_trail.push_back({now, s.cm.position});
+        m_trail.push_back({sim_time, s.cm.position});
         while (!m_trail.empty()
-               && now - m_trail.front().time > m_config.cm.trail_duration)
+               && sim_time - m_trail.front().time > m_config.cm.trail_duration)
             m_trail.pop_front();
     } else {
         m_trail.clear();
+    }
+
+    if (s.character.feet_initialized) {
+        const bool left_touchdown  = s.character.foot_left.on_ground  && !m_prev_foot_contact_left;
+        const bool right_touchdown = s.character.foot_right.on_ground && !m_prev_foot_contact_right;
+        const bool landed_from_jump = m_prev_jump_flight_active && !s.character.jump_flight_active
+                                   && (left_touchdown || right_touchdown);
+        const double move_sign = (std::abs(s.cm.velocity.x) > 0.05)
+                               ? ((s.cm.velocity.x > 0.0) ? 1.0 : -1.0)
+                               : s.character.facing;
+
+        if (left_touchdown)
+            queueFootstep(0.65f);
+        if (right_touchdown)
+            queueFootstep(0.65f);
+        if (landed_from_jump)
+            queueFootstep(1.0f);
+
+        if (m_config.particles.enabled && m_config.particles.dust_enabled && m_config.particles.impact_enabled) {
+            if (left_touchdown)
+                emitFootDust(s.character.foot_left, sim_time, 1.2, move_sign, 0.9);
+            if (right_touchdown)
+                emitFootDust(s.character.foot_right, sim_time, 1.2, move_sign, 0.9);
+        }
+
+        if (m_config.particles.enabled && m_config.particles.dust_enabled
+            && m_config.particles.landing_enabled && landed_from_jump) {
+            const double landing_scale = std::max(1.0, m_config.particles.landing_burst_scale);
+            if (s.character.foot_left.on_ground)
+                emitFootDust(s.character.foot_left, sim_time, landing_scale, move_sign, 1.3);
+            if (s.character.foot_right.on_ground)
+                emitFootDust(s.character.foot_right, sim_time, landing_scale, move_sign, 1.3);
+        }
+
+        auto maybeEmitSlide = [&](const FootState& foot, double& timer) {
+            timer = std::max(0.0, timer - dt);
+            if (!m_config.particles.slide_enabled || timer > 0.0) return;
+            if (!foot.on_ground || foot.swinging) return;
+
+            const double slope_strength = std::abs(foot.ground_normal.x);
+            const double speed = std::abs(s.cm.velocity.x);
+            if (slope_strength < 0.14 || speed < 0.55) return;
+
+            const double uphill_dir = (foot.ground_normal.x >= 0.0) ? -1.0 : 1.0;
+            const double motion_dir = (s.cm.velocity.x >= 0.0) ? 1.0 : -1.0;
+            const bool braking_on_slope = motion_dir != uphill_dir;
+            const double tangent_dir = braking_on_slope ? motion_dir : uphill_dir;
+            emitSlideDust(foot, sim_time, tangent_dir);
+            timer = std::max(0.02, m_config.particles.slide_emit_interval_s);
+        };
+
+        if (m_config.particles.enabled && m_config.particles.dust_enabled) {
+            maybeEmitSlide(s.character.foot_left, m_left_slide_emit_timer);
+            maybeEmitSlide(s.character.foot_right, m_right_slide_emit_timer);
+        }
+    }
+
+    m_prev_foot_contact_left  = s.character.foot_left.on_ground;
+    m_prev_foot_contact_right = s.character.foot_right.on_ground;
+    m_prev_jump_flight_active = s.character.jump_flight_active;
+    pruneDustParticles(sim_time);
+}
+
+void Application::emitFootDust(const FootState& foot,
+                               double sim_time,
+                               double burst_scale,
+                               double tangent_bias,
+                               double vertical_scale)
+{
+    const int burst_count = std::max(0, static_cast<int>(std::lround(
+        static_cast<double>(m_config.particles.dust_burst_count) * burst_scale)));
+    if (burst_count == 0 || m_config.particles.dust_lifetime_s <= 0.0) return;
+
+    const Vec2 normal = foot.on_ground ? foot.ground_normal : Vec2{0.0, 1.0};
+    Vec2 tangent{normal.y, -normal.x};
+    if (tangent.length() < 1.0e-6) tangent = {1.0, 0.0};
+    else tangent = tangent / tangent.length();
+    const Vec2 up = (normal.length() < 1.0e-6) ? Vec2{0.0, 1.0} : (normal / normal.length());
+
+    const int seed_base = static_cast<int>(sim_time * 1000.0);
+    for (int i = 0; i < burst_count; ++i) {
+        const double spread = (hash01(seed_base + 31 * i) - 0.5) * 1.1;
+        const double forward = 0.55 + 0.75 * hash01(seed_base + 67 * i);
+        const double upward = vertical_scale * (0.25 + 0.70 * hash01(seed_base + 101 * i));
+        DustParticle particle;
+        particle.spawn_time = sim_time;
+        particle.lifetime_s = m_config.particles.dust_lifetime_s
+                            * (0.75 + 0.5 * hash01(seed_base + 149 * i))
+                            * std::max(0.8, burst_scale * 0.8);
+        particle.pos = foot.pos + up * 0.015 + tangent * (0.02 * spread);
+        particle.vel = tangent * (m_config.particles.dust_speed_mps * (0.45 * spread + 0.55 * tangent_bias) * forward)
+                     + up * (m_config.particles.dust_speed_mps * 0.75 * upward);
+        particle.radius_px = m_config.particles.dust_radius_px
+                           * static_cast<float>((0.7 + 0.8 * hash01(seed_base + 193 * i))
+                           * std::max(0.85, burst_scale * 0.75));
+        particle.alpha = m_config.particles.dust_alpha
+                       * static_cast<float>((0.55 + 0.45 * hash01(seed_base + 239 * i))
+                       * std::max(0.85, burst_scale * 0.7));
+        m_dust_particles.push_back(particle);
+    }
+}
+
+void Application::emitSlideDust(const FootState& foot, double sim_time, double tangent_dir)
+{
+    if (m_config.particles.dust_lifetime_s <= 0.0) return;
+
+    const Vec2 normal = foot.on_ground ? foot.ground_normal : Vec2{0.0, 1.0};
+    Vec2 tangent{normal.y, -normal.x};
+    if (tangent.length() < 1.0e-6) tangent = {1.0, 0.0};
+    else tangent = tangent / tangent.length();
+    const Vec2 up = (normal.length() < 1.0e-6) ? Vec2{0.0, 1.0} : (normal / normal.length());
+
+    const int seed_base = static_cast<int>(sim_time * 1000.0) + 7000;
+    for (int i = 0; i < 3; ++i) {
+        const double jitter = (hash01(seed_base + 17 * i) - 0.5) * 0.6;
+        DustParticle particle;
+        particle.spawn_time = sim_time;
+        particle.lifetime_s = m_config.particles.dust_lifetime_s * (0.45 + 0.15 * hash01(seed_base + 29 * i));
+        particle.pos = foot.pos + up * 0.01 + tangent * (0.016 * jitter);
+        particle.vel = tangent * (m_config.particles.dust_speed_mps * (0.45 * tangent_dir + 0.25 * jitter))
+                     + up * (m_config.particles.dust_speed_mps * (0.10 + 0.15 * hash01(seed_base + 43 * i)));
+        particle.radius_px = m_config.particles.dust_radius_px * static_cast<float>(0.45 + 0.20 * hash01(seed_base + 59 * i));
+        particle.alpha = m_config.particles.dust_alpha * static_cast<float>(0.35 + 0.15 * hash01(seed_base + 71 * i));
+        m_dust_particles.push_back(particle);
+    }
+}
+
+void Application::pruneDustParticles(double sim_time)
+{
+    while (!m_dust_particles.empty()) {
+        const DustParticle& particle = m_dust_particles.front();
+        if (sim_time - particle.spawn_time <= particle.lifetime_s) break;
+        m_dust_particles.pop_front();
     }
 }
 
@@ -440,6 +677,7 @@ void Application::render()
             m_config.standing,
             m_config.physics,
             m_config.terrain,
+            m_config.particles,
             m_config.terrain_sampling,
             m_config.walk,
             m_config.jump,
@@ -458,7 +696,7 @@ void Application::render()
 
         if (req.sim_loop || req.camera || req.character || req.head || req.arms || req.spline || req.reconstruction
             || req.walk || req.jump
-            || req.cm || req.physics || req.terrain) {
+            || req.cm || req.physics || req.terrain || req.particles) {
             m_config.sim_loop.time_scale = m_simLoop.getTimeScale();
             m_config.camera.zoom         = m_camera.getZoom();
             if (ConfigIO::save(CONFIG_PATH, m_config))
@@ -502,7 +740,8 @@ void Application::render()
     SDL_SetRenderDrawColor(m_renderer, 18, 18, 18, 255);
     SDL_RenderClear(m_renderer);
 
-    m_sceneRenderer.render(m_renderer, m_camera, terrain, GROUND_Y, vw, vh);
+    m_sceneRenderer.render(m_renderer, m_camera, terrain, m_config.particles, m_dust_particles,
+                           m_simLoop.getSimulationTime(), GROUND_Y, vw, vh);
 
     if (!m_game_view) {
         m_debugOverlay.renderBackground(m_renderer, m_camera, render_cm_config,
@@ -554,6 +793,11 @@ void Application::shutdown()
     ImGui_ImplSDLRenderer2_Shutdown();
     ImGui_ImplSDL2_Shutdown();
     ImGui::DestroyContext();
+    if (m_audio_device != 0) {
+        SDL_ClearQueuedAudio(m_audio_device);
+        SDL_CloseAudioDevice(m_audio_device);
+        m_audio_device = 0;
+    }
     if (m_renderer) { SDL_DestroyRenderer(m_renderer); m_renderer = nullptr; }
     if (m_window)   { SDL_DestroyWindow(m_window);     m_window   = nullptr; }
     SDL_Quit();
