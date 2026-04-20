@@ -196,6 +196,36 @@ void CharacterRenderer::renderLegacyBody(SDL_Renderer* renderer,
     drawFilledCircle(renderer, pose.knee_right.x, pose.knee_right.y, 3.f);
 }
 
+void CharacterRenderer::renderVisualLayer(SDL_Renderer* renderer,
+                                          const Camera2D& camera,
+                                          const CharacterState& character,
+                                          const CharacterConfig& charConfig,
+                                          const SplineRenderConfig& splineConfig,
+                                          double ground_y,
+                                          int viewport_w,
+                                          int viewport_h) const
+{
+    renderSplinePass(renderer, camera, character, charConfig, splineConfig,
+                     ground_y, viewport_w, viewport_h);
+}
+
+void CharacterRenderer::renderLegacyDebugLayer(SDL_Renderer* renderer,
+                                               const Camera2D& camera,
+                                               const CharacterState& character,
+                                               const CharacterConfig& charConfig,
+                                               const Terrain& terrain,
+                                               const ScreenSpacePose& pose,
+                                               double ground_y,
+                                               int viewport_w,
+                                               int viewport_h) const
+{
+    renderDebugMarkersBeforeBody(renderer, camera, character, charConfig, terrain, pose,
+                                 ground_y, viewport_w, viewport_h);
+    renderLegacyBody(renderer, character, pose);
+    renderDebugMarkersAfterBody(renderer, camera, character, pose,
+                                ground_y, viewport_w, viewport_h);
+}
+
 void CharacterRenderer::renderDebugMarkersBeforeBody(SDL_Renderer* renderer,
                                                      const Camera2D& camera,
                                                      const CharacterState& character,
@@ -310,24 +340,21 @@ void CharacterRenderer::render(SDL_Renderer*         renderer,
     SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
 
     if (spline_only) {
-        renderSplinePass(renderer, camera, character, charConfig, splineConfig,
-                         ground_y, viewport_w, viewport_h);
+        renderVisualLayer(renderer, camera, character, charConfig, splineConfig,
+                          ground_y, viewport_w, viewport_h);
         return;
     }
 
     if (splineConfig.enabled && splineConfig.draw_under_legacy)
-        renderSplinePass(renderer, camera, character, charConfig, splineConfig,
-                         ground_y, viewport_w, viewport_h);
+        renderVisualLayer(renderer, camera, character, charConfig, splineConfig,
+                          ground_y, viewport_w, viewport_h);
 
-    renderDebugMarkersBeforeBody(renderer, camera, character, charConfig, terrain, pose,
-                                 ground_y, viewport_w, viewport_h);
-    renderLegacyBody(renderer, character, pose);
-    renderDebugMarkersAfterBody(renderer, camera, character, pose,
-                                ground_y, viewport_w, viewport_h);
+    renderLegacyDebugLayer(renderer, camera, character, charConfig, terrain, pose,
+                           ground_y, viewport_w, viewport_h);
 
     if (splineConfig.enabled && !splineConfig.draw_under_legacy)
-        renderSplinePass(renderer, camera, character, charConfig, splineConfig,
-                         ground_y, viewport_w, viewport_h);
+        renderVisualLayer(renderer, camera, character, charConfig, splineConfig,
+                          ground_y, viewport_w, viewport_h);
 }
 
 void CharacterRenderer::renderSplineTest(SDL_Renderer* renderer,

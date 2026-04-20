@@ -19,6 +19,20 @@ void drawFilledCircle(SDL_Renderer* renderer, float cx, float cy, float radius)
     }
 }
 
+void drawMotionStreak(SDL_Renderer* renderer,
+                      float x0,
+                      float y0,
+                      float x1,
+                      float y1,
+                      float radius)
+{
+    const int layers = std::max(1, static_cast<int>(std::ceil(radius * 0.45f)));
+    for (int i = -layers; i <= layers; ++i) {
+        const float off = static_cast<float>(i);
+        SDL_RenderDrawLineF(renderer, x0, y0 + off, x1, y1 + off);
+    }
+}
+
 } // namespace
 
 void SceneRenderer::drawGrid(SDL_Renderer* renderer,
@@ -179,11 +193,27 @@ void SceneRenderer::drawDust(SDL_Renderer* renderer,
         const double life = age / particle.lifetime_s;
         const Vec2 world_pos = particle.pos + particle.vel * age;
         const SDL_FPoint ps = camera.worldToScreen(world_pos.x, world_pos.y, ground_y, viewport_w, viewport_h);
-        const float radius = std::max(0.5f, particle.radius_px * static_cast<float>(1.0 - 0.35 * life));
-        const Uint8 alpha = static_cast<Uint8>(std::clamp(particle.alpha * static_cast<float>(1.0 - life),
-                                                          0.0f, 255.0f));
-        SDL_SetRenderDrawColor(renderer, 214, 198, 170, alpha);
+        const float radius = std::max(0.75f, particle.radius_px * static_cast<float>(1.0 - 0.30 * life));
+        const float alpha_f = std::clamp(particle.alpha * static_cast<float>(1.0 - life), 0.0f, 255.0f);
+        const Uint8 alpha = static_cast<Uint8>(alpha_f);
+        const Vec2 streak_world = particle.vel * (0.024 * particle.stretch * (1.0 - 0.45 * life));
+        const SDL_FPoint tail = camera.worldToScreen(world_pos.x - streak_world.x,
+                                                     world_pos.y - streak_world.y,
+                                                     ground_y, viewport_w, viewport_h);
+
+        SDL_SetRenderDrawColor(renderer, particle.color_r, particle.color_g, particle.color_b,
+                               static_cast<Uint8>(alpha_f * 0.24f));
+        drawMotionStreak(renderer, tail.x, tail.y, ps.x, ps.y, radius);
+
+        SDL_SetRenderDrawColor(renderer, particle.color_r, particle.color_g, particle.color_b,
+                               static_cast<Uint8>(alpha_f * 0.38f));
+        drawFilledCircle(renderer, ps.x, ps.y, radius * (1.55f + 0.12f * particle.stretch));
+
+        SDL_SetRenderDrawColor(renderer, particle.color_r, particle.color_g, particle.color_b, alpha);
         drawFilledCircle(renderer, ps.x, ps.y, radius);
+
+        SDL_SetRenderDrawColor(renderer, 248, 240, 226, static_cast<Uint8>(alpha_f * 0.48f));
+        drawFilledCircle(renderer, ps.x, ps.y, radius * 0.42f);
     }
 }
 

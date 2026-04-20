@@ -139,5 +139,12 @@ private:
     void stepFireTriggers       (StepCtx& ctx);
     void stepApplyConstraints   (StepCtx& ctx);
     void stepWriteOutput        (StepCtx& ctx, const InputFrame& input, double dt);
+    void stepRetargetLateSwings (StepCtx& ctx);
+    void stepHandleJumpFlight   (StepCtx& ctx);
+    void stepHandleGroundRecontact(StepCtx& ctx);
+    void stepFireRunTrigger     (StepCtx& ctx);
+    void stepFireWalkTrigger    (StepCtx& ctx);
+    void stepUpdateContactEvents(StepCtx& ctx);
+    void stepUpdateSlideEvents  (double dt);
     bool stepLaunchSwing        (bool step_left, bool corrective, StepCtx& ctx);
 };

@@ -160,11 +160,15 @@ void Application::stepSimulation(double dt)
 
     if (s.character.feet_initialized) {
         if (s.events.left_touchdown)
-            m_audioSystem.playFootstep(0.65f);
+            m_audioSystem.playTouchdown(true);
         if (s.events.right_touchdown)
-            m_audioSystem.playFootstep(0.65f);
+            m_audioSystem.playTouchdown(false);
         if (s.events.landed_from_jump)
-            m_audioSystem.playFootstep(1.0f);
+            m_audioSystem.playLanding(std::min(1.6f, 1.0f + 0.20f * std::abs(static_cast<float>(s.cm.velocity.y))));
+        if (s.events.left_slide_active)
+            m_audioSystem.playSlide(true);
+        if (s.events.right_slide_active)
+            m_audioSystem.playSlide(false);
     }
     m_effectsSystem.update(s, m_config.particles, sim_time);
 }

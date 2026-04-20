@@ -42,6 +42,7 @@ TEST_CORE_SRCS := src/core/character/CharacterState.cpp \
                   src/core/locomotion/LegIK.cpp \
                   src/core/locomotion/StandingController.cpp \
                   src/core/locomotion/StepPlanner.cpp \
+                  src/core/simulation/GroundReference.cpp \
                   src/core/simulation/SimVerbosity.cpp \
                   src/core/simulation/SimulationCore.cpp \
                   src/core/telemetry/TelemetryRecorder.cpp \
@@ -131,6 +132,7 @@ $(UNIT_TEST_BIN): tests/unit/test_core_math.cpp tests/TestSupport.h \
                   src/core/math/Bezier.cpp \
                   src/core/math/StrokePath.cpp \
                   src/core/character/ArmController.cpp \
+                  src/core/character/CharacterState.cpp \
                   src/core/character/HeadController.cpp \
                   src/core/locomotion/BalanceComputer.cpp \
                   src/core/locomotion/LegIK.cpp \
@@ -142,6 +144,7 @@ $(UNIT_TEST_BIN): tests/unit/test_core_math.cpp tests/TestSupport.h \
 	    src/core/math/Bezier.cpp \
 	    src/core/math/StrokePath.cpp \
 	    src/core/character/ArmController.cpp \
+	    src/core/character/CharacterState.cpp \
 	    src/core/character/HeadController.cpp \
 	    src/core/locomotion/BalanceComputer.cpp \
 	    src/core/locomotion/LegIK.cpp \

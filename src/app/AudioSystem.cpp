@@ -1,6 +1,7 @@
 #include "app/AudioSystem.h"
 
 #include <algorithm>
+#include <cmath>
 
 bool AudioSystem::init()
 {
@@ -68,17 +69,74 @@ bool AudioSystem::loadFootstepSample(const char* path)
     return !m_footstep_sample.empty();
 }
 
-void AudioSystem::playFootstep(float gain)
+void AudioSystem::queueVariant(const PlaybackParams& params)
 {
     if (m_device == 0 || m_footstep_sample.empty()) return;
 
-    const float clamped_gain = std::clamp(gain, 0.0f, 2.0f);
-    std::vector<float> scaled = m_footstep_sample;
-    for (float& sample : scaled)
-        sample *= clamped_gain;
+    const float clamped_gain  = std::clamp(params.gain, 0.0f, 2.0f);
+    const float clamped_pitch = std::clamp(params.pitch, 0.55f, 1.65f);
+    const float start_ratio   = std::clamp(params.trim_start, 0.0f, 0.95f);
+    const float end_ratio     = std::clamp(params.trim_end, start_ratio + 0.02f, 1.0f);
 
-    SDL_QueueAudio(m_device, scaled.data(),
-                   static_cast<Uint32>(scaled.size() * sizeof(float)));
+    const std::size_t src_size = m_footstep_sample.size();
+    const std::size_t src_start = static_cast<std::size_t>(start_ratio * static_cast<float>(src_size - 1));
+    const std::size_t src_end = std::max(src_start + 2,
+        static_cast<std::size_t>(end_ratio * static_cast<float>(src_size)));
+    const double trimmed_len = static_cast<double>(src_end - src_start);
+    const std::size_t dst_size = std::max<std::size_t>(
+        8, static_cast<std::size_t>(std::ceil(trimmed_len / clamped_pitch)));
+
+    std::vector<float> scaled(dst_size, 0.0f);
+    for (std::size_t i = 0; i < dst_size; ++i) {
+        const double src_pos = static_cast<double>(src_start) + static_cast<double>(i) * clamped_pitch;
+        const double src_clamped = std::clamp(src_pos, static_cast<double>(src_start), static_cast<double>(src_end - 1));
+        const std::size_t i0 = static_cast<std::size_t>(src_clamped);
+        const std::size_t i1 = std::min(i0 + 1, src_end - 1);
+        const float frac = static_cast<float>(src_clamped - static_cast<double>(i0));
+        const float sample = std::lerp(m_footstep_sample[i0], m_footstep_sample[i1], frac);
+
+        const float edge = static_cast<float>(i) / static_cast<float>(std::max<std::size_t>(1, dst_size - 1));
+        const float fade_in = std::min(1.0f, edge / 0.10f);
+        const float fade_out = std::min(1.0f, (1.0f - edge) / 0.18f);
+        scaled[i] = sample * clamped_gain * std::min(fade_in, fade_out);
+    }
+
+    SDL_QueueAudio(m_device, scaled.data(), static_cast<Uint32>(scaled.size() * sizeof(float)));
+}
+
+void AudioSystem::playTouchdown(bool left)
+{
+    const std::uint32_t v = m_variant_counter++;
+    const float side_bias = left ? -1.0f : 1.0f;
+    PlaybackParams params;
+    params.gain = 0.56f + 0.10f * static_cast<float>(v % 3);
+    params.pitch = 0.96f + 0.05f * side_bias + 0.04f * static_cast<float>((v / 2) % 3);
+    params.trim_start = 0.01f;
+    params.trim_end = 0.66f;
+    queueVariant(params);
+}
+
+void AudioSystem::playLanding(float impact_gain)
+{
+    const std::uint32_t v = m_variant_counter++;
+    PlaybackParams params;
+    params.gain = std::clamp(0.90f + 0.28f * impact_gain + 0.05f * static_cast<float>(v % 2), 0.0f, 1.8f);
+    params.pitch = 0.74f + 0.05f * static_cast<float>(v % 3);
+    params.trim_start = 0.0f;
+    params.trim_end = 0.92f;
+    queueVariant(params);
+}
+
+void AudioSystem::playSlide(bool left)
+{
+    const std::uint32_t v = m_variant_counter++;
+    const float side_bias = left ? 0.03f : -0.03f;
+    PlaybackParams params;
+    params.gain = 0.18f + 0.04f * static_cast<float>(v % 3);
+    params.pitch = 1.18f + side_bias + 0.05f * static_cast<float>((v / 2) % 2);
+    params.trim_start = 0.10f;
+    params.trim_end = 0.34f;
+    queueVariant(params);
 }
 
 void AudioSystem::shutdown()

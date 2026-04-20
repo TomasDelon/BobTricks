@@ -97,6 +97,10 @@ void EffectsSystem::emitFootDust(const FootState& foot,
         particle.alpha = config.dust_alpha
                        * static_cast<float>((0.55 + 0.45 * hash01(seed_base + 239 * i))
                        * std::max(0.85, burst_scale * 0.7));
+        particle.stretch = static_cast<float>(1.15 + 0.65 * upward + 0.25 * std::abs(spread));
+        particle.color_r = static_cast<unsigned char>(214 + 16 * hash01(seed_base + 271 * i));
+        particle.color_g = static_cast<unsigned char>(194 + 18 * hash01(seed_base + 313 * i));
+        particle.color_b = static_cast<unsigned char>(162 + 14 * hash01(seed_base + 347 * i));
         m_dust_particles.push_back(particle);
     }
 }
@@ -125,6 +129,10 @@ void EffectsSystem::emitSlideDust(const FootState& foot,
                      + up * (config.dust_speed_mps * (0.10 + 0.15 * hash01(seed_base + 43 * i)));
         particle.radius_px = config.dust_radius_px * static_cast<float>(0.45 + 0.20 * hash01(seed_base + 59 * i));
         particle.alpha = config.dust_alpha * static_cast<float>(0.35 + 0.15 * hash01(seed_base + 71 * i));
+        particle.stretch = static_cast<float>(1.6 + 0.5 * hash01(seed_base + 89 * i));
+        particle.color_r = 232;
+        particle.color_g = static_cast<unsigned char>(210 + 10 * hash01(seed_base + 97 * i));
+        particle.color_b = static_cast<unsigned char>(180 + 8 * hash01(seed_base + 109 * i));
         m_dust_particles.push_back(particle);
     }
 }

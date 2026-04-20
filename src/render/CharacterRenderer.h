@@ -79,6 +79,23 @@ private:
     void renderLegacyBody(SDL_Renderer* renderer,
                           const CharacterState& character,
                           const ScreenSpacePose& pose) const;
+    void renderVisualLayer(SDL_Renderer* renderer,
+                           const Camera2D& camera,
+                           const CharacterState& character,
+                           const CharacterConfig& charConfig,
+                           const SplineRenderConfig& splineConfig,
+                           double ground_y,
+                           int viewport_w,
+                           int viewport_h) const;
+    void renderLegacyDebugLayer(SDL_Renderer* renderer,
+                                const Camera2D& camera,
+                                const CharacterState& character,
+                                const CharacterConfig& charConfig,
+                                const Terrain& terrain,
+                                const ScreenSpacePose& pose,
+                                double ground_y,
+                                int viewport_w,
+                                int viewport_h) const;
 
     void renderDebugMarkersBeforeBody(SDL_Renderer* renderer,
                                       const Camera2D& camera,
