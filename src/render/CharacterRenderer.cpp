@@ -24,9 +24,7 @@ SDL_Color splineDepthColor(int depth_index)
     return SDL_Color{apply(base.r), apply(base.g), apply(base.b), base.a};
 }
 
-} // namespace
-
-void CharacterRenderer::drawFilledCircle(SDL_Renderer* renderer, float cx, float cy, float radius)
+void drawFilledCircle(SDL_Renderer* renderer, float cx, float cy, float radius)
 {
     const int ir = static_cast<int>(std::ceil(radius));
     for (int dy = -ir; dy <= ir; ++dy) {
@@ -36,7 +34,7 @@ void CharacterRenderer::drawFilledCircle(SDL_Renderer* renderer, float cx, float
     }
 }
 
-void CharacterRenderer::drawCircleOutline(SDL_Renderer* renderer, float cx, float cy, float radius)
+void drawCircleOutline(SDL_Renderer* renderer, float cx, float cy, float radius)
 {
     constexpr int SEGMENTS = 96;
     float prev_x = cx + radius;
@@ -50,6 +48,45 @@ void CharacterRenderer::drawCircleOutline(SDL_Renderer* renderer, float cx, floa
         prev_y = y;
     }
 }
+
+void renderFlattenedPath(SDL_Renderer* renderer,
+                         const StrokeRenderer& strokeRenderer,
+                         const Camera2D& camera,
+                         const StrokePath& path,
+                         int depth_index,
+                         const SplineRenderConfig& splineConfig,
+                         double ground_y, int viewport_w, int viewport_h)
+{
+    const std::vector<Vec2> world_points = path.flatten(splineConfig.samples_per_curve);
+    std::vector<SDL_FPoint> screen_points;
+    screen_points.reserve(world_points.size());
+    for (const Vec2& p : world_points)
+        screen_points.push_back(camera.worldToScreen(p.x, p.y, ground_y, viewport_w, viewport_h));
+
+    strokeRenderer.renderPolyline(renderer, screen_points,
+                                  splineConfig.stroke_width_px,
+                                  splineDepthColor(depth_index));
+
+    if (splineConfig.show_control_polygon) {
+        const std::vector<Vec2> controls = path.controlPolygon();
+        SDL_SetRenderDrawColor(renderer, 255, 170, 40, 200);
+        for (std::size_t i = 1; i < controls.size(); ++i) {
+            const SDL_FPoint p0 = camera.worldToScreen(controls[i - 1].x, controls[i - 1].y,
+                                                       ground_y, viewport_w, viewport_h);
+            const SDL_FPoint p1 = camera.worldToScreen(controls[i].x, controls[i].y,
+                                                       ground_y, viewport_w, viewport_h);
+            SDL_RenderDrawLineF(renderer, p0.x, p0.y, p1.x, p1.y);
+        }
+    }
+
+    if (splineConfig.show_sample_points) {
+        SDL_SetRenderDrawColor(renderer, 80, 255, 160, 255);
+        for (const SDL_FPoint& p : screen_points)
+            drawFilledCircle(renderer, p.x, p.y, 2.f);
+    }
+}
+
+} // namespace
 
 CharacterRenderer::ScreenSpacePose CharacterRenderer::computeScreenSpacePose(const Camera2D& camera,
                                                                              const CMState& cm,
@@ -68,32 +105,33 @@ CharacterRenderer::ScreenSpacePose CharacterRenderer::computeScreenSpacePose(con
     const Vec2 neck_attach_world = character.head_center
                                  - neck_dir_world * character.head_radius;
 
-    ScreenSpacePose pose;
-    pose.cm = camera.worldToScreen(cm.position.x, cm.position.y, ground_y, viewport_w, viewport_h);
-    pose.pelvis = camera.worldToScreen(character.pelvis.x, character.pelvis.y, ground_y, viewport_w, viewport_h);
-    pose.torso_center = camera.worldToScreen(character.torso_center.x, character.torso_center.y, ground_y, viewport_w, viewport_h);
-    pose.torso_top = camera.worldToScreen(character.torso_top.x, character.torso_top.y, ground_y, viewport_w, viewport_h);
-    pose.head = camera.worldToScreen(character.head_center.x, character.head_center.y, ground_y, viewport_w, viewport_h);
-    pose.neck = camera.worldToScreen(neck_attach_world.x, neck_attach_world.y, ground_y, viewport_w, viewport_h);
-    pose.elbow_left = camera.worldToScreen(character.elbow_left.x, character.elbow_left.y, ground_y, viewport_w, viewport_h);
-    pose.elbow_right = camera.worldToScreen(character.elbow_right.x, character.elbow_right.y, ground_y, viewport_w, viewport_h);
-    pose.hand_left = camera.worldToScreen(character.hand_left.x, character.hand_left.y, ground_y, viewport_w, viewport_h);
-    pose.hand_right = camera.worldToScreen(character.hand_right.x, character.hand_right.y, ground_y, viewport_w, viewport_h);
-    pose.hand_left_target = camera.worldToScreen(character.hand_left_target.x, character.hand_left_target.y, ground_y, viewport_w, viewport_h);
-    pose.hand_right_target = camera.worldToScreen(character.hand_right_target.x, character.hand_right_target.y, ground_y, viewport_w, viewport_h);
-    pose.knee_left = camera.worldToScreen(character.knee_left.x, character.knee_left.y, ground_y, viewport_w, viewport_h);
-    pose.knee_right = camera.worldToScreen(character.knee_right.x, character.knee_right.y, ground_y, viewport_w, viewport_h);
-    pose.foot_left = camera.worldToScreen(character.foot_left.pos.x, character.foot_left.pos.y, ground_y, viewport_w, viewport_h);
-    pose.foot_right = camera.worldToScreen(character.foot_right.pos.x, character.foot_right.pos.y, ground_y, viewport_w, viewport_h);
+    auto toScreen = [&](Vec2 p) {
+        return camera.worldToScreen(p.x, p.y, ground_y, viewport_w, viewport_h);
+    };
 
-    const SDL_FPoint reach_s = camera.worldToScreen(character.pelvis.x + 2.0 * L,
-                                                    character.pelvis.y,
-                                                    ground_y, viewport_w, viewport_h);
+    ScreenSpacePose pose;
+    pose.cm                = toScreen(cm.position);
+    pose.pelvis            = toScreen(character.pelvis);
+    pose.torso_center      = toScreen(character.torso_center);
+    pose.torso_top         = toScreen(character.torso_top);
+    pose.head              = toScreen(character.head_center);
+    pose.neck              = toScreen(neck_attach_world);
+    pose.elbow_left        = toScreen(character.elbow_left);
+    pose.elbow_right       = toScreen(character.elbow_right);
+    pose.hand_left         = toScreen(character.hand_left);
+    pose.hand_right        = toScreen(character.hand_right);
+    pose.hand_left_target  = toScreen(character.hand_left_target);
+    pose.hand_right_target = toScreen(character.hand_right_target);
+    pose.knee_left         = toScreen(character.knee_left);
+    pose.knee_right        = toScreen(character.knee_right);
+    pose.foot_left         = toScreen(character.foot_left.pos);
+    pose.foot_right        = toScreen(character.foot_right.pos);
+
+    const SDL_FPoint reach_s = toScreen({character.pelvis.x + 2.0 * L, character.pelvis.y});
     pose.reach_radius = std::abs(reach_s.x - pose.pelvis.x);
 
-    const SDL_FPoint head_r_s = camera.worldToScreen(character.head_center.x + character.head_radius,
-                                                     character.head_center.y,
-                                                     ground_y, viewport_w, viewport_h);
+    const SDL_FPoint head_r_s = toScreen({character.head_center.x + character.head_radius,
+                                           character.head_center.y});
     pose.head_radius = std::abs(head_r_s.x - pose.head.x);
     return pose;
 }
@@ -170,16 +208,15 @@ void CharacterRenderer::renderLegacyBody(SDL_Renderer* renderer,
     drawFilledCircle(renderer, pose.torso_top.x, pose.torso_top.y, 4.f);
     drawFilledCircle(renderer, pose.elbow_left.x, pose.elbow_left.y, 3.f);
     drawFilledCircle(renderer, pose.elbow_right.x, pose.elbow_right.y, 3.f);
-    if (character.hand_left_pinned)
-        SDL_SetRenderDrawColor(renderer, 255, 210, 60, 255);
-    else
-        SDL_SetRenderDrawColor(renderer, 220, 220, 220, 255);
-    drawFilledCircle(renderer, pose.hand_left.x, pose.hand_left.y, 3.f);
-    if (character.hand_right_pinned)
-        SDL_SetRenderDrawColor(renderer, 255, 210, 60, 255);
-    else
-        SDL_SetRenderDrawColor(renderer, 220, 220, 220, 255);
-    drawFilledCircle(renderer, pose.hand_right.x, pose.hand_right.y, 3.f);
+
+    auto drawPinnableHand = [&](const SDL_FPoint& p, bool pinned) {
+        if (pinned) SDL_SetRenderDrawColor(renderer, 255, 210, 60, 255);
+        else        SDL_SetRenderDrawColor(renderer, 220, 220, 220, 255);
+        drawFilledCircle(renderer, p.x, p.y, 3.f);
+    };
+    drawPinnableHand(pose.hand_left,  character.hand_left_pinned);
+    drawPinnableHand(pose.hand_right, character.hand_right_pinned);
+
     SDL_SetRenderDrawColor(renderer, 220, 220, 220, 255);
     drawCircleOutline(renderer, pose.head.x, pose.head.y, pose.head_radius);
 
@@ -423,47 +460,14 @@ void CharacterRenderer::renderSplineHead(SDL_Renderer* renderer,
 
     StrokePath path;
     path.moveTo({c.x + r, c.y});
-    path.cubicTo({c.x + r, c.y + k},
-                 {c.x + k, c.y + r},
-                 {c.x,     c.y + r});
-    path.cubicTo({c.x - k, c.y + r},
-                 {c.x - r, c.y + k},
-                 {c.x - r, c.y});
-    path.cubicTo({c.x - r, c.y - k},
-                 {c.x - k, c.y - r},
-                 {c.x,     c.y - r});
-    path.cubicTo({c.x + k, c.y - r},
-                 {c.x + r, c.y - k},
-                 {c.x + r, c.y});
+    path.cubicTo({c.x + r, c.y + k}, {c.x + k, c.y + r}, {c.x,     c.y + r});
+    path.cubicTo({c.x - k, c.y + r}, {c.x - r, c.y + k}, {c.x - r, c.y});
+    path.cubicTo({c.x - r, c.y - k}, {c.x - k, c.y - r}, {c.x,     c.y - r});
+    path.cubicTo({c.x + k, c.y - r}, {c.x + r, c.y - k}, {c.x + r, c.y});
     path.closePath();
 
-    const std::vector<Vec2> world_points = path.flatten(splineConfig.samples_per_curve);
-    std::vector<SDL_FPoint> screen_points;
-    screen_points.reserve(world_points.size());
-    for (const Vec2& p : world_points)
-        screen_points.push_back(camera.worldToScreen(p.x, p.y, ground_y, viewport_w, viewport_h));
-
-    m_strokeRenderer.renderPolyline(renderer, screen_points,
-                                    splineConfig.stroke_width_px,
-                                    splineDepthColor(0));
-
-    if (splineConfig.show_control_polygon) {
-        const std::vector<Vec2> controls = path.controlPolygon();
-        SDL_SetRenderDrawColor(renderer, 255, 170, 40, 200);
-        for (std::size_t i = 1; i < controls.size(); ++i) {
-            const SDL_FPoint p0 = camera.worldToScreen(controls[i - 1].x, controls[i - 1].y,
-                                                       ground_y, viewport_w, viewport_h);
-            const SDL_FPoint p1 = camera.worldToScreen(controls[i].x, controls[i].y,
-                                                       ground_y, viewport_w, viewport_h);
-            SDL_RenderDrawLineF(renderer, p0.x, p0.y, p1.x, p1.y);
-        }
-    }
-
-    if (splineConfig.show_sample_points) {
-        SDL_SetRenderDrawColor(renderer, 80, 255, 160, 255);
-        for (const SDL_FPoint& p : screen_points)
-            drawFilledCircle(renderer, p.x, p.y, 2.f);
-    }
+    renderFlattenedPath(renderer, m_strokeRenderer, camera, path, 0,
+                        splineConfig, ground_y, viewport_w, viewport_h);
 }
 
 void CharacterRenderer::renderSplineTorso(SDL_Renderer* renderer,
@@ -479,47 +483,17 @@ void CharacterRenderer::renderSplineTorso(SDL_Renderer* renderer,
     const Vec2 neck_dir_world = (head_axis_len > kEpsLength)
                               ? (head_axis_world / head_axis_len)
                               : Vec2{0.0, 1.0};
-    const Vec2 neck_attach_world = character.head_center
-                                 - neck_dir_world * character.head_radius;
+    const Vec2 neck = character.head_center - neck_dir_world * character.head_radius;
 
-    const Vec2 pelvis = character.pelvis;
-    const Vec2 torso_center = character.torso_center;
-    const Vec2 torso_top = character.torso_top;
-    const Vec2 neck = neck_attach_world;
+    const Vec2 handle0 = character.pelvis + (character.torso_center - character.pelvis) * 0.85;
+    const Vec2 handle1 = neck - (neck - character.torso_top) * 0.85;
 
     StrokePath path;
-    const Vec2 handle0 = pelvis + (torso_center - pelvis) * 0.85;
-    const Vec2 handle1 = neck - (neck - torso_top) * 0.85;
-    path.moveTo(pelvis);
+    path.moveTo(character.pelvis);
     path.cubicTo(handle0, handle1, neck);
 
-    const std::vector<Vec2> world_points = path.flatten(splineConfig.samples_per_curve);
-    std::vector<SDL_FPoint> screen_points;
-    screen_points.reserve(world_points.size());
-    for (const Vec2& p : world_points)
-        screen_points.push_back(camera.worldToScreen(p.x, p.y, ground_y, viewport_w, viewport_h));
-
-    m_strokeRenderer.renderPolyline(renderer, screen_points,
-                                    splineConfig.stroke_width_px,
-                                    splineDepthColor(1));
-
-    if (splineConfig.show_control_polygon) {
-        const std::vector<Vec2> controls = path.controlPolygon();
-        SDL_SetRenderDrawColor(renderer, 255, 170, 40, 200);
-        for (std::size_t i = 1; i < controls.size(); ++i) {
-            const SDL_FPoint p0 = camera.worldToScreen(controls[i - 1].x, controls[i - 1].y,
-                                                       ground_y, viewport_w, viewport_h);
-            const SDL_FPoint p1 = camera.worldToScreen(controls[i].x, controls[i].y,
-                                                       ground_y, viewport_w, viewport_h);
-            SDL_RenderDrawLineF(renderer, p0.x, p0.y, p1.x, p1.y);
-        }
-    }
-
-    if (splineConfig.show_sample_points) {
-        SDL_SetRenderDrawColor(renderer, 80, 255, 160, 255);
-        for (const SDL_FPoint& p : screen_points)
-            drawFilledCircle(renderer, p.x, p.y, 2.f);
-    }
+    renderFlattenedPath(renderer, m_strokeRenderer, camera, path, 1,
+                        splineConfig, ground_y, viewport_w, viewport_h);
 }
 
 void CharacterRenderer::renderSplineArm(SDL_Renderer* renderer,
@@ -533,42 +507,15 @@ void CharacterRenderer::renderSplineArm(SDL_Renderer* renderer,
                                         int viewport_w,
                                         int viewport_h) const
 {
-    const Vec2 shoulder_to_elbow = elbow - shoulder;
-    const Vec2 elbow_to_hand = hand - elbow;
-    const Vec2 handle0 = shoulder + shoulder_to_elbow * (2.0 / 3.0);
-    const Vec2 handle1 = hand - elbow_to_hand * (2.0 / 3.0);
+    const Vec2 handle0 = shoulder + (elbow - shoulder) * (2.0 / 3.0);
+    const Vec2 handle1 = hand - (hand - elbow) * (2.0 / 3.0);
 
     StrokePath path;
     path.moveTo(shoulder);
     path.cubicTo(handle0, handle1, hand);
 
-    const std::vector<Vec2> world_points = path.flatten(splineConfig.samples_per_curve);
-    std::vector<SDL_FPoint> screen_points;
-    screen_points.reserve(world_points.size());
-    for (const Vec2& p : world_points)
-        screen_points.push_back(camera.worldToScreen(p.x, p.y, ground_y, viewport_w, viewport_h));
-
-    m_strokeRenderer.renderPolyline(renderer, screen_points,
-                                    splineConfig.stroke_width_px,
-                                    splineDepthColor(depth_index));
-
-    if (splineConfig.show_control_polygon) {
-        const std::vector<Vec2> controls = path.controlPolygon();
-        SDL_SetRenderDrawColor(renderer, 255, 170, 40, 200);
-        for (std::size_t i = 1; i < controls.size(); ++i) {
-            const SDL_FPoint p0 = camera.worldToScreen(controls[i - 1].x, controls[i - 1].y,
-                                                       ground_y, viewport_w, viewport_h);
-            const SDL_FPoint p1 = camera.worldToScreen(controls[i].x, controls[i].y,
-                                                       ground_y, viewport_w, viewport_h);
-            SDL_RenderDrawLineF(renderer, p0.x, p0.y, p1.x, p1.y);
-        }
-    }
-
-    if (splineConfig.show_sample_points) {
-        SDL_SetRenderDrawColor(renderer, 80, 255, 160, 255);
-        for (const SDL_FPoint& p : screen_points)
-            drawFilledCircle(renderer, p.x, p.y, 2.f);
-    }
+    renderFlattenedPath(renderer, m_strokeRenderer, camera, path, depth_index,
+                        splineConfig, ground_y, viewport_w, viewport_h);
 }
 
 void CharacterRenderer::renderSplineLeg(SDL_Renderer* renderer,
@@ -582,40 +529,13 @@ void CharacterRenderer::renderSplineLeg(SDL_Renderer* renderer,
                                         int viewport_w,
                                         int viewport_h) const
 {
-    const Vec2 pelvis_to_knee = knee - pelvis;
-    const Vec2 knee_to_foot = foot - knee;
-    const Vec2 handle0 = pelvis + pelvis_to_knee * (2.0 / 3.0);
-    const Vec2 handle1 = foot - knee_to_foot * (2.0 / 3.0);
+    const Vec2 handle0 = pelvis + (knee - pelvis) * (2.0 / 3.0);
+    const Vec2 handle1 = foot - (foot - knee) * (2.0 / 3.0);
 
     StrokePath path;
     path.moveTo(pelvis);
     path.cubicTo(handle0, handle1, foot);
 
-    const std::vector<Vec2> world_points = path.flatten(splineConfig.samples_per_curve);
-    std::vector<SDL_FPoint> screen_points;
-    screen_points.reserve(world_points.size());
-    for (const Vec2& p : world_points)
-        screen_points.push_back(camera.worldToScreen(p.x, p.y, ground_y, viewport_w, viewport_h));
-
-    m_strokeRenderer.renderPolyline(renderer, screen_points,
-                                    splineConfig.stroke_width_px,
-                                    splineDepthColor(depth_index));
-
-    if (splineConfig.show_control_polygon) {
-        const std::vector<Vec2> controls = path.controlPolygon();
-        SDL_SetRenderDrawColor(renderer, 255, 170, 40, 200);
-        for (std::size_t i = 1; i < controls.size(); ++i) {
-            const SDL_FPoint p0 = camera.worldToScreen(controls[i - 1].x, controls[i - 1].y,
-                                                       ground_y, viewport_w, viewport_h);
-            const SDL_FPoint p1 = camera.worldToScreen(controls[i].x, controls[i].y,
-                                                       ground_y, viewport_w, viewport_h);
-            SDL_RenderDrawLineF(renderer, p0.x, p0.y, p1.x, p1.y);
-        }
-    }
-
-    if (splineConfig.show_sample_points) {
-        SDL_SetRenderDrawColor(renderer, 80, 255, 160, 255);
-        for (const SDL_FPoint& p : screen_points)
-            drawFilledCircle(renderer, p.x, p.y, 2.f);
-    }
+    renderFlattenedPath(renderer, m_strokeRenderer, camera, path, depth_index,
+                        splineConfig, ground_y, viewport_w, viewport_h);
 }

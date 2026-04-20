@@ -54,11 +54,6 @@ private:
         float      head_radius  = 0.0f;
     };
 
-    /** @brief Dessine un disque plein en coordonnées écran. */
-    static void drawFilledCircle(SDL_Renderer* renderer, float cx, float cy, float radius);
-    /** @brief Dessine un cercle filaire en coordonnées écran. */
-    static void drawCircleOutline(SDL_Renderer* renderer, float cx, float cy, float radius);
-
     ScreenSpacePose computeScreenSpacePose(const Camera2D& camera,
                                            const CMState& cm,
                                            const CharacterState& character,
