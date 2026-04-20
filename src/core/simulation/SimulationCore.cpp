@@ -356,14 +356,14 @@ void refreshSwingArcProfile(FootState&         foot,
                             double             walk_max_speed)
 {
     const double tx_local = foot.swing_target.x;
+    const double dx       = tx_local - foot.swing_start.x;
+    const double dy       = foot.swing_target.y - foot.swing_start.y;
+    const double hdist    = std::abs(dx);
 
     // A step with large vertical drop/rise covers more total arc distance than
     // its horizontal extent alone. Scale down the parameter advance rate so the
     // foot takes proportionally longer — downhill steps slow the swing naturally.
     {
-        const double dx      = tx_local - foot.swing_start.x;
-        const double dy      = foot.swing_target.y - foot.swing_start.y;
-        const double hdist   = std::abs(dx);
         const double arc_len = std::sqrt(dx * dx + dy * dy);
         foot.swing_speed_scale = (arc_len > 1.0e-9)
             ? std::max(0.30, hdist / arc_len)
@@ -374,9 +374,6 @@ void refreshSwingArcProfile(FootState&         foot,
     // downhill reduces it (terrain drops away, less clearance needed).
     // Speed adds a small bonus for larger, faster arcs.
     {
-        const double dx         = tx_local - foot.swing_start.x;
-        const double dy         = foot.swing_target.y - foot.swing_start.y;
-        const double hdist      = std::abs(dx);
         const double step_slope = (hdist > 1.0e-9) ? (dy / hdist) : 0.0;
         const double h_base     = step_cfg.h_clear_ratio * L;
         const double h_slope    = walk_cfg.h_clear_slope_factor * L * step_slope;
@@ -501,19 +498,16 @@ void bootstrapFeetOnLanding(CharacterState&       ch,
     const double rx = clampTerrainEndpointX(terrain, pelvis, reach_radius,
                                             pelvis.x, pelvis.x + ch.facing * half);
 
-    ch.foot_left.pos        = { lx, terrain.height_at(lx) };
-    ch.foot_left.pinned     = true;
-    ch.foot_left.pinned_pos = ch.foot_left.pos;
-    ch.foot_left.swinging   = false;
-    ch.foot_left.airborne   = false;
-    ch.foot_left.on_ground  = true;
-
-    ch.foot_right.pos        = { rx, terrain.height_at(rx) };
-    ch.foot_right.pinned     = true;
-    ch.foot_right.pinned_pos = ch.foot_right.pos;
-    ch.foot_right.swinging   = false;
-    ch.foot_right.airborne   = false;
-    ch.foot_right.on_ground  = true;
+    auto plantFoot = [&terrain](FootState& foot, double fx) {
+        foot.pos        = { fx, terrain.height_at(fx) };
+        foot.pinned     = true;
+        foot.pinned_pos = foot.pos;
+        foot.swinging   = false;
+        foot.airborne   = false;
+        foot.on_ground  = true;
+    };
+    plantFoot(ch.foot_left,  lx);
+    plantFoot(ch.foot_right, rx);
 }
 
 void initializeFeetUnderPelvis(CharacterState& ch,
@@ -951,13 +945,7 @@ void applyGroundConstraint(FootState& foot, const Terrain& terrain)
     // Signed distance along normal from surface to foot (positive = above surface)
     const double gap_n = (foot.pos.y - ty) * n.y;
 
-    if (gap_n < 0.0) {
-        // Actual penetration — resolve by pushing exactly onto surface
-        foot.pos.x -= gap_n * n.x;
-        foot.pos.y -= gap_n * n.y;
-    } else if (gap_n <= kGroundContactSnapEps) {
-        // Tiny positive gaps are usually numerical drift after reach clamping.
-        // Snap back to the surface so contact does not flicker on slopes.
+    if (gap_n <= kGroundContactSnapEps) {
         foot.pos.x -= gap_n * n.x;
         foot.pos.y -= gap_n * n.y;
     }
@@ -1493,19 +1481,16 @@ void SimulationCore::stepHandleGroundRecontact(StepCtx& ctx)
         impact_speed / std::max(m_config.physics.jump_impulse, 1.0e-4), 0.0, 2.0);
 
     if (ch.jump_flight_active && ch.jump_targets_valid) {
-        ch.foot_left.pos        = ch.jump_left_target;
-        ch.foot_left.pinned     = true;
-        ch.foot_left.pinned_pos = ch.jump_left_target;
-        ch.foot_left.swinging   = false;
-        ch.foot_left.airborne   = false;
-        ch.foot_left.on_ground  = true;
-
-        ch.foot_right.pos        = ch.jump_right_target;
-        ch.foot_right.pinned     = true;
-        ch.foot_right.pinned_pos = ch.jump_right_target;
-        ch.foot_right.swinging   = false;
-        ch.foot_right.airborne   = false;
-        ch.foot_right.on_ground  = true;
+        auto plantFootAt = [](FootState& foot, Vec2 target) {
+            foot.pos        = target;
+            foot.pinned     = true;
+            foot.pinned_pos = target;
+            foot.swinging   = false;
+            foot.airborne   = false;
+            foot.on_ground  = true;
+        };
+        plantFootAt(ch.foot_left,  ch.jump_left_target);
+        plantFootAt(ch.foot_right, ch.jump_right_target);
         ch.jump_flight_active    = false;
         ch.jump_preload_active   = false;
         ch.jump_targets_valid    = false;
