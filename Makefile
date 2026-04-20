@@ -69,7 +69,7 @@ test_mem: $(HEADLESS_BIN)
 	valgrind --leak-check=full --error-exitcode=1 $(HEADLESS_BIN) --all --quiet
 
 .PHONY: all build build_headless build_asan run test test_headless test_unit \
-        test_regression test_asan test_mem check_architecture clean help FORCE
+        test_regression test_asan test_mem check_architecture docs clean help FORCE
 .PRECIOUS: build/analysis/%
 
 all: build
@@ -160,6 +160,11 @@ $(REGRESSION_TEST_BIN): tests/regression/test_headless_scenarios.cpp \
 	    src/headless/ScenarioLibrary.cpp src/headless/ScenarioRunner.cpp \
 	    $(TEST_CORE_SRCS) -lm -o $@
 
+# ── Documentation Doxygen ─────────────────────────────────────────────────────
+docs:
+	doxygen Doxyfile
+	@echo "Docs OK → doc/doxygen/html/index.html"
+
 clean:
 	rm -rf build/
 
@@ -176,4 +181,5 @@ help:
 	@echo "make test_mem                — Valgrind on headless binary"
 	@echo "make check_architecture      — verify repo invariants (core SDL-free, etc.)"
 	@echo "make analysis/<name>         — compile tool to build/analysis/<name>"
+	@echo "make docs                    — générer la doc Doxygen dans doc/doxygen/html/"
 	@echo "make clean                   — remove build/"

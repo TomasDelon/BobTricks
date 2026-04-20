@@ -1,4 +1,5 @@
 build/
+doc/doxygen/
 *.o
 *.d
 experiments/curves_lab/tests/test_curves
@@ -9,7 +10,6 @@ imgui.ini
 *.swp
 .DS_Store
 
-# Local AI / automation artifacts that must never be published.
 CLAUDE.md
 .claude/
 .agents/
@@ -17,3 +17,4 @@ CLAUDE.md
 .tools/ai-browser-debug/
 ai/
 .codex
+Trash

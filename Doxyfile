@@ -1,0 +1,41 @@
+# Doxyfile — BobTricks v4
+# Générer la doc : make docs  (sortie dans doc/html/)
+
+PROJECT_NAME           = "BobTricks"
+PROJECT_BRIEF          = "Simulation de locomotion procédurale 2D"
+PROJECT_NUMBER         = v4
+
+OUTPUT_DIRECTORY       = doc/doxygen
+CREATE_SUBDIRS         = NO
+OUTPUT_LANGUAGE        = French
+
+# ── Sources ───────────────────────────────────────────────────────────────────
+INPUT                  = src
+FILE_PATTERNS          = *.h
+RECURSIVE              = YES
+EXCLUDE                = vendor
+
+# Pas de .cpp dans la doc : seuls les .h ont des commentaires extensifs.
+EXTRACT_ALL            = NO
+EXTRACT_PRIVATE        = NO
+EXTRACT_STATIC         = YES
+
+# ── Rendu ─────────────────────────────────────────────────────────────────────
+GENERATE_HTML          = YES
+HTML_OUTPUT            = html
+HTML_COLORSTYLE        = LIGHT
+GENERATE_TREEVIEW      = YES
+DISABLE_INDEX          = NO
+FULL_SIDEBAR           = NO
+
+GENERATE_LATEX         = NO
+GENERATE_XML           = NO
+GENERATE_MAN           = NO
+
+# ── Graphes de dépendances ────────────────────────────────────────────────────
+HAVE_DOT               = NO
+
+# ── Qualité ───────────────────────────────────────────────────────────────────
+WARN_IF_UNDOCUMENTED   = NO
+QUIET                  = NO
+WARNINGS               = YES
