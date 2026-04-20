@@ -8,6 +8,17 @@
 
 namespace {
 
+static bool sliderDouble(const char* label, double& val, float lo, float hi, const char* fmt = "%.2f")
+{
+    float v = static_cast<float>(val);
+    ImGui::SetNextItemWidth(180.f);
+    if (ImGui::SliderFloat(label, &v, lo, hi, fmt)) {
+        val = static_cast<double>(v);
+        return true;
+    }
+    return false;
+}
+
 const char* locomotionStateLabel(LocomotionState state)
 {
     switch (state) {
@@ -53,98 +64,33 @@ void renderWalkParams(WalkConfig& walkConfig)
 {
     ImGui::Separator();
     ImGui::TextDisabled("Walk params");
-    {
-        float xs = static_cast<float>(walkConfig.xcom_scale);
-        ImGui::SetNextItemWidth(180.f);
-        if (ImGui::SliderFloat("xcom_scale", &xs, 0.0f, 1.0f, "%.2f"))
-            walkConfig.xcom_scale = static_cast<double>(xs);
-        ImGui::SameLine(); ImGui::TextDisabled("alpha*v/w0 in xi");
-    }
-    {
-        float dr = static_cast<float>(walkConfig.d_rear_max);
-        ImGui::SetNextItemWidth(180.f);
-        if (ImGui::SliderFloat("d_rear_max (xL)", &dr, 0.5f, 3.0f, "%.2f"))
-            walkConfig.d_rear_max = static_cast<double>(dr);
-        ImGui::SameLine(); ImGui::TextDisabled("rear rescue trigger");
-    }
-    {
-        float ms = static_cast<float>(walkConfig.max_step_L);
-        ImGui::SetNextItemWidth(180.f);
-        if (ImGui::SliderFloat("max_step_L (xL)", &ms, 0.5f, 4.0f, "%.2f"))
-            walkConfig.max_step_L = static_cast<double>(ms);
-        ImGui::SameLine(); ImGui::TextDisabled("max step from stance foot");
-    }
-    {
-        float sm = static_cast<float>(walkConfig.stability_margin);
-        ImGui::SetNextItemWidth(180.f);
-        if (ImGui::SliderFloat("stability_margin (xL)", &sm, 0.0f, 1.5f, "%.2f"))
-            walkConfig.stability_margin = static_cast<double>(sm);
-    }
-    {
-        float ss = static_cast<float>(walkConfig.step_speed);
-        ImGui::SetNextItemWidth(180.f);
-        if (ImGui::SliderFloat("step_speed (steps/s)", &ss, 0.5f, 15.0f, "%.1f"))
-            walkConfig.step_speed = static_cast<double>(ss);
-    }
-    {
-        float cho = static_cast<float>(walkConfig.cm_height_offset);
-        ImGui::SetNextItemWidth(180.f);
-        if (ImGui::SliderFloat("cm_height_offset (m)", &cho, -0.3f, 0.3f, "%.3f"))
-            walkConfig.cm_height_offset = static_cast<double>(cho);
-    }
-    {
-        float dst = static_cast<float>(walkConfig.double_support_time);
-        ImGui::SetNextItemWidth(180.f);
-        if (ImGui::SliderFloat("double_support_time (s)", &dst, 0.0f, 0.15f, "%.3f"))
-            walkConfig.double_support_time = static_cast<double>(dst);
-        ImGui::SameLine(); ImGui::TextDisabled("min both-feet time after heel-strike");
-    }
+    sliderDouble("xcom_scale",              walkConfig.xcom_scale,          0.0f,  1.0f);
+    ImGui::SameLine(); ImGui::TextDisabled("alpha*v/w0 in xi");
+    sliderDouble("d_rear_max (xL)",         walkConfig.d_rear_max,          0.5f,  3.0f);
+    ImGui::SameLine(); ImGui::TextDisabled("rear rescue trigger");
+    sliderDouble("max_step_L (xL)",         walkConfig.max_step_L,          0.5f,  4.0f);
+    ImGui::SameLine(); ImGui::TextDisabled("max step from stance foot");
+    sliderDouble("stability_margin (xL)",   walkConfig.stability_margin,    0.0f,  1.5f);
+    sliderDouble("step_speed (steps/s)",    walkConfig.step_speed,          0.5f, 15.0f, "%.1f");
+    sliderDouble("cm_height_offset (m)",    walkConfig.cm_height_offset,   -0.3f,  0.3f, "%.3f");
+    sliderDouble("double_support_time (s)", walkConfig.double_support_time, 0.0f,  0.15f, "%.3f");
+    ImGui::SameLine(); ImGui::TextDisabled("min both-feet time after heel-strike");
     ImGui::Separator();
     ImGui::TextDisabled("IP bob");
-    {
-        float lf = static_cast<float>(walkConfig.leg_flex_coeff);
-        ImGui::SetNextItemWidth(180.f);
-        if (ImGui::SliderFloat("leg_flex_coeff (xL)", &lf, 0.0f, 0.3f, "%.3f"))
-            walkConfig.leg_flex_coeff = static_cast<double>(lf);
-        ImGui::SameLine(); ImGui::TextDisabled("knee bend at mid-stance");
-    }
-    {
-        float bs = static_cast<float>(walkConfig.bob_scale);
-        ImGui::SetNextItemWidth(180.f);
-        if (ImGui::SliderFloat("bob_scale", &bs, 0.0f, 10.0f, "%.2f"))
-            walkConfig.bob_scale = static_cast<double>(bs);
-        ImGui::SameLine(); ImGui::TextDisabled("arc deviation multiplier");
-    }
-    {
-        float ba = static_cast<float>(walkConfig.bob_amp);
-        ImGui::SetNextItemWidth(180.f);
-        if (ImGui::SliderFloat("bob_amp (xL)", &ba, 0.0f, 0.5f, "%.3f"))
-            walkConfig.bob_amp = static_cast<double>(ba);
-        ImGui::SameLine(); ImGui::TextDisabled("max drop cap");
-    }
+    sliderDouble("leg_flex_coeff (xL)",     walkConfig.leg_flex_coeff,      0.0f,  0.3f, "%.3f");
+    ImGui::SameLine(); ImGui::TextDisabled("knee bend at mid-stance");
+    sliderDouble("bob_scale",               walkConfig.bob_scale,           0.0f, 10.0f);
+    ImGui::SameLine(); ImGui::TextDisabled("arc deviation multiplier");
+    sliderDouble("bob_amp (xL)",            walkConfig.bob_amp,             0.0f,  0.5f, "%.3f");
+    ImGui::SameLine(); ImGui::TextDisabled("max drop cap");
     ImGui::Separator();
     ImGui::TextDisabled("Foot lift (h_clear)");
-    {
-        float sf = static_cast<float>(walkConfig.h_clear_slope_factor);
-        ImGui::SetNextItemWidth(180.f);
-        if (ImGui::SliderFloat("h_clear_slope (xL/slope)", &sf, 0.0f, 2.0f, "%.2f"))
-            walkConfig.h_clear_slope_factor = static_cast<double>(sf);
-        ImGui::SameLine(); ImGui::TextDisabled("extra lift per unit uphill slope");
-    }
-    {
-        float spf = static_cast<float>(walkConfig.h_clear_speed_factor);
-        ImGui::SetNextItemWidth(180.f);
-        if (ImGui::SliderFloat("h_clear_speed (xL)", &spf, 0.0f, 0.5f, "%.3f"))
-            walkConfig.h_clear_speed_factor = static_cast<double>(spf);
-        ImGui::SameLine(); ImGui::TextDisabled("extra lift at walk_max_speed");
-    }
-    {
-        float mn = static_cast<float>(walkConfig.h_clear_min_ratio);
-        ImGui::SetNextItemWidth(180.f);
-        if (ImGui::SliderFloat("h_clear_min (xL)", &mn, 0.0f, 0.2f, "%.3f"))
-            walkConfig.h_clear_min_ratio = static_cast<double>(mn);
-        ImGui::SameLine(); ImGui::TextDisabled("minimum foot lift (anti-drag)");
-    }
+    sliderDouble("h_clear_slope (xL/slope)", walkConfig.h_clear_slope_factor, 0.0f, 2.0f);
+    ImGui::SameLine(); ImGui::TextDisabled("extra lift per unit uphill slope");
+    sliderDouble("h_clear_speed (xL)",      walkConfig.h_clear_speed_factor, 0.0f, 0.5f, "%.3f");
+    ImGui::SameLine(); ImGui::TextDisabled("extra lift at walk_max_speed");
+    sliderDouble("h_clear_min (xL)",        walkConfig.h_clear_min_ratio,   0.0f,  0.2f, "%.3f");
+    ImGui::SameLine(); ImGui::TextDisabled("minimum foot lift (anti-drag)");
 }
 
 void renderPhysicsGravityControls(PhysicsConfig& config)
@@ -164,125 +110,54 @@ void renderPhysicsVerticalTrackingControls(PhysicsConfig& config)
     ImGui::Checkbox("##spring_en", &config.spring_enabled);
     ImGui::SameLine();
     ImGui::BeginDisabled(!config.spring_enabled);
-
-    float vy_max = static_cast<float>(config.vy_max);
-    ImGui::SetNextItemWidth(180.f);
-    if (ImGui::SliderFloat("vy_max (m/s)", &vy_max, 0.1f, 8.0f, "%.2f"))
-        config.vy_max = static_cast<double>(vy_max);
-
-    float d_soft = static_cast<float>(config.d_soft);
-    ImGui::SetNextItemWidth(180.f);
-    if (ImGui::SliderFloat("d_soft (m)", &d_soft, 0.01f, 1.0f, "%.3f"))
-        config.d_soft = static_cast<double>(d_soft);
-
-    float vy_tau = static_cast<float>(config.vy_tau);
-    ImGui::SetNextItemWidth(180.f);
-    if (ImGui::SliderFloat("vy_tau (s⁻¹)", &vy_tau, 1.0f, 60.0f, "%.1f"))
-        config.vy_tau = static_cast<double>(vy_tau);
-
+    sliderDouble("vy_max (m/s)",  config.vy_max,  0.1f,  8.0f);
+    sliderDouble("d_soft (m)",    config.d_soft,  0.01f, 1.0f, "%.3f");
+    sliderDouble("vy_tau (s⁻¹)", config.vy_tau,  1.0f,  60.0f, "%.1f");
     ImGui::EndDisabled();
 }
 
 void renderPhysicsLocomotionControls(PhysicsConfig& config)
 {
-    float ac = static_cast<float>(config.accel);
-    ImGui::SetNextItemWidth(180.f);
-    if (ImGui::SliderFloat("Accel (m/s²)", &ac, 0.f, 20.f, "%.1f"))
-        config.accel = static_cast<double>(ac);
-
-    float ms = static_cast<float>(config.walk_max_speed);
-    ImGui::SetNextItemWidth(180.f);
-    if (ImGui::SliderFloat("Max speed (m/s)", &ms, 0.1f, 6.f, "%.2f"))
-        config.walk_max_speed = static_cast<double>(ms);
-
-    float hs = static_cast<float>(config.hold_speed);
-    ImGui::SetNextItemWidth(180.f);
-    if (ImGui::SliderFloat("Hold speed (m/s)", &hs, 0.0f, 2.f, "%.2f"))
-        config.hold_speed = static_cast<double>(hs);
-
-    float ji = static_cast<float>(config.jump_impulse);
-    ImGui::SetNextItemWidth(180.f);
-    if (ImGui::SliderFloat("Jump impulse (m/s)", &ji, 0.f, 15.f, "%.1f"))
-        config.jump_impulse = static_cast<double>(ji);
+    sliderDouble("Accel (m/s²)",       config.accel,          0.f,  20.f, "%.1f");
+    sliderDouble("Max speed (m/s)",    config.walk_max_speed, 0.1f,  6.f);
+    sliderDouble("Hold speed (m/s)",   config.hold_speed,     0.0f,  2.f);
+    sliderDouble("Jump impulse (m/s)", config.jump_impulse,   0.f,  15.f, "%.1f");
 }
 
 void renderTerrainGenerationControls(TerrainConfig& config)
 {
     ImGui::Separator();
     ImGui::TextDisabled("Generation");
-
     ImGui::SetNextItemWidth(120.f);
     ImGui::InputInt("Seed", &config.seed);
-
-    float seg_min = static_cast<float>(config.seg_min);
-    float seg_max = static_cast<float>(config.seg_max);
-    ImGui::SetNextItemWidth(180.f);
-    if (ImGui::SliderFloat("Seg min (m)", &seg_min, 0.5f, 10.f, "%.1f"))
-        config.seg_min = static_cast<double>(seg_min);
-    ImGui::SetNextItemWidth(180.f);
-    if (ImGui::SliderFloat("Seg max (m)", &seg_max, 0.5f, 20.f, "%.1f"))
-        config.seg_max = static_cast<double>(seg_max);
+    sliderDouble("Seg min (m)", config.seg_min, 0.5f, 10.f, "%.1f");
+    sliderDouble("Seg max (m)", config.seg_max, 0.5f, 20.f, "%.1f");
 }
 
 void renderTerrainAngleControls(TerrainConfig& config)
 {
     ImGui::Separator();
     ImGui::TextDisabled("Angles");
-
-    float as = static_cast<float>(config.angle_small);
-    float al = static_cast<float>(config.angle_large);
-    float lp = static_cast<float>(config.large_prob);
-    float sm = static_cast<float>(config.slope_max);
-    ImGui::SetNextItemWidth(180.f);
-    if (ImGui::SliderFloat("Small angle (°)", &as, 0.f, 45.f, "%.1f"))
-        config.angle_small = static_cast<double>(as);
-    ImGui::SetNextItemWidth(180.f);
-    if (ImGui::SliderFloat("Large angle (°)", &al, 0.f, 60.f, "%.1f"))
-        config.angle_large = static_cast<double>(al);
-    ImGui::SetNextItemWidth(180.f);
-    if (ImGui::SliderFloat("Large prob", &lp, 0.f, 1.f, "%.2f"))
-        config.large_prob = static_cast<double>(lp);
-    ImGui::SetNextItemWidth(180.f);
-    if (ImGui::SliderFloat("Slope max (°)", &sm, 5.f, 60.f, "%.1f"))
-        config.slope_max = static_cast<double>(sm);
+    sliderDouble("Small angle (°)", config.angle_small, 0.f, 45.f, "%.1f");
+    sliderDouble("Large angle (°)", config.angle_large, 0.f, 60.f, "%.1f");
+    sliderDouble("Large prob",      config.large_prob,  0.f,  1.f);
+    sliderDouble("Slope max (°)",   config.slope_max,   5.f, 60.f, "%.1f");
 }
 
 void renderTerrainHeightControls(TerrainConfig& config)
 {
     ImGui::Separator();
     ImGui::TextDisabled("Height bounds");
-
-    float hmin = static_cast<float>(config.height_min);
-    float hmax = static_cast<float>(config.height_max);
-    ImGui::SetNextItemWidth(180.f);
-    if (ImGui::SliderFloat("Height min (m)", &hmin, -10.f, 0.f, "%.1f"))
-        config.height_min = static_cast<double>(hmin);
-    ImGui::SetNextItemWidth(180.f);
-    if (ImGui::SliderFloat("Height max (m)", &hmax, 0.f, 10.f, "%.1f"))
-        config.height_max = static_cast<double>(hmax);
+    sliderDouble("Height min (m)", config.height_min, -10.f, 0.f,  "%.1f");
+    sliderDouble("Height max (m)", config.height_max,   0.f, 10.f, "%.1f");
 }
 
 void renderTerrainSamplingControls(TerrainSamplingConfig& config)
 {
-    float wb = static_cast<float>(config.w_back);
-    ImGui::SetNextItemWidth(180.f);
-    if (ImGui::SliderFloat("w_back (xL)", &wb, 0.1f, 2.0f, "%.2f"))
-        config.w_back = static_cast<double>(wb);
-
-    float wf = static_cast<float>(config.w_fwd);
-    ImGui::SetNextItemWidth(180.f);
-    if (ImGui::SliderFloat("w_fwd (xL)", &wf, 0.1f, 2.0f, "%.2f"))
-        config.w_fwd = static_cast<double>(wf);
-
-    float tl = static_cast<float>(config.t_look);
-    ImGui::SetNextItemWidth(180.f);
-    if (ImGui::SliderFloat("t_look (s)", &tl, 0.0f, 1.0f, "%.2f"))
-        config.t_look = static_cast<double>(tl);
-
-    float ts = static_cast<float>(config.tau_slide);
-    ImGui::SetNextItemWidth(180.f);
-    if (ImGui::SliderFloat("tau_slide (s)", &ts, 0.01f, 1.0f, "%.3f"))
-        config.tau_slide = static_cast<double>(ts);
+    sliderDouble("w_back (xL)",   config.w_back,    0.1f,  2.0f);
+    sliderDouble("w_fwd (xL)",    config.w_fwd,     0.1f,  2.0f);
+    sliderDouble("t_look (s)",    config.t_look,    0.0f,  1.0f);
+    sliderDouble("tau_slide (s)", config.tau_slide, 0.01f, 1.0f, "%.3f");
     ImGui::SameLine(); ImGui::TextDisabled("endpoint slide lag");
 }
 
@@ -311,53 +186,25 @@ void renderCharacterPelvisControls(CharacterConfig& config)
 void renderReconstructionFacingControls(CharacterReconstructionConfig& config)
 {
     ImGui::TextDisabled("Facing");
-
-    float feps = static_cast<float>(config.facing_eps);
-    ImGui::SetNextItemWidth(180.f);
-    if (ImGui::SliderFloat("Facing deadzone (m/s)", &feps, 0.01f, 0.5f, "%.2f"))
-        config.facing_eps = static_cast<double>(feps);
+    sliderDouble("Facing deadzone (m/s)", config.facing_eps, 0.01f, 0.5f);
 }
 
 void renderReconstructionLocomotionControls(CharacterReconstructionConfig& config)
 {
     ImGui::Separator();
     ImGui::TextDisabled("Locomotion");
-
-    float weps = static_cast<float>(config.walk_eps);
-    ImGui::SetNextItemWidth(180.f);
-    if (ImGui::SliderFloat("Walk threshold (m/s)", &weps, 0.01f, 1.0f, "%.2f"))
-        config.walk_eps = static_cast<double>(weps);
+    sliderDouble("Walk threshold (m/s)", config.walk_eps, 0.01f, 1.0f);
 }
 
 void renderReconstructionLeanControls(CharacterReconstructionConfig& config)
 {
     ImGui::Separator();
     ImGui::TextDisabled("Pelvis lean");
-
-    float tmax = static_cast<float>(config.theta_max_deg);
-    ImGui::SetNextItemWidth(180.f);
-    if (ImGui::SliderFloat("Theta max (deg)", &tmax, 0.f, 30.f, "%.1f"))
-        config.theta_max_deg = static_cast<double>(tmax);
-
-    float vref = static_cast<float>(config.v_ref);
-    ImGui::SetNextItemWidth(180.f);
-    if (ImGui::SliderFloat("V ref (m/s)", &vref, 0.1f, 5.f, "%.2f"))
-        config.v_ref = static_cast<double>(vref);
-
-    float hunch_min = static_cast<float>(config.hunch_min_deg);
-    ImGui::SetNextItemWidth(180.f);
-    if (ImGui::SliderFloat("Hunch min (deg)", &hunch_min, 0.f, 20.f, "%.1f"))
-        config.hunch_min_deg = static_cast<double>(hunch_min);
-
-    float hunch_max = static_cast<float>(config.hunch_max_deg);
-    ImGui::SetNextItemWidth(180.f);
-    if (ImGui::SliderFloat("Hunch max (deg)", &hunch_max, 0.f, 20.f, "%.1f"))
-        config.hunch_max_deg = static_cast<double>(hunch_max);
-
-    float hunch_current = static_cast<float>(config.hunch_current_deg);
-    ImGui::SetNextItemWidth(180.f);
-    if (ImGui::SliderFloat("Hunch current (deg)", &hunch_current, 0.f, 20.f, "%.1f"))
-        config.hunch_current_deg = static_cast<double>(hunch_current);
+    sliderDouble("Theta max (deg)",     config.theta_max_deg,     0.f, 30.f, "%.1f");
+    sliderDouble("V ref (m/s)",         config.v_ref,             0.1f, 5.f);
+    sliderDouble("Hunch min (deg)",     config.hunch_min_deg,     0.f, 20.f, "%.1f");
+    sliderDouble("Hunch max (deg)",     config.hunch_max_deg,     0.f, 20.f, "%.1f");
+    sliderDouble("Hunch current (deg)", config.hunch_current_deg, 0.f, 20.f, "%.1f");
 }
 
 void renderBalanceReachMetrics(const CharacterState& charState, double L)
@@ -418,128 +265,41 @@ void renderVisualizationTrailControls(CMConfig& config, bool& clearTrail)
 
 void renderArmReachControls(ArmConfig& config)
 {
-    float upper = static_cast<float>(config.upper_arm_L);
-    ImGui::SetNextItemWidth(180.f);
-    if (ImGui::SliderFloat("upper_arm_L (xL)", &upper, 0.5f, 1.5f, "%.2f"))
-        config.upper_arm_L = static_cast<double>(upper);
-
-    float fore = static_cast<float>(config.fore_arm_L);
-    ImGui::SetNextItemWidth(180.f);
-    if (ImGui::SliderFloat("fore_arm_L (xL)", &fore, 0.5f, 1.5f, "%.2f"))
-        config.fore_arm_L = static_cast<double>(fore);
-
-    float retract = static_cast<float>(config.walk_hand_reach_reduction_L);
-    ImGui::SetNextItemWidth(180.f);
-    if (ImGui::SliderFloat("walk_hand_reach_reduction_L (xL)", &retract, 0.0f, 1.25f, "%.2f"))
-        config.walk_hand_reach_reduction_L = static_cast<double>(retract);
-
-    float phase_scale = static_cast<float>(config.walk_hand_phase_speed_scale);
-    ImGui::SetNextItemWidth(180.f);
-    if (ImGui::SliderFloat("walk_hand_phase_speed_scale", &phase_scale, 0.1f, 2.0f, "%.2f"))
-        config.walk_hand_phase_speed_scale = static_cast<double>(phase_scale);
-
-    float speed_arc_gain = static_cast<float>(config.walk_hand_speed_arc_gain);
-    ImGui::SetNextItemWidth(180.f);
-    if (ImGui::SliderFloat("walk_hand_speed_arc_gain", &speed_arc_gain, 0.0f, 1.0f, "%.2f"))
-        config.walk_hand_speed_arc_gain = static_cast<double>(speed_arc_gain);
-
-    float phase_response = static_cast<float>(config.walk_hand_phase_response);
-    ImGui::SetNextItemWidth(180.f);
-    if (ImGui::SliderFloat("walk_hand_phase_response", &phase_response, 1.0f, 30.0f, "%.1f"))
-        config.walk_hand_phase_response = static_cast<double>(phase_response);
-
-    float phase_friction = static_cast<float>(config.walk_hand_phase_friction);
-    ImGui::SetNextItemWidth(180.f);
-    if (ImGui::SliderFloat("walk_hand_phase_friction", &phase_friction, 0.1f, 12.0f, "%.1f"))
-        config.walk_hand_phase_friction = static_cast<double>(phase_friction);
-
+    sliderDouble("upper_arm_L (xL)",                  config.upper_arm_L,                  0.5f,  1.5f);
+    sliderDouble("fore_arm_L (xL)",                   config.fore_arm_L,                   0.5f,  1.5f);
+    sliderDouble("walk_hand_reach_reduction_L (xL)",  config.walk_hand_reach_reduction_L,  0.0f,  1.25f);
+    sliderDouble("walk_hand_phase_speed_scale",       config.walk_hand_phase_speed_scale,  0.1f,  2.0f);
+    sliderDouble("walk_hand_speed_arc_gain",          config.walk_hand_speed_arc_gain,     0.0f,  1.0f);
+    sliderDouble("walk_hand_phase_response",          config.walk_hand_phase_response,     1.0f, 30.0f, "%.1f");
+    sliderDouble("walk_hand_phase_friction",          config.walk_hand_phase_friction,     0.1f, 12.0f, "%.1f");
     ImGui::Separator();
     ImGui::TextDisabled("Run blend");
-
-    float run_blend_tau = static_cast<float>(config.run_blend_tau);
-    ImGui::SetNextItemWidth(180.f);
-    if (ImGui::SliderFloat("run_blend_tau (s)", &run_blend_tau, 0.02f, 0.60f, "%.2f"))
-        config.run_blend_tau = static_cast<double>(run_blend_tau);
-
-    float run_retract = static_cast<float>(config.run_hand_reach_reduction_L);
-    ImGui::SetNextItemWidth(180.f);
-    if (ImGui::SliderFloat("run_hand_reach_reduction_L (xL)", &run_retract, 0.0f, 1.25f, "%.2f"))
-        config.run_hand_reach_reduction_L = static_cast<double>(run_retract);
-
-    float run_phase_scale = static_cast<float>(config.run_hand_phase_speed_scale);
-    ImGui::SetNextItemWidth(180.f);
-    if (ImGui::SliderFloat("run_hand_phase_speed_scale", &run_phase_scale, 0.1f, 2.0f, "%.2f"))
-        config.run_hand_phase_speed_scale = static_cast<double>(run_phase_scale);
-
-    float run_speed_arc_gain = static_cast<float>(config.run_hand_speed_arc_gain);
-    ImGui::SetNextItemWidth(180.f);
-    if (ImGui::SliderFloat("run_hand_speed_arc_gain", &run_speed_arc_gain, 0.0f, 1.0f, "%.2f"))
-        config.run_hand_speed_arc_gain = static_cast<double>(run_speed_arc_gain);
-
-    float run_phase_response = static_cast<float>(config.run_hand_phase_response);
-    ImGui::SetNextItemWidth(180.f);
-    if (ImGui::SliderFloat("run_hand_phase_response", &run_phase_response, 1.0f, 30.0f, "%.1f"))
-        config.run_hand_phase_response = static_cast<double>(run_phase_response);
-
-    float run_phase_friction = static_cast<float>(config.run_hand_phase_friction);
-    ImGui::SetNextItemWidth(180.f);
-    if (ImGui::SliderFloat("run_hand_phase_friction", &run_phase_friction, 0.1f, 12.0f, "%.1f"))
-        config.run_hand_phase_friction = static_cast<double>(run_phase_friction);
+    sliderDouble("run_blend_tau (s)",                 config.run_blend_tau,                0.02f, 0.60f);
+    sliderDouble("run_hand_reach_reduction_L (xL)",   config.run_hand_reach_reduction_L,   0.0f,  1.25f);
+    sliderDouble("run_hand_phase_speed_scale",        config.run_hand_phase_speed_scale,   0.1f,  2.0f);
+    sliderDouble("run_hand_speed_arc_gain",           config.run_hand_speed_arc_gain,      0.0f,  1.0f);
+    sliderDouble("run_hand_phase_response",           config.run_hand_phase_response,      1.0f, 30.0f, "%.1f");
+    sliderDouble("run_hand_phase_friction",           config.run_hand_phase_friction,      0.1f, 12.0f, "%.1f");
 }
 
 void renderArmArcControls(ArmConfig& config)
 {
     ImGui::Separator();
     ImGui::TextDisabled("Front hand arc");
-
-    float front_start = static_cast<float>(config.walk_front_hand_start_deg);
-    ImGui::SetNextItemWidth(180.f);
-    if (ImGui::SliderFloat("front_start_deg", &front_start, -180.f, 180.f, "%.1f"))
-        config.walk_front_hand_start_deg = static_cast<double>(front_start);
-
-    float front_end = static_cast<float>(config.walk_front_hand_end_deg);
-    ImGui::SetNextItemWidth(180.f);
-    if (ImGui::SliderFloat("front_end_deg", &front_end, -180.f, 180.f, "%.1f"))
-        config.walk_front_hand_end_deg = static_cast<double>(front_end);
-
+    sliderDouble("front_start_deg",     config.walk_front_hand_start_deg, -180.f, 180.f, "%.1f");
+    sliderDouble("front_end_deg",       config.walk_front_hand_end_deg,   -180.f, 180.f, "%.1f");
     ImGui::Separator();
     ImGui::TextDisabled("Back hand arc");
-
-    float back_start = static_cast<float>(config.walk_back_hand_start_deg);
-    ImGui::SetNextItemWidth(180.f);
-    if (ImGui::SliderFloat("back_start_deg", &back_start, -180.f, 180.f, "%.1f"))
-        config.walk_back_hand_start_deg = static_cast<double>(back_start);
-
-    float back_end = static_cast<float>(config.walk_back_hand_end_deg);
-    ImGui::SetNextItemWidth(180.f);
-    if (ImGui::SliderFloat("back_end_deg", &back_end, -180.f, 180.f, "%.1f"))
-        config.walk_back_hand_end_deg = static_cast<double>(back_end);
-
+    sliderDouble("back_start_deg",      config.walk_back_hand_start_deg,  -180.f, 180.f, "%.1f");
+    sliderDouble("back_end_deg",        config.walk_back_hand_end_deg,    -180.f, 180.f, "%.1f");
     ImGui::Separator();
     ImGui::TextDisabled("Run front hand arc");
-
-    float run_front_start = static_cast<float>(config.run_front_hand_start_deg);
-    ImGui::SetNextItemWidth(180.f);
-    if (ImGui::SliderFloat("run_front_start_deg", &run_front_start, -180.f, 180.f, "%.1f"))
-        config.run_front_hand_start_deg = static_cast<double>(run_front_start);
-
-    float run_front_end = static_cast<float>(config.run_front_hand_end_deg);
-    ImGui::SetNextItemWidth(180.f);
-    if (ImGui::SliderFloat("run_front_end_deg", &run_front_end, -180.f, 180.f, "%.1f"))
-        config.run_front_hand_end_deg = static_cast<double>(run_front_end);
-
+    sliderDouble("run_front_start_deg", config.run_front_hand_start_deg,  -180.f, 180.f, "%.1f");
+    sliderDouble("run_front_end_deg",   config.run_front_hand_end_deg,    -180.f, 180.f, "%.1f");
     ImGui::Separator();
     ImGui::TextDisabled("Run back hand arc");
-
-    float run_back_start = static_cast<float>(config.run_back_hand_start_deg);
-    ImGui::SetNextItemWidth(180.f);
-    if (ImGui::SliderFloat("run_back_start_deg", &run_back_start, -180.f, 180.f, "%.1f"))
-        config.run_back_hand_start_deg = static_cast<double>(run_back_start);
-
-    float run_back_end = static_cast<float>(config.run_back_hand_end_deg);
-    ImGui::SetNextItemWidth(180.f);
-    if (ImGui::SliderFloat("run_back_end_deg", &run_back_end, -180.f, 180.f, "%.1f"))
-        config.run_back_hand_end_deg = static_cast<double>(run_back_end);
+    sliderDouble("run_back_start_deg",  config.run_back_hand_start_deg,   -180.f, 180.f, "%.1f");
+    sliderDouble("run_back_end_deg",    config.run_back_hand_end_deg,     -180.f, 180.f, "%.1f");
 }
 
 void renderArmOverlayControls(ArmConfig& config)
@@ -983,18 +743,8 @@ void DebugUI::renderJumpPanel(JumpConfig& config, bool& saveRequested)
         return;
 
     ImGui::TextDisabled("Preload (crouch before takeoff)");
-    auto sliderDur = [&](const char* label, double& val) {
-        float v = static_cast<float>(val);
-        ImGui::SetNextItemWidth(180.f);
-        if (ImGui::SliderFloat(label, &v, 0.02f, 0.30f, "%.3f s"))
-            { val = static_cast<double>(v); saveRequested = true; }
-    };
-    auto sliderDepth = [&](const char* label, double& val) {
-        float v = static_cast<float>(val);
-        ImGui::SetNextItemWidth(180.f);
-        if (ImGui::SliderFloat(label, &v, 0.05f, 0.60f, "%.2f ×L"))
-            { val = static_cast<double>(v); saveRequested = true; }
-    };
+    auto sliderDur   = [&](const char* label, double& val) { if (sliderDouble(label, val, 0.02f, 0.30f, "%.3f s"))  saveRequested = true; };
+    auto sliderDepth = [&](const char* label, double& val) { if (sliderDouble(label, val, 0.05f, 0.60f, "%.2f ×L")) saveRequested = true; };
     sliderDur  ("Dur run (s)",         config.preload_dur_run);
     sliderDur  ("Dur walk (s)",        config.preload_dur_walk);
     sliderDur  ("Dur stand (s)",       config.preload_dur_stand);
@@ -1010,30 +760,10 @@ void DebugUI::renderJumpPanel(JumpConfig& config, bool& saveRequested)
     ImGui::TextDisabled("Landing recovery");
     sliderDur  ("Dur jump (s)",        config.landing_dur_jump);
     sliderDur  ("Dur walk land (s)",   config.landing_dur_walk);
-    {
-        float v = static_cast<float>(config.landing_boost_base_jump);
-        ImGui::SetNextItemWidth(180.f);
-        if (ImGui::SliderFloat("Boost base jump", &v, 0.0f, 2.0f, "%.2f"))
-            { config.landing_boost_base_jump = static_cast<double>(v); saveRequested = true; }
-    }
-    {
-        float v = static_cast<float>(config.landing_boost_scale_jump);
-        ImGui::SetNextItemWidth(180.f);
-        if (ImGui::SliderFloat("Boost scale jump", &v, 0.0f, 3.0f, "%.2f"))
-            { config.landing_boost_scale_jump = static_cast<double>(v); saveRequested = true; }
-    }
-    {
-        float v = static_cast<float>(config.landing_boost_base_walk);
-        ImGui::SetNextItemWidth(180.f);
-        if (ImGui::SliderFloat("Boost base walk", &v, 0.0f, 2.0f, "%.2f"))
-            { config.landing_boost_base_walk = static_cast<double>(v); saveRequested = true; }
-    }
-    {
-        float v = static_cast<float>(config.landing_boost_scale_walk);
-        ImGui::SetNextItemWidth(180.f);
-        if (ImGui::SliderFloat("Boost scale walk", &v, 0.0f, 3.0f, "%.2f"))
-            { config.landing_boost_scale_walk = static_cast<double>(v); saveRequested = true; }
-    }
+    if (sliderDouble("Boost base jump",  config.landing_boost_base_jump,  0.0f, 2.0f)) saveRequested = true;
+    if (sliderDouble("Boost scale jump", config.landing_boost_scale_jump, 0.0f, 3.0f)) saveRequested = true;
+    if (sliderDouble("Boost base walk",  config.landing_boost_base_walk,  0.0f, 2.0f)) saveRequested = true;
+    if (sliderDouble("Boost scale walk", config.landing_boost_scale_walk, 0.0f, 3.0f)) saveRequested = true;
 
     ImGui::Separator();
     if (ImGui::Button("Save Jump Config"))
