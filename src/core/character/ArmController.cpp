@@ -177,12 +177,9 @@ void updateArmState(CharacterState& ch,
         ch.arm_phase_velocity += ((*swing_t_target_velocity) - ch.arm_phase_velocity) * response;
         ch.arm_phase += ch.arm_phase_velocity * dt;
         ch.arm_phase += ((*swing_t_target) - ch.arm_phase) * response;
-    } else if (walking) {
-        const double damping = std::exp(-0.5 * std::max(0.0, hand_phase_friction) * std::max(0.0, dt));
-        ch.arm_phase_velocity *= damping;
-        ch.arm_phase += ch.arm_phase_velocity * dt;
     } else {
-        const double damping = std::exp(-std::max(0.0, hand_phase_friction) * std::max(0.0, dt));
+        const double friction_scale = walking ? 0.5 : 1.0;
+        const double damping = std::exp(-friction_scale * std::max(0.0, hand_phase_friction) * std::max(0.0, dt));
         ch.arm_phase_velocity *= damping;
         ch.arm_phase += ch.arm_phase_velocity * dt;
     }
@@ -228,25 +225,14 @@ void updateArmState(CharacterState& ch,
     const Vec2 left_auto_target  = (ch.facing > 0.0 ? hand_back_walk_target  : hand_front_walk_target);
     const Vec2 right_auto_target = (ch.facing > 0.0 ? hand_front_walk_target : hand_back_walk_target);
 
-    if (ch.facing > 0.0) {
-        updateOneArm(left_auto_target, ch.shoulder_left, elbow_bend_pref,
-                     left_hand_target,
-                     keep_branch_memory ? std::optional<Vec2>(ch.elbow_left) : std::nullopt,
-                     ch.elbow_left, ch.hand_left);
-        updateOneArm(right_auto_target, ch.shoulder_right, elbow_bend_pref,
-                     right_hand_target,
-                     keep_branch_memory ? std::optional<Vec2>(ch.elbow_right) : std::nullopt,
-                     ch.elbow_right, ch.hand_right);
-    } else {
-        updateOneArm(left_auto_target, ch.shoulder_left, elbow_bend_pref,
-                     left_hand_target,
-                     keep_branch_memory ? std::optional<Vec2>(ch.elbow_left) : std::nullopt,
-                     ch.elbow_left, ch.hand_left);
-        updateOneArm(right_auto_target, ch.shoulder_right, elbow_bend_pref,
-                     right_hand_target,
-                     keep_branch_memory ? std::optional<Vec2>(ch.elbow_right) : std::nullopt,
-                     ch.elbow_right, ch.hand_right);
-    }
+    updateOneArm(left_auto_target, ch.shoulder_left, elbow_bend_pref,
+                 left_hand_target,
+                 keep_branch_memory ? std::optional<Vec2>(ch.elbow_left) : std::nullopt,
+                 ch.elbow_left, ch.hand_left);
+    updateOneArm(right_auto_target, ch.shoulder_right, elbow_bend_pref,
+                 right_hand_target,
+                 keep_branch_memory ? std::optional<Vec2>(ch.elbow_right) : std::nullopt,
+                 ch.elbow_right, ch.hand_right);
     ch.arm_pose_initialized = true;
     ch.arm_pose_facing = ch.facing;
 }
