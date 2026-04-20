@@ -5,15 +5,20 @@
 #include "core/terrain/Terrain.h"
 #include "config/AppConfig.h"
 
-/** @brief Timing targets derived from run-mode speed for a single step. */
+/**
+ * @file SimulationCore.h
+ * @brief Noyau autonome de physique et de locomotion procédurale.
+ */
+
+/** @brief Paramètres de timing dérivés de la vitesse de course pour un pas. */
 struct RunTimingTargets {
-    double speed_ratio    = 0.0;
-    double cadence_spm    = 0.0;
-    double step_period    = 0.0;
-    double contact_time   = 0.0;
-    double flight_time    = 0.0;
-    double step_length    = 0.0;
-    double touchdown_ahead = 0.0;
+    double speed_ratio     = 0.0; ///< Ratio vitesse courante / vitesse max de course `[0,1]`.
+    double cadence_spm     = 0.0; ///< Cadence interpolée (pas par minute).
+    double step_period     = 0.0; ///< Durée d'un demi-cycle de pas (s).
+    double contact_time    = 0.0; ///< Durée de la phase d'appui (s).
+    double flight_time     = 0.0; ///< Durée de la phase de vol (s).
+    double step_length     = 0.0; ///< Longueur de foulée cible (m).
+    double touchdown_ahead = 0.0; ///< Avance de l'atterrissage par rapport au CM (m).
 };
 
 /**

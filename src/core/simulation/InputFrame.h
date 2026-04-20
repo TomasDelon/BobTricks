@@ -1,33 +1,36 @@
 #pragma once
 
+/**
+ * @file InputFrame.h
+ * @brief Structure d'entrée consommée par `SimulationCore` à chaque pas fixe.
+ */
+
 #include <optional>
 #include "core/math/Vec2.h"
 
 /**
- * @brief Entrées consommées par `SimulationCore` pendant un pas fixe.
+ * @brief Entrées produites par `InputController` et consommées par `SimulationCore`.
+ *
+ * Cette structure est une interface sans état entre la couche SDL et le noyau
+ * de simulation. Elle est construite à chaque frame par `InputController` et
+ * passée à `SimulationCore::step()`.
  */
 struct InputFrame {
-    bool key_left  = false;
-    bool key_right = false;
-    bool key_run   = false;
-    bool jump      = false;
+    bool key_left  = false; ///< Touche ← maintenue.
+    bool key_right = false; ///< Touche → maintenue.
+    bool key_run   = false; ///< Modificateur Shift (course).
+    bool jump      = false; ///< Espace pressé ce tick (impulsion de saut).
 
-    // Right-drag: overrides CM velocity at start of step.
-    std::optional<Vec2> set_velocity;
+    std::optional<Vec2> set_velocity;       ///< Glisser clic-droit : téléporte la vitesse du CM au début du pas.
+    std::optional<Vec2> gaze_target_world;  ///< Cible de regard optionnelle en coordonnées monde (m).
 
-    // Optional world-space gaze target used by upper-body kinematics.
-    std::optional<Vec2> gaze_target_world;
+    bool foot_left_drag  = false;          ///< Clic-gauche actif sur le pied gauche.
+    Vec2 foot_left_pos   = {0.0, 0.0};     ///< Cible monde du pied gauche (m) quand `foot_left_drag`.
+    bool foot_right_drag = false;          ///< Clic-gauche actif sur le pied droit.
+    Vec2 foot_right_pos  = {0.0, 0.0};     ///< Cible monde du pied droit (m) quand `foot_right_drag`.
 
-    // Left-drag: drag feet to a world position.
-    // SimulationCore applies the circle constraint after positioning.
-    bool              foot_left_drag  = false;
-    Vec2              foot_left_pos   = {0.0, 0.0};   // world target
-    bool              foot_right_drag = false;
-    Vec2              foot_right_pos  = {0.0, 0.0};   // world target
-
-    // Left-drag: override hand IK target to a world position.
-    bool              hand_left_drag  = false;
-    Vec2              hand_left_pos   = {0.0, 0.0};   // world target
-    bool              hand_right_drag = false;
-    Vec2              hand_right_pos  = {0.0, 0.0};   // world target
+    bool hand_left_drag  = false;          ///< Clic-gauche actif sur la main gauche.
+    Vec2 hand_left_pos   = {0.0, 0.0};     ///< Cible IK monde de la main gauche (m).
+    bool hand_right_drag = false;          ///< Clic-gauche actif sur la main droite.
+    Vec2 hand_right_pos  = {0.0, 0.0};     ///< Cible IK monde de la main droite (m).
 };

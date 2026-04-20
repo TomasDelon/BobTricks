@@ -2,7 +2,15 @@
 
 /**
  * @file AppConfig.h
- * @brief Structures de configuration persistées dans `data/config.ini`.
+ * @brief Structures de configuration de l'application, persistées dans `data/config.ini`.
+ *
+ * Chaque sous-structure correspond à une section INI distincte lue et écrite par
+ * `ConfigIO`. La structure racine `AppConfig` agrège toutes les sous-configs en
+ * un seul objet passé par référence au noyau de simulation et aux renderers.
+ *
+ * Toutes les unités sont exprimées en système SI sauf indication contraire.
+ * Les paramètres exprimés en `[×L]` sont des multiples de la longueur de segment
+ * `L = taille / 5`.
  */
 
 /** @brief Paramètres de la boucle de simulation fixe. */
@@ -306,7 +314,14 @@ struct JumpConfig {
     double landing_boost_scale_walk = 0.70;  // [-]   sensibilité à l'impact (marche)
 };
 
-/** @brief Agrégat racine de toute la configuration de l'application. */
+/**
+ * @brief Agrégat racine de toute la configuration de l'application.
+ *
+ * Cette structure est chargée depuis `data/config.ini` au démarrage par
+ * `ConfigIO::load()` et sauvegardée automatiquement lorsque l'utilisateur
+ * modifie un paramètre dans l'UI de debug. Elle est partagée par référence
+ * entre `Application`, `SimulationCore` et tous les renderers.
+ */
 struct AppConfig {
     SimLoopConfig                 sim_loop;
     CameraConfig                  camera;

@@ -5,10 +5,26 @@
 #include "core/math/Bezier.h"
 
 /**
+ * @file StrokePath.h
+ * @brief Chemin vectoriel 2D composé de segments droits et de courbes de Bézier.
+ */
+
+/**
  * @brief Description d'un chemin vectoriel composé de segments et de Béziers.
  *
- * Le chemin ne dessine rien par lui-même ; il sert de représentation
- * intermédiaire avant l'échantillonnage puis le rendu par `StrokeRenderer`.
+ * Le chemin ne dessine rien par lui-même : il accumule des commandes de tracé
+ * (`moveTo`, `lineTo`, `quadTo`, `cubicTo`, `closePath`) puis les résout en
+ * polyligne via `flatten()`. Cette polyligne est ensuite rendue par
+ * `StrokeRenderer::renderPolyline()`.
+ *
+ * @par Exemple d'utilisation
+ * @code
+ * StrokePath path;
+ * path.moveTo(shoulder);
+ * path.cubicTo(c1, c2, hand);
+ * auto pts = path.flatten(24);
+ * // convertir pts en SDL_FPoint puis appeler StrokeRenderer
+ * @endcode
  */
 class StrokePath
 {

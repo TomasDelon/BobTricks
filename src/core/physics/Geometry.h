@@ -6,6 +6,10 @@
 /**
  * @file Geometry.h
  * @brief Utilitaires géométriques partagés par la locomotion.
+ *
+ * Ce fichier fournit des fonctions en ligne de faible coût, basées sur la
+ * géométrie du squelette, qui sont nécessaires à plusieurs modules de
+ * locomotion sans créer de dépendances cycliques.
  */
 
 // Height of the CM above terrain when standing at preferred foot separation.
@@ -29,8 +33,15 @@
 /**
  * @brief Calcule la hauteur nominale du centre de masse au-dessus du terrain.
  *
- * Le calcul suppose deux jambes de longueur totale `2L` et une séparation de
- * pieds préférée `d_pref * L`.
+ * Formule : `h_pelvis = sqrt((2L)² − (d_pref·L / 2)²)`, puis `h = h_pelvis + ratio·L`.
+ * Le calcul suppose deux jambes de longueur totale `2L` en posture préférée.
+ *
+ * @param L              Longueur d'un segment de membre (`= taille / 5`).
+ * @param d_pref         Séparation préférée des pieds en fractions de `L` (ex. 0.90).
+ * @param cm_pelvis_ratio Décalage CM→bassin en fractions de `L` (ex. 0.75).
+ * @return Hauteur nominale du CM au-dessus du sol (en mètres).
+ *
+ * @pre `L > 0`, `d_pref >= 0`, `cm_pelvis_ratio >= 0`.
  */
 inline double computeNominalY(double L, double d_pref, double cm_pelvis_ratio)
 {

@@ -12,7 +12,16 @@
 #include "core/math/Vec2.h"
 
 /**
+ * @file DebugOverlayRenderer.h
+ * @brief Renderer des overlays de debug : XCoM, traînée, projections, vecteurs.
+ */
+
+/**
  * @brief Renderer des overlays de debug dessinés autour du personnage.
+ *
+ * Les méthodes sont séparées en trois couches de rendu pour respecter l'ordre
+ * de profondeur : `renderBackground` (traînée), `renderXCoM`, puis
+ * `renderForeground` (projections, vecteurs cinématiques, regard).
  */
 class DebugOverlayRenderer
 {

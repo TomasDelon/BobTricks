@@ -9,10 +9,20 @@
 #include "render/StrokeRenderer.h"
 
 /**
+ * @file CharacterRenderer.h
+ * @brief Renderer principal du personnage (legacy segments et splines épaisses).
+ */
+
+/**
  * @brief Renderer principal du personnage.
  *
- * Il sait dessiner à la fois la représentation legacy en segments et la
- * représentation spline épaisse, en s'appuyant uniquement sur `CharacterState`.
+ * Supporte deux modes de rendu sélectionnés par `SplineRenderConfig::enabled` :
+ * - **Legacy** : segments SDL2 et cercles pleins pour les articulations ;
+ * - **Spline** : courbes de Bézier cubiques épaisses via `StrokeRenderer`.
+ *
+ * Les deux modes peuvent être superposés. La méthode `render()` délègue au
+ * sous-ensemble approprié de méthodes privées. Toutes les conversions monde→écran
+ * passent par `Camera2D`.
  */
 class CharacterRenderer
 {

@@ -1,18 +1,35 @@
 #pragma once
 
+/**
+ * @file CharacterState.h
+ * @brief État dérivé complet du personnage reconstruit autour du centre de masse.
+ */
+
 #include "core/math/Vec2.h"
 #include "core/character/CMState.h"
 #include "core/character/FootState.h"
 #include "config/AppConfig.h"
 
-/** @brief Régime locomoteur courant du personnage. */
-enum class LocomotionState { Standing, Walking, Running, Airborne };
+/**
+ * @brief Régime locomoteur courant du personnage.
+ *
+ * Utilisé dans `CharacterState` et `TelemetryRow` pour classifier le mouvement.
+ */
+enum class LocomotionState {
+    Standing, ///< Personnage immobile, les deux pieds au sol.
+    Walking,  ///< Marche à vitesse modérée.
+    Running,  ///< Course (SLIP approximé, phases de vol).
+    Airborne  ///< En l'air (saut ou chute libre).
+};
 
 /**
  * @brief État dérivé complet du personnage reconstruit autour du centre de masse.
  *
- * Cette structure rassemble la pose visualisable, les états des membres, les
- * filtres persistants et plusieurs champs de debug/telemetry.
+ * Cette structure rassemble la pose visualisable (squelette), les états des
+ * membres, les filtres persistants (lean, slope, crouch) et les champs de
+ * debug/télémétrie. Elle est mise à jour à chaque pas de simulation par
+ * `SimulationCore::step()` et ne contient aucune donnée autoritaire sur la
+ * physique (qui reste dans `CMState`).
  */
 struct CharacterState {
     LocomotionState locomotion_state = LocomotionState::Standing;
@@ -110,7 +127,20 @@ struct CharacterState {
 };
 
 /**
- * @brief Reconstruit la pose du tronc à partir de l'état du centre de masse.
+ * @brief Reconstruit la pose du tronc (bassin, torse, tête) à partir du CM.
+ *
+ * Met à jour le régime locomoteur, l'angle de lean filtré, la direction du
+ * personnage et toutes les positions de squelette dérivées. Cette fonction
+ * est appelée une fois par pas de simulation dans `SimulationCore`.
+ *
+ * @param character    État du personnage (modifié en place).
+ * @param cm           État cinématique autoritatif du CM.
+ * @param config       Configuration morphologique (taille, ratios).
+ * @param reconstruction Paramètres de reconstruction du torse (lean, hunch…).
+ * @param on_floor     Vrai si le CM est considéré au contact du sol.
+ * @param run_mode     Vrai si le mode course est actif.
+ * @param dt           Pas de temps de simulation (s) — pour les filtres.
+ * @param terrain_slope Pente locale du terrain (dy/dx) sous le personnage.
  */
 void updateCharacterState(CharacterState&       character,
                           const CMState&        cm,

@@ -1,30 +1,36 @@
 #pragma once
 
+/**
+ * @file FootState.h
+ * @brief État complet d'un pied : contact au sol, ancrage et arc de swing.
+ */
+
 #include "core/math/Vec2.h"
 
-/** @brief État complet d'un pied: contact, pinning et swing. */
+/**
+ * @brief État complet d'un pied : contact au sol, ancrage manuel et trajectoire de swing.
+ *
+ * Un pied peut se trouver dans l'un des états mutuellement exclusifs suivants :
+ * - **ancré** (`pinned = true`) : le pied est verrouillé à `pinned_pos` ;
+ * - **en swing** (`swinging = true`) : le pied suit l'arc parabolique de
+ *   `swing_start` vers `swing_target` au fur et à mesure que `swing_t` progresse ;
+ * - **au sol** (`on_ground = true`) : le pied suit le terrain de manière passive.
+ */
 struct FootState {
-    Vec2 pos           = {0.0, 0.0};
-    bool on_ground     = false;
-    Vec2 ground_normal = {0.0, 1.0};  // outward terrain normal at contact point
-    bool airborne      = false;       // true while the foot is intentionally kept off terrain constraints
+    Vec2 pos           = {0.0, 0.0}; ///< Position monde courante du pied (m).
+    bool on_ground     = false;       ///< Vrai si le pied touche le terrain.
+    Vec2 ground_normal = {0.0, 1.0};  ///< Normale sortante du terrain au point de contact.
+    bool airborne      = false;       ///< Vrai quand le pied est volontairement hors des contraintes terrain (saut).
 
-    // Pinned: foot is anchored to pinned_pos (second priority after 2L circle).
-    // Toggle via right-click.
-    bool pinned        = false;
-    Vec2 pinned_pos    = {0.0, 0.0};
-    Vec2 pinned_normal = {0.0, 1.0};  // terrain normal frozen at pin time
+    bool pinned        = false;       ///< Le pied est verrouillé à `pinned_pos` (clic droit).
+    Vec2 pinned_pos    = {0.0, 0.0};  ///< Position d'ancrage en coordonnées monde (m).
+    Vec2 pinned_normal = {0.0, 1.0};  ///< Normale du terrain gelée au moment de l'ancrage.
 
-    // Swing arc: foot travels from swing_start to swing_target over swing_t [0,1].
-    // While swinging, pinned=false; on landing (swing_t>=1) foot auto-pins.
-    bool   swinging          = false;
-    Vec2   swing_start       = {0.0, 0.0};
-    Vec2   swing_target      = {0.0, 0.0};
-    double swing_t           = 0.0;
+    bool   swinging          = false;      ///< Vrai pendant l'arc de swing.
+    Vec2   swing_start       = {0.0, 0.0}; ///< Position de départ du swing.
+    Vec2   swing_target      = {0.0, 0.0}; ///< Position cible d'atterrissage.
+    double swing_t           = 0.0;        ///< Progression du swing dans `[0, 1]`.
 
-    // Computed once at step initiation; used throughout the swing.
-    // swing_speed_scale < 1 slows the arc on steep steps (more vertical travel).
-    // swing_h_clear is the parabolic lift height for this specific step.
-    double swing_speed_scale = 1.0;   // [0-1] slow-down factor for steep arcs
-    double swing_h_clear     = 0.0;   // [m]   parabolic lift height
+    double swing_speed_scale = 1.0; ///< Facteur de ralentissement sur les pas raides `[0,1]`.
+    double swing_h_clear     = 0.0; ///< Hauteur de dégagement parabolique pour ce pas (m).
 };

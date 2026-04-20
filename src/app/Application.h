@@ -22,11 +22,20 @@
 #include "debug/DebugUI.h"
 
 /**
+ * @file Application.h
+ * @brief Orchestrateur principal de l'application SDL interactive.
+ */
+
+/**
  * @brief Application SDL interactive principale.
  *
- * Cette classe possède la fenêtre, le renderer SDL, la boucle de simulation,
- * la caméra, l'UI de debug et tous les renderers visuels. Elle sert
- * d'orchestrateur entre le noyau de simulation et l'interface utilisateur.
+ * Cette classe possède la fenêtre SDL2, le renderer, la boucle de simulation
+ * à pas fixe, la caméra, l'UI de debug ImGui et tous les renderers visuels.
+ * Elle orchestre le flux complet : événements SDL → `InputController` →
+ * `SimulationCore` → renderers → ImGui → présentation.
+ *
+ * L'objet `SimulationCore` est créé dynamiquement dans `init()` après le
+ * chargement de la configuration, car il prend une référence sur `m_config`.
  */
 class Application
 {

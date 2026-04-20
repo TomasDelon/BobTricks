@@ -7,13 +7,29 @@
 #include "core/character/CharacterState.h"
 #include "config/AppConfig.h"
 
-/** @brief Statistiques de frame injectées dans l'UI de debug. */
+/**
+ * @file DebugUI.h
+ * @brief Interface Dear ImGui de contrôle et d'inspection en temps réel.
+ */
+
+/**
+ * @brief Statistiques de frame injectées dans l'UI de debug.
+ *
+ * Calculées par `Application` à partir du compteur haute résolution SDL et
+ * affichées dans le panneau de boucle de simulation.
+ */
 struct FrameStats {
-    float current_fps = 0.f;
-    float frame_dt_s  = 0.f;
+    float current_fps = 0.f; ///< FPS courant (images par seconde).
+    float frame_dt_s  = 0.f; ///< Durée de la dernière frame rendue (s).
 };
 
-/** @brief Requêtes émises par l'UI vers l'application après un frame ImGui. */
+/**
+ * @brief Requêtes émises par l'UI vers `Application` après un rendu ImGui.
+ *
+ * Chaque champ booléen indique qu'une configuration a été modifiée et doit
+ * être persistée ou appliquée par l'application. Les champs `ip_test_*` sont
+ * réservés au panneau de test du pendule inversé.
+ */
 struct AppRequests {
     bool sim_loop  = false;
     bool camera    = false;
@@ -40,12 +56,22 @@ struct AppRequests {
 };
 
 /**
- * @brief Interface ImGui de contrôle et d'inspection du projet.
+ * @brief Interface Dear ImGui de contrôle et d'inspection en temps réel.
+ *
+ * Cette classe regroupe tous les panneaux de debug de l'application :
+ * simulation, caméra, physique, locomotion, bras, tête, torse, pieds,
+ * splines, terrain, particules, balance, saut et test pendule inversé.
+ * Elle est sans état entre deux appels à `render()`, à l'exception du panneau
+ * IP Test qui persiste `m_ipTest` pour afficher la trajectoire analytique.
  */
 class DebugUI
 {
 public:
-    /** @brief Dessine la fenêtre de debug et retourne les requêtes utilisateur. */
+    /**
+     * @brief Dessine tous les panneaux ImGui et retourne les requêtes utilisateur.
+     *
+     * @return `AppRequests` indiquant quelles configurations ont été modifiées.
+     */
     AppRequests render(const FrameStats&      stats,
                         SimulationLoop&        simLoop,   SimLoopConfig&   simConfig,
                         Camera2D&              camera,    CameraConfig&    camConfig,

@@ -8,10 +8,16 @@
 #include "config/AppConfig.h"
 
 /**
+ * @file SceneRenderer.h
+ * @brief Renderer du décor de fond (grille, sol, terrain, poussière).
+ */
+
+/**
  * @brief Renderer du décor de fond.
  *
- * Il dessine la grille, le sol et le terrain procédural derrière le personnage
- * et les overlays de debug.
+ * Responsable du fond dégradé, de la grille monde, du profil du terrain
+ * procédural et des particules de poussière. Il est rendu avant le personnage
+ * et les overlays de debug pour assurer la bonne profondeur visuelle.
  */
 class SceneRenderer
 {
