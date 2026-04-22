@@ -195,3 +195,5 @@ Les tâches d'un même commit sont listées dans leur ordre logique d'implément
 147. Extraire `renderFlattenedPath()` comme fonction libre, éliminant 4 blocs identiques dans `renderSplineHead/Torso/Arm/Leg`
 148. Ajouter le lambda `toScreen` dans `computeScreenSpacePose` pour éliminer la répétition des arguments `ground_y/viewport_w/viewport_h`
 149. Ajouter le lambda `drawPinnableHand` dans `renderLegacyBody` pour éliminer le motif couleur-pinned dupliqué
+150. Répartir l'implémentation de `SimulationCore` entre `SimulationCore.cpp`, `SimulationCoreLifecycle.cpp` et `SimulationCoreLocomotion.cpp` en conservant une API publique unique
+151. Répartir l'implémentation de `DebugUI` en séparant les panneaux liés au personnage dans `DebugUICharacterPanels.cpp`

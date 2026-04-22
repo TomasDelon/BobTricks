@@ -5,6 +5,10 @@ que tous les modules dont il dépend ont déjà été créés.
 Les modules d'une même vague n'ont aucune dépendance entre eux et peuvent
 être créés dans n'importe quel ordre (ou en parallèle).
 
+Ce document décrit l'ordre des **modules logiques**, pas l'ordre des fichiers
+`.cpp`. Ainsi, `SimulationCore` et `DebugUI` apparaissent chacun une seule fois
+même si leur implémentation est désormais répartie sur plusieurs fichiers.
+
 ---
 
 ## Vague 0 — Aucune dépendance

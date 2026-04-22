@@ -203,3 +203,21 @@ graph LR
     DebugUI --> CharacterState
     DebugUI --> AppConfig
 ```
+
+## Découpage physique des implémentations
+
+Le diagramme ci-dessus décrit les **modules logiques**. Dans le code source, deux
+modules importants sont maintenant répartis sur plusieurs fichiers
+d'implémentation sans changer leur API publique :
+
+- `SimulationCore`
+  - `src/core/simulation/SimulationCore.cpp`
+  - `src/core/simulation/SimulationCoreLifecycle.cpp`
+  - `src/core/simulation/SimulationCoreLocomotion.cpp`
+  - `src/core/simulation/SimulationCoreInternal.h` pour les helpers internes partagés
+- `DebugUI`
+  - `src/debug/DebugUI.cpp`
+  - `src/debug/DebugUICharacterPanels.cpp`
+
+Cette séparation est purement structurelle : le graphe de dépendances au niveau
+des modules reste inchangé.

@@ -26,6 +26,148 @@ make check_architecture
 make clean
 ```
 
+## Utiliser le mode headless
+
+Le mode headless compile et exécute un binaire séparé, sans SDL2, sans ImGui et
+sans rendu. Il sert à valider le noyau de simulation via des scénarios
+déterministes.
+
+### 1. Compiler le binaire headless
+
+```sh
+make build_headless
+```
+
+Le binaire produit est :
+
+```sh
+build/bobtricks_headless
+```
+
+### 2. Afficher l'aide CLI
+
+```sh
+./build/bobtricks_headless --help
+```
+
+Options disponibles :
+
+- `--scenario <name>` : exécute un scénario unique
+- `--all` ou `-a` : exécute tous les scénarios enregistrés
+- `--list` ou `-l` : affiche la liste des scénarios disponibles
+- `--quiet` ou `-q` : supprime les logs verbeux du noyau
+- `--help` ou `-h` : affiche l'aide
+
+Si aucun scénario n'est fourni, le binaire exécute `walk_3s` par défaut.
+
+### 3. Lister les scénarios disponibles
+
+```sh
+./build/bobtricks_headless --list
+```
+
+Scénarios actuellement enregistrés :
+
+- `fast_walk`
+- `jump_from_stand`
+- `jump_from_walk`
+- `perturbation_recovery`
+- `run_3s`
+- `stand_still`
+- `upper_body_walk_gaze`
+- `walk_3s`
+- `walk_left`
+- `walk_then_stop`
+
+### 4. Exécuter un scénario unique
+
+```sh
+./build/bobtricks_headless --scenario walk_3s --quiet
+```
+
+Comportement de sortie :
+
+- `stdout` : télémétrie CSV complète, une ligne par tick
+- `stderr` : en-tête d'exécution, rapport des assertions, statut final
+
+Exemple pour sauvegarder la télémétrie :
+
+```sh
+./build/bobtricks_headless --scenario walk_3s --quiet > walk_3s.csv
+```
+
+Le CSV contient notamment :
+
+- `t`
+- `cm_x`, `cm_vx`, `cm_y`, `cm_vy`
+- positions bassin / pieds
+- états de contact au sol
+- `heel_strike`
+- `loco_state`
+- mesures de terrain et de stabilité
+
+### 5. Exécuter tous les scénarios
+
+```sh
+./build/bobtricks_headless --all --quiet
+```
+
+Dans ce mode, le binaire :
+
+- exécute chaque scénario avec une copie propre de la configuration
+- évalue les assertions de chaque scénario
+- affiche `PASS` ou `FAIL` pour chaque cas
+- retourne `0` si tout passe, `1` sinon
+
+Quand `--all` est utilisé, la télémétrie CSV n'est pas le livrable principal :
+on cherche surtout un verdict de validation reproductible.
+
+### 6. Commandes Make liées au headless
+
+```sh
+make build_headless   # compile build/bobtricks_headless
+make test_headless    # exécute tous les scénarios headless
+make test             # unitaires + régression + headless
+make build_asan       # build headless avec AddressSanitizer + UBSan
+make test_asan        # exécute tous les scénarios sur le build ASan
+make test_mem         # Valgrind sur le binaire headless
+```
+
+En pratique :
+
+- `make test_headless` exécute `build/bobtricks_headless --all --quiet`
+- `make test` est la porte de qualité minimale avant un changement significatif
+
+### 7. Configuration utilisée par le binaire
+
+Le binaire headless charge `data/config.ini` au démarrage. Si le fichier est
+absent, les valeurs par défaut de `AppConfig` sont utilisées silencieusement.
+
+### 8. Où ajouter ou modifier des scénarios
+
+Les scénarios prédéfinis sont centralisés dans :
+
+- `src/headless/ScenarioLibrary.cpp`
+
+L'exécutable CLI est défini dans :
+
+- `src/headless/main_headless.cpp`
+
+Le moteur d'exécution des scénarios et des assertions est défini dans :
+
+- `src/headless/ScenarioRunner.cpp`
+
+Les tests de régression qui s'appuient sur ces scénarios se trouvent dans :
+
+- `tests/regression/test_headless_scenarios.cpp`
+
+Pour ajouter un nouveau scénario headless :
+
+1. Définir une nouvelle factory dans `src/headless/ScenarioLibrary.cpp`
+2. Renseigner l'initialisation, la durée, les entrées simulées et les assertions
+3. L'enregistrer dans la bibliothèque retournée par `scenarioLibrary()`
+4. Valider avec `make test_headless` puis `make test`
+
 ## Commandes prévues par le plan directeur
 
 Les commandes suivantes sont documentées comme objectifs d'architecture, mais

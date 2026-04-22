@@ -39,6 +39,17 @@ coûteux, instable sans solveur dédié, inutile pour un personnage 2D stylisé.
 `DebugUI` est dans `src/debug/`. `Application` est dans `src/app/`. Seuls les
 headers de `src/core/` et `src/config/` peuvent être inclus par le headless.
 
+**Organisation physique actuelle :**
+- `SimulationCore` reste une seule classe publique, mais son implémentation est
+  répartie entre `src/core/simulation/SimulationCore.cpp`,
+  `src/core/simulation/SimulationCoreLifecycle.cpp` et
+  `src/core/simulation/SimulationCoreLocomotion.cpp`.
+- Les helpers internes partagés de simulation sont déclarés dans
+  `src/core/simulation/SimulationCoreInternal.h`.
+- `DebugUI` reste une seule classe publique, mais les panneaux liés au
+  personnage sont séparés dans `src/debug/DebugUICharacterPanels.cpp` pour
+  éviter un unique fichier d'interface trop volumineux.
+
 ---
 
 ## 3. Boucle à pas fixe avec accumulateur (`SimulationLoop`)
@@ -201,3 +212,26 @@ coexistent. `SplineRenderConfig::enabled` bascule entre les deux, et
 - `TelemetryRecorder` est réutilisé dans les deux : les assertions de régression
   portent sur des statistiques de la trajectoire (vitesse moyenne, hauteur
   minimale atteinte lors d'un saut, etc.).
+
+---
+
+## 12. Les grosses classes restent uniques, mais leurs `.cpp` sont découpés par responsabilité
+
+**Décision :** on ne multiplie pas les classes artificiellement quand le modèle
+conceptuel n'a pas changé ; en revanche on découpe les fichiers d'implémentation
+quand ils deviennent trop longs ou trop hétérogènes.
+
+**Pourquoi :**
+- `SimulationCore` reste le point d'entrée unique du noyau de simulation :
+  l'API ne devient pas plus complexe pour le runtime, le headless ou les tests.
+- Le découpage par responsabilités (`lifecycle`, sous-phases centrales,
+  locomotion / triggers / récupération) réduit le coût de lecture et rend les
+  dépendances internes plus explicites.
+- `DebugUI` conserve une façade unique, mais les panneaux centrés sur le
+  personnage sont isolés du reste de l'interface (caméra, terrain, audio,
+  particules, aide), ce qui limite le bruit lors des modifications.
+
+**Règle pratique :**
+- si la responsabilité publique est unique, garder une seule classe ;
+- si l'implémentation grossit trop, découper les fichiers `.cpp` sans créer de
+  faux modules conceptuels.
