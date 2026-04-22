@@ -140,6 +140,43 @@ static ScenarioDef makeFastWalk(const AppConfig& cfg)
     return def;
 }
 
+// walk_max_from_start — start immediately at walking max speed and verify the
+// first simulated frame is already in a saturated walking regime.
+static ScenarioDef makeWalkMaxFromStart(const AppConfig& cfg)
+{
+    ScenarioDef def;
+    def.name          = "walk_max_from_start";
+    def.duration_s    = 1.5;
+    def.init.cm_pos   = { 0.0, nominalCMHeight(cfg) };
+    def.init.cm_vel   = { cfg.physics.walk_max_speed, 0.0 };
+    def.init.terrain_seed = 42;
+
+    def.input_fn = [](double) -> InputFrame {
+        InputFrame f;
+        f.key_right = true;
+        return f;
+    };
+
+    def.setup_asserts = [cfg](TelemetryRecorder& rec) {
+        rec.addAssertion("walk_max_from_start has first stepped row", [](const std::vector<TelemetryRow>& rows) {
+            return rows.size() >= 2;
+        });
+        rec.addAssertion("walk_max_from_start enters Walking immediately", [](const std::vector<TelemetryRow>& rows) {
+            return rows.size() >= 2 && rows[1].loco_state == LocomotionState::Walking;
+        });
+        rec.addAssertion("walk_max_from_start keeps max walk speed", [cfg](const std::vector<TelemetryRow>& rows) {
+            return rows.size() >= 2
+                && std::abs(rows[1].cm_vx - cfg.physics.walk_max_speed) <= 0.05;
+        });
+        rec.addAssertion("walk_max_from_start never exceeds walk cap", [cfg](const std::vector<TelemetryRow>& rows) {
+            return std::all_of(rows.begin(), rows.end(),
+                [cfg](const TelemetryRow& r){ return r.cm_vx <= cfg.physics.walk_max_speed + 0.05; });
+        });
+    };
+
+    return def;
+}
+
 // run_3s — hold right + run for 3 seconds; expect explicit flight and sustained forward motion.
 static ScenarioDef makeRun3s(const AppConfig& cfg)
 {
@@ -365,6 +402,7 @@ const std::map<std::string, ScenarioFactory>& scenarioLibrary()
         { "stand_still",           makeStandStill           },
         { "walk_then_stop",        makeWalkThenStop         },
         { "fast_walk",             makeFastWalk             },
+        { "walk_max_from_start",   makeWalkMaxFromStart     },
         { "run_3s",                makeRun3s                },
         { "walk_left",             makeWalkLeft             },
         { "perturbation_recovery", makePerturbationRecovery },

@@ -17,6 +17,7 @@ namespace {
 
 struct ParsedRow {
     double      cm_x = 0.0;
+    double      cm_vx = 0.0;
     double      cm_y = 0.0;
     bool        foot_L_on_ground = false;
     bool        foot_R_on_ground = false;
@@ -55,6 +56,7 @@ std::vector<ParsedRow> parseRows(const std::string& csv, TestSuite& suite)
 
         ParsedRow row;
         row.cm_x = std::stod(cols[1]);
+        row.cm_vx = std::stod(cols[2]);
         row.cm_y = std::stod(cols[3]);
         row.foot_L_on_ground = (cols[10] == "1");
         row.foot_R_on_ground = (cols[11] == "1");
@@ -152,6 +154,22 @@ int main()
         TEST_EXPECT(suite, rows.back().cm_x > 1.0);
         TEST_EXPECT(suite, std::any_of(rows.begin(), rows.end(),
             [](const ParsedRow& row) { return row.loco_state == "Walking"; }));
+    }
+
+    {
+        AppConfig run_cfg = base_cfg;
+        const ScenarioDef def = lib.at("walk_max_from_start")(run_cfg);
+        std::ostringstream csv;
+        std::ostringstream report;
+        const bool ok = runScenario(def, run_cfg, csv, report);
+        const auto rows = parseRows(csv.str(), suite);
+
+        TEST_EXPECT_MSG(suite, ok, report.str());
+        TEST_EXPECT(suite, rows.size() >= 2);
+        TEST_EXPECT(suite, rows[1].loco_state == "Walking");
+        TEST_EXPECT(suite, std::abs(rows[1].cm_vx - run_cfg.physics.walk_max_speed) <= 0.05);
+        TEST_EXPECT(suite, std::all_of(rows.begin(), rows.end(),
+            [&](const ParsedRow& row) { return row.cm_vx <= run_cfg.physics.walk_max_speed + 0.05; }));
     }
 
     {

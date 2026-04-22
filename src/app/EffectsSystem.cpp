@@ -14,6 +14,7 @@ double hash01(int seed)
 } // namespace
 
 void EffectsSystem::update(const SimState& state,
+                           const CharacterConfig& char_cfg,
                            const ParticlesConfig& config,
                            double sim_time)
 {
@@ -24,17 +25,17 @@ void EffectsSystem::update(const SimState& state,
 
         if (config.impact_enabled) {
             if (state.events.left_touchdown)
-                emitFootDust(state.character.foot_left, config, sim_time, 1.2, move_sign, 0.9);
+                emitFootDust(state.character.foot_left, char_cfg, config, sim_time, 1.2, move_sign, 0.9);
             if (state.events.right_touchdown)
-                emitFootDust(state.character.foot_right, config, sim_time, 1.2, move_sign, 0.9);
+                emitFootDust(state.character.foot_right, char_cfg, config, sim_time, 1.2, move_sign, 0.9);
         }
 
         if (config.landing_enabled && state.events.landed_from_jump) {
             const double landing_scale = std::max(1.0, config.landing_burst_scale);
             if (state.character.foot_left.on_ground)
-                emitFootDust(state.character.foot_left, config, sim_time, landing_scale, move_sign, 1.3);
+                emitFootDust(state.character.foot_left, char_cfg, config, sim_time, landing_scale, move_sign, 1.3);
             if (state.character.foot_right.on_ground)
-                emitFootDust(state.character.foot_right, config, sim_time, landing_scale, move_sign, 1.3);
+                emitFootDust(state.character.foot_right, char_cfg, config, sim_time, landing_scale, move_sign, 1.3);
         }
 
         if (config.slide_enabled && state.events.left_slide_active) {
@@ -42,14 +43,14 @@ void EffectsSystem::update(const SimState& state,
             const double motion_dir = (state.cm.velocity.x >= 0.0) ? 1.0 : -1.0;
             const bool braking_on_slope = motion_dir != uphill_dir;
             const double tangent_dir = braking_on_slope ? motion_dir : uphill_dir;
-            emitSlideDust(state.character.foot_left, config, sim_time, tangent_dir);
+            emitSlideDust(state.character.foot_left, char_cfg, config, sim_time, tangent_dir);
         }
         if (config.slide_enabled && state.events.right_slide_active) {
             const double uphill_dir = (state.character.foot_right.ground_normal.x >= 0.0) ? -1.0 : 1.0;
             const double motion_dir = (state.cm.velocity.x >= 0.0) ? 1.0 : -1.0;
             const bool braking_on_slope = motion_dir != uphill_dir;
             const double tangent_dir = braking_on_slope ? motion_dir : uphill_dir;
-            emitSlideDust(state.character.foot_right, config, sim_time, tangent_dir);
+            emitSlideDust(state.character.foot_right, char_cfg, config, sim_time, tangent_dir);
         }
     }
 
@@ -62,6 +63,7 @@ void EffectsSystem::clear()
 }
 
 void EffectsSystem::emitFootDust(const FootState& foot,
+                                 const CharacterConfig& char_cfg,
                                  const ParticlesConfig& config,
                                  double sim_time,
                                  double burst_scale,
@@ -77,6 +79,9 @@ void EffectsSystem::emitFootDust(const FootState& foot,
     if (tangent.length() < 1.0e-6) tangent = {1.0, 0.0};
     else tangent = tangent / tangent.length();
     const Vec2 up = (normal.length() < 1.0e-6) ? Vec2{0.0, 1.0} : (normal / normal.length());
+    const double L = char_cfg.body_height_m / 5.0;
+    const double foot_thickness = 0.08 * L;
+    const Vec2 sole_origin = foot.pos - up * (0.5 * foot_thickness);
 
     const int seed_base = static_cast<int>(sim_time * 1000.0);
     for (int i = 0; i < burst_count; ++i) {
@@ -88,7 +93,7 @@ void EffectsSystem::emitFootDust(const FootState& foot,
         particle.lifetime_s = config.dust_lifetime_s
                             * (0.75 + 0.5 * hash01(seed_base + 149 * i))
                             * std::max(0.8, burst_scale * 0.8);
-        particle.pos = foot.pos + up * 0.015 + tangent * (0.02 * spread);
+        particle.pos = sole_origin + tangent * (0.02 * spread);
         particle.vel = tangent * (config.dust_speed_mps * (0.45 * spread + 0.55 * tangent_bias) * forward)
                      + up * (config.dust_speed_mps * 0.75 * upward);
         particle.radius_px = config.dust_radius_px
@@ -106,6 +111,7 @@ void EffectsSystem::emitFootDust(const FootState& foot,
 }
 
 void EffectsSystem::emitSlideDust(const FootState& foot,
+                                  const CharacterConfig& char_cfg,
                                   const ParticlesConfig& config,
                                   double sim_time,
                                   double tangent_dir)
@@ -117,6 +123,9 @@ void EffectsSystem::emitSlideDust(const FootState& foot,
     if (tangent.length() < 1.0e-6) tangent = {1.0, 0.0};
     else tangent = tangent / tangent.length();
     const Vec2 up = (normal.length() < 1.0e-6) ? Vec2{0.0, 1.0} : (normal / normal.length());
+    const double L = char_cfg.body_height_m / 5.0;
+    const double foot_thickness = 0.08 * L;
+    const Vec2 sole_origin = foot.pos - up * (0.5 * foot_thickness);
 
     const int seed_base = static_cast<int>(sim_time * 1000.0) + 7000;
     for (int i = 0; i < 3; ++i) {
@@ -124,7 +133,7 @@ void EffectsSystem::emitSlideDust(const FootState& foot,
         DustParticle particle;
         particle.spawn_time = sim_time;
         particle.lifetime_s = config.dust_lifetime_s * (0.45 + 0.15 * hash01(seed_base + 29 * i));
-        particle.pos = foot.pos + up * 0.01 + tangent * (0.016 * jitter);
+        particle.pos = sole_origin + tangent * (0.016 * jitter);
         particle.vel = tangent * (config.dust_speed_mps * (0.45 * tangent_dir + 0.25 * jitter))
                      + up * (config.dust_speed_mps * (0.10 + 0.15 * hash01(seed_base + 43 * i)));
         particle.radius_px = config.dust_radius_px * static_cast<float>(0.45 + 0.20 * hash01(seed_base + 59 * i));
