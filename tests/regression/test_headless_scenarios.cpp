@@ -20,7 +20,6 @@ struct ParsedRow {
     double      cm_y = 0.0;
     bool        foot_L_on_ground = false;
     bool        foot_R_on_ground = false;
-    bool        heel_strike = false;
     std::string loco_state;
 };
 
@@ -47,11 +46,11 @@ std::vector<ParsedRow> parseRows(const std::string& csv, TestSuite& suite)
         const auto cols = splitCsvLine(line);
         if (!header_seen) {
             header_seen = true;
-            TEST_EXPECT_MSG(suite, cols.size() >= 18, "unexpected telemetry header width");
+            TEST_EXPECT_MSG(suite, cols.size() >= 15, "unexpected telemetry header width");
             continue;
         }
-        TEST_EXPECT_MSG(suite, cols.size() >= 18, "unexpected telemetry row width");
-        if (cols.size() < 18)
+        TEST_EXPECT_MSG(suite, cols.size() >= 15, "unexpected telemetry row width");
+        if (cols.size() < 15)
             continue;
 
         ParsedRow row;
@@ -59,18 +58,11 @@ std::vector<ParsedRow> parseRows(const std::string& csv, TestSuite& suite)
         row.cm_y = std::stod(cols[3]);
         row.foot_L_on_ground = (cols[10] == "1");
         row.foot_R_on_ground = (cols[11] == "1");
-        row.heel_strike = (cols[16] == "1");
-        row.loco_state = cols[17];
+        row.loco_state = cols[13];
         rows.push_back(row);
     }
 
     return rows;
-}
-
-int countHeelStrikes(const std::vector<ParsedRow>& rows)
-{
-    return static_cast<int>(std::count_if(rows.begin(), rows.end(),
-        [](const ParsedRow& row) { return row.heel_strike; }));
 }
 
 bool isFinite(Vec2 v)
@@ -111,7 +103,6 @@ int main()
             max_abs_cm_x = std::max(max_abs_cm_x, std::fabs(row.cm_x));
 
         TEST_EXPECT(suite, max_abs_cm_x < 0.2);
-        TEST_EXPECT(suite, countHeelStrikes(rows) == 0);
         TEST_EXPECT(suite, rows.back().loco_state == "Standing");
     }
 

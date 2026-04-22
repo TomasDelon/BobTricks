@@ -30,7 +30,4 @@ struct TelemetryRow {
     double          cm_offset;          ///< Décalage de hauteur additionnel (m).
     double          speed_drop;         ///< Abaissement du CM lié à la vitesse (m).
     double          slope_drop;         ///< Abaissement du CM lié à la pente (m).
-
-    /** @deprecated Plus émis par le runtime actuel ; conservé pour les assertions historiques. */
-    bool            heel_strike  = false;
 };

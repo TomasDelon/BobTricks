@@ -3,14 +3,6 @@
 #include <iomanip>
 #include <ostream>
 
-namespace {
-
-constexpr const char* kLegacyXCoMPlaceholder = "0.000000";
-constexpr const char* kLegacyMoSPlaceholder = "0.000000";
-constexpr const char* kLegacyStepActivePlaceholder = "0";
-
-} // namespace
-
 static const char* locoName(LocomotionState s)
 {
     switch (s) {
@@ -48,23 +40,19 @@ void TelemetryRecorder::record(const SimState& s)
     row.cm_offset         = ch.debug_cm_offset;
     row.speed_drop        = ch.debug_speed_drop;
     row.slope_drop        = ch.debug_slope_drop;
-    row.heel_strike       = false;
 
     m_rows.push_back(row);
 }
 
 void TelemetryRecorder::writeCsv(std::ostream& out) const
 {
-    // Fixed CSV layout kept for regression/test compatibility.
-    // xcom/mos/step_active remain placeholder columns in the walking-redesign runtime.
     out << "t,cm_x,cm_vx,cm_y,cm_vy,"
            "pelvis_x,"
            "foot_L_x,foot_R_x,"
            "foot_L_y,foot_R_y,"
            "foot_L_on_ground,foot_R_on_ground,"
            "cm_target_y,"
-           "xcom,mos,step_active,"
-           "heel_strike,loco_state,"
+           "loco_state,"
            "ref_ground,ref_slope,h_ip,cm_offset,speed_drop,slope_drop\n";
 
     out << std::fixed << std::setprecision(6);
@@ -78,10 +66,6 @@ void TelemetryRecorder::writeCsv(std::ostream& out) const
             << static_cast<int>(r.foot_L_on_ground) << ','
             << static_cast<int>(r.foot_R_on_ground) << ','
             << r.cm_target_y << ','
-            << kLegacyXCoMPlaceholder << ','
-            << kLegacyMoSPlaceholder << ','
-            << kLegacyStepActivePlaceholder << ','
-            << static_cast<int>(r.heel_strike) << ','
             << locoName(r.loco_state) << ','
             << r.ref_ground << ','
             << r.ref_slope << ','

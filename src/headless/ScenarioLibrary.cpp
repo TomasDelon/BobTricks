@@ -1,7 +1,6 @@
 #include "headless/ScenarioLibrary.h"
 
 #include <algorithm>
-#include <vector>
 
 #include "core/physics/Geometry.h"
 #include "core/telemetry/TelemetryRow.h"
@@ -12,12 +11,6 @@ static double nominalCMHeight(const AppConfig& cfg)
 {
     const double L = cfg.character.body_height_m / 5.0;
     return computeNominalY(L, cfg.standing.d_pref, cfg.character.cm_pelvis_ratio);
-}
-
-static int countRows(const std::vector<TelemetryRow>& rows,
-                     bool (*pred)(const TelemetryRow&))
-{
-    return static_cast<int>(std::count_if(rows.begin(), rows.end(), pred));
 }
 
 // ── scenario factories ────────────────────────────────────────────────────────
@@ -71,9 +64,6 @@ static ScenarioDef makeStandStill(const AppConfig& cfg)
         rec.addAssertion("|cm_x| < 0.2 throughout", [](const std::vector<TelemetryRow>& rows) {
             return std::all_of(rows.begin(), rows.end(),
                 [](const TelemetryRow& r){ return r.cm_x > -0.2 && r.cm_x < 0.2; });
-        });
-        rec.addAssertion("no heel_strikes", [](const std::vector<TelemetryRow>& rows) {
-            return countRows(rows, [](const TelemetryRow& r){ return r.heel_strike; }) == 0;
         });
         rec.addAssertion("loco_state Standing at end", [](const std::vector<TelemetryRow>& rows) {
             return !rows.empty()
