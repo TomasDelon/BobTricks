@@ -5,19 +5,19 @@
  * @brief Système audio réactif aux événements de locomotion.
  */
 
-#include <SDL2/SDL.h>
-#include <cstddef>
-#include <cstdint>
+#include <SDL2/SDL_mixer.h>
+#include "config/AppConfig.h"
+
 #include <string>
 #include <vector>
 
 /**
  * @brief Système audio piloté par les événements de contact pied-sol.
  *
- * Ce système utilise l'API audio SDL2 bas niveau pour jouer des variantes
- * d'un sample de pas unique avec pitch et gain aléatoires. Il est déclenché
- * par `Application` en réponse aux événements `SimEvents::left_touchdown`,
- * `right_touchdown` et `landed_from_jump`.
+ * Ce système repose sur SDL_mixer pour jouer un sample de pas et une piste
+ * musicale bouclée. Il est déclenché par `Application` en réponse aux
+ * événements `SimEvents::left_touchdown`, `right_touchdown` et
+ * `landed_from_jump`.
  */
 class AudioSystem
 {
@@ -34,6 +34,9 @@ public:
      * @return Vrai si le chargement a réussi.
      */
     bool loadFootstepSample(const char* path);
+
+    /** @brief Applique les réglages runtime (volumes, piste active, enable musique). */
+    void applyConfig(const AudioConfig& config);
 
     /**
      * @brief Joue le son de contact d'un pied.
@@ -56,17 +59,17 @@ public:
     /** @brief Libère le périphérique audio SDL2. */
     void shutdown();
 
+    /** @brief Nombre de pistes musicales disponibles dans le runtime. */
+    static int musicTrackCount();
+    /** @brief Libellé d'une piste musicale pour l'UI de debug. */
+    static const char* musicTrackLabel(int index);
+
 private:
-    struct PlaybackParams {
-        float gain       = 1.0f;
-        float pitch      = 1.0f;
-        float trim_start = 0.0f;
-        float trim_end   = 1.0f;
-    };
+    void playVariant(float gain);
+    bool loadMusicTrack(int track_index);
+    void refreshMusicPlayback();
 
-    void queueVariant(const PlaybackParams& params);
-
-    SDL_AudioDeviceID m_device = 0;
-    std::vector<float> m_footstep_sample;
-    std::uint32_t      m_variant_counter = 0;
+    Mix_Chunk*  m_footstep_sample = nullptr;
+    Mix_Music*  m_music           = nullptr;
+    AudioConfig m_runtime_config;
 };

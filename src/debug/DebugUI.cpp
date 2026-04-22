@@ -1,4 +1,5 @@
 #include "debug/DebugUI.h"
+#include "app/AudioSystem.h"
 #include "core/locomotion/StandingController.h"
 #include "core/physics/Geometry.h"
 
@@ -349,6 +350,7 @@ AppRequests DebugUI::render(const FrameStats&      stats,
                              PhysicsConfig&         physConfig,
                              TerrainConfig&         terrainConfig,
                              ParticlesConfig&       particlesConfig,
+                             AudioConfig&           audioConfig,
                              TerrainSamplingConfig& terrainSamplingConfig,
                              WalkConfig&            walkConfig,
                              JumpConfig&            jumpConfig,
@@ -370,6 +372,7 @@ AppRequests DebugUI::render(const FrameStats&      stats,
     renderCameraPanel(camera, camConfig, req.camera);
     renderTerrainPanel(terrainConfig, req.terrain, req.regenerate_terrain);
     renderParticlesPanel(particlesConfig, req.particles);
+    renderAudioPanel(audioConfig, req.audio);
     renderHelpPanel();
     renderCMKinematicsPanel(cmState, cmConfig, req.cm, req.clear_trail);
     renderTerrainSamplingPanel(terrainSamplingConfig, cmConfig, req.terrain);
@@ -872,6 +875,51 @@ void DebugUI::renderParticlesPanel(ParticlesConfig& config, bool& saveRequested)
 
     ImGui::Separator();
     if (ImGui::Button("Save Particles Config"))
+        saveRequested = true;
+}
+
+void DebugUI::renderAudioPanel(AudioConfig& config, bool& saveRequested)
+{
+    if (!ImGui::CollapsingHeader("Audio", ImGuiTreeNodeFlags_None))
+        return;
+
+    float footstep_volume = static_cast<float>(config.footstep_volume);
+    ImGui::SetNextItemWidth(180.f);
+    if (ImGui::SliderFloat("footstep_volume", &footstep_volume, 0.0f, 4.0f, "%.2f")) {
+        config.footstep_volume = static_cast<double>(footstep_volume);
+        saveRequested = true;
+    }
+
+    if (ImGui::Checkbox("Enable music", &config.music_enabled))
+        saveRequested = true;
+
+    float music_volume = static_cast<float>(config.music_volume);
+    ImGui::SetNextItemWidth(180.f);
+    if (ImGui::SliderFloat("music_volume", &music_volume, 0.0f, 1.0f, "%.2f")) {
+        config.music_volume = static_cast<double>(music_volume);
+        saveRequested = true;
+    }
+
+    const int track_count = AudioSystem::musicTrackCount();
+    if (track_count > 0) {
+        int track = std::clamp(config.music_track, 0, track_count - 1);
+        const char* preview = AudioSystem::musicTrackLabel(track);
+        if (ImGui::BeginCombo("Music track", preview)) {
+            for (int i = 0; i < track_count; ++i) {
+                const bool selected = (i == track);
+                if (ImGui::Selectable(AudioSystem::musicTrackLabel(i), selected)) {
+                    config.music_track = i;
+                    saveRequested = true;
+                }
+                if (selected)
+                    ImGui::SetItemDefaultFocus();
+            }
+            ImGui::EndCombo();
+        }
+    }
+
+    ImGui::Separator();
+    if (ImGui::Button("Save Audio Config"))
         saveRequested = true;
 }
 

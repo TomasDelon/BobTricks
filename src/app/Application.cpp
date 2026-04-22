@@ -62,8 +62,13 @@ bool Application::init()
     m_camera.reset({0.0, 0.0});
     m_camera.zoomBy(m_config.camera.zoom);
 
-    if (!m_audioSystem.init() || !m_audioSystem.loadFootstepSample(FOOTSTEP_WAV_PATH))
-        SDL_Log("Audio init disabled: %s", SDL_GetError());
+    if (!m_audioSystem.init()) {
+        SDL_Log("Audio init disabled");
+    } else {
+        if (!m_audioSystem.loadFootstepSample(FOOTSTEP_WAV_PATH))
+            SDL_Log("Footstep sample disabled");
+        m_audioSystem.applyConfig(m_config.audio);
+    }
 
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
@@ -170,7 +175,7 @@ void Application::stepSimulation(double dt)
         if (s.events.right_slide_active)
             m_audioSystem.playSlide(false);
     }
-    m_effectsSystem.update(s, m_config.particles, sim_time);
+    m_effectsSystem.update(s, m_config.character, m_config.particles, sim_time);
 }
 
 void Application::handleEvent(const SDL_Event& event)
@@ -214,11 +219,14 @@ void Application::render()
             m_config.physics,
             m_config.terrain,
             m_config.particles,
+            m_config.audio,
             m_config.terrain_sampling,
             m_config.walk,
             m_config.jump,
             terrain
         );
+
+        m_audioSystem.applyConfig(m_config.audio);
 
         if (req.step_back)          stepBack();
         if (req.regenerate_terrain) m_core->regenerateTerrain();
@@ -231,7 +239,7 @@ void Application::render()
         }
 
         if (req.sim_loop || req.camera || req.character || req.head || req.arms || req.spline || req.presentation || req.reconstruction
-            || req.walk || req.jump
+            || req.walk || req.jump || req.audio
             || req.cm || req.physics || req.terrain || req.particles) {
             m_config.sim_loop.time_scale = m_simLoop.getTimeScale();
             m_config.camera.zoom         = m_camera.getZoom();

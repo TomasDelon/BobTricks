@@ -1,7 +1,7 @@
 CXX      := g++
 CXXFLAGS := -std=c++20 -Wall -Wextra -g
-INCLUDES := -Isrc -Ivendor/imgui $(shell sdl2-config --cflags)
-LIBS     := $(shell sdl2-config --libs) -lGL
+INCLUDES := -Isrc -Ivendor/imgui $(shell sdl2-config --cflags) $(shell pkg-config --cflags SDL2_mixer)
+LIBS     := $(shell sdl2-config --libs) $(shell pkg-config --libs SDL2_mixer) -lGL
 
 SRC_DIRS := src src/app src/config \
             src/core/math src/core/character src/core/locomotion \

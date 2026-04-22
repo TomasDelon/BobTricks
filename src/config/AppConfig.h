@@ -196,6 +196,14 @@ struct ParticlesConfig {
     double landing_burst_scale   = 2.4;
 };
 
+/** @brief Paramètres audio runtime pour les pas et la musique. */
+struct AudioConfig {
+    double footstep_volume = 2.40; // [0-4] gain global des pas / slides / landings
+    double music_volume    = 0.25; // [0-1] volume global de la musique
+    bool   music_enabled   = true;
+    int    music_track     = 1;    // index dans la playlist embarquée par le runtime
+};
+
 /** @brief Paramètres géométriques du régime debout. */
 struct StandingConfig {
     double d_pref          = 0.90;  // [×L] preferred foot separation
@@ -335,6 +343,7 @@ struct AppConfig {
     PhysicsConfig                 physics;
     TerrainConfig                 terrain;
     ParticlesConfig               particles;
+    AudioConfig                   audio;
     TerrainSamplingConfig         terrain_sampling;
     StandingConfig                standing;
     StepConfig                    step;

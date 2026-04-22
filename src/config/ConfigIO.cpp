@@ -190,6 +190,12 @@ bool ConfigIO::load(const std::string& path, AppConfig& config)
             else if (key == "slide_emit_interval_s") { config.particles.slide_emit_interval_s = std::stod(value); handled = true; }
             else if (key == "landing_burst_scale")   { config.particles.landing_burst_scale   = std::stod(value); handled = true; }
         }
+        else if (section == "Audio") {
+            if      (key == "footstep_volume") { config.audio.footstep_volume = std::stod(value); handled = true; }
+            else if (key == "music_volume")    { config.audio.music_volume    = std::stod(value); handled = true; }
+            else if (key == "music_enabled")   { config.audio.music_enabled   = (value == "1" || value == "true"); handled = true; }
+            else if (key == "music_track")     { config.audio.music_track     = std::stoi(value); handled = true; }
+        }
         else if (section == "Standing") {
             if      (key == "d_pref")   { config.standing.d_pref   = std::stod(value); handled = true; }
             else if (key == "d_min")    { config.standing.d_min    = std::stod(value); handled = true; }
@@ -420,6 +426,12 @@ bool ConfigIO::save(const std::string& path, const AppConfig& config)
     file << "dust_speed_mps=" << config.particles.dust_speed_mps << "\n";
     file << "slide_emit_interval_s=" << config.particles.slide_emit_interval_s << "\n";
     file << "landing_burst_scale="   << config.particles.landing_burst_scale << "\n\n";
+
+    file << "[Audio]\n";
+    file << "footstep_volume=" << config.audio.footstep_volume << "\n";
+    file << "music_volume="    << config.audio.music_volume    << "\n";
+    file << "music_enabled="   << (config.audio.music_enabled ? "1" : "0") << "\n";
+    file << "music_track="     << config.audio.music_track     << "\n\n";
 
     file << "[Standing]\n";
     file << "d_pref=" << config.standing.d_pref << "\n";
