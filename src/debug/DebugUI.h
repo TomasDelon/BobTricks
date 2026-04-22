@@ -50,7 +50,7 @@ struct AppRequests {
     bool step_back          = false;
     bool reconstruction     = false;
 
-    // IP test: Application teleports the CM to these coords when launch=true.
+    // Test de pendule inverse : l'application teleporte le CM a ces coordonnees au lancement.
     bool   ip_test_launch = false;
     double ip_test_cm_x   = 0.0;
     double ip_test_cm_vx  = 0.0;
@@ -63,7 +63,8 @@ struct AppRequests {
  * simulation, caméra, physique, locomotion, bras, tête, torse, pieds,
  * splines, terrain, particules, balance, saut et test pendule inversé.
  * Elle est sans état entre deux appels à `render()`, à l'exception du panneau
- * IP Test qui persiste `m_ipTest` pour afficher la trajectoire analytique.
+ * de test du pendule inverse qui persiste `m_ipTest` pour afficher la
+ * trajectoire analytique.
  */
 class DebugUI
 {
@@ -130,19 +131,19 @@ private:
                              const PhysicsConfig& physConfig, SimulationLoop& simLoop,
                              AppRequests& req);
 
-    // State persisted across frames for the IP test.
+    // Etat persistant entre les frames pour le test du pendule inverse.
     struct IPTestState {
         bool   active    = false;
-        double t_start   = 0.0;   // simulation time at launch
-        double stance_x  = 0.0;   // stance foot x at launch
+        double t_start   = 0.0;   // temps de simulation au lancement
+        double stance_x  = 0.0;   // abscisse du pied d'appui au lancement
         double facing    = 1.0;
-        double x0_rel    = 0.0;   // initial cm.x - stance.x (= 0.3L)
-        double v0        = 0.0;   // initial cm.vx            (= 0)
+        double x0_rel    = 0.0;   // valeur initiale cm.x - stance.x (= 0.3L)
+        double v0        = 0.0;   // valeur initiale de cm.vx (= 0)
         double omega0    = 0.0;   // sqrt(g / nominal_y)
         double mu        = 0.0;   // floor_friction
-        double r1        = 0.0;   // positive root of r²+mu·r-ω0²=0
-        double r2        = 0.0;   // negative root
-        double C1        = 0.0;   // solution coefficient
+        double r1        = 0.0;   // racine positive de r²+mu·r-ω0²=0
+        double r2        = 0.0;   // racine negative
+        double C1        = 0.0;   // coefficient de solution
         double C2        = 0.0;
     } m_ipTest;
 };

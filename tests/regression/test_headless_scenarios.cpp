@@ -19,8 +19,8 @@ struct ParsedRow {
     double      cm_x = 0.0;
     double      cm_vx = 0.0;
     double      cm_y = 0.0;
-    bool        foot_L_on_ground = false;
-    bool        foot_R_on_ground = false;
+    bool        foot_left_on_ground = false;
+    bool        foot_right_on_ground = false;
     std::string loco_state;
 };
 
@@ -58,8 +58,8 @@ std::vector<ParsedRow> parseRows(const std::string& csv, TestSuite& suite)
         row.cm_x = std::stod(cols[1]);
         row.cm_vx = std::stod(cols[2]);
         row.cm_y = std::stod(cols[3]);
-        row.foot_L_on_ground = (cols[10] == "1");
-        row.foot_R_on_ground = (cols[11] == "1");
+        row.foot_left_on_ground = (cols[10] == "1");
+        row.foot_right_on_ground = (cols[11] == "1");
         row.loco_state = cols[13];
         rows.push_back(row);
     }
@@ -105,7 +105,7 @@ int main()
             max_abs_cm_x = std::max(max_abs_cm_x, std::fabs(row.cm_x));
 
         TEST_EXPECT(suite, max_abs_cm_x < 0.2);
-        TEST_EXPECT(suite, rows.back().loco_state == "Standing");
+        TEST_EXPECT(suite, rows.back().loco_state == "Debout");
     }
 
     {
@@ -123,7 +123,7 @@ int main()
         TEST_EXPECT(suite, std::all_of(rows.begin(), rows.end(),
             [](const ParsedRow& row) { return !std::isnan(row.cm_y); }));
         TEST_EXPECT(suite, std::any_of(rows.begin(), rows.end(),
-            [](const ParsedRow& row) { return row.loco_state == "Walking"; }));
+            [](const ParsedRow& row) { return row.loco_state == "Marche"; }));
     }
 
     {
@@ -136,7 +136,7 @@ int main()
 
         TEST_EXPECT_MSG(suite, ok, report.str());
         TEST_EXPECT(suite, !rows.empty());
-        TEST_EXPECT(suite, rows.back().loco_state != "Airborne");
+        TEST_EXPECT(suite, rows.back().loco_state != "Aerien");
         TEST_EXPECT(suite, std::all_of(rows.begin(), rows.end(),
             [](const ParsedRow& row) { return !std::isnan(row.cm_x) && !std::isnan(row.cm_y); }));
     }
@@ -153,7 +153,7 @@ int main()
         TEST_EXPECT(suite, !rows.empty());
         TEST_EXPECT(suite, rows.back().cm_x > 1.0);
         TEST_EXPECT(suite, std::any_of(rows.begin(), rows.end(),
-            [](const ParsedRow& row) { return row.loco_state == "Walking"; }));
+            [](const ParsedRow& row) { return row.loco_state == "Marche"; }));
     }
 
     {
@@ -166,7 +166,7 @@ int main()
 
         TEST_EXPECT_MSG(suite, ok, report.str());
         TEST_EXPECT(suite, rows.size() >= 2);
-        TEST_EXPECT(suite, rows[1].loco_state == "Walking");
+        TEST_EXPECT(suite, rows[1].loco_state == "Marche");
         TEST_EXPECT(suite, std::abs(rows[1].cm_vx - run_cfg.physics.walk_max_speed) <= 0.05);
         TEST_EXPECT(suite, std::all_of(rows.begin(), rows.end(),
             [&](const ParsedRow& row) { return row.cm_vx <= run_cfg.physics.walk_max_speed + 0.05; }));
@@ -184,9 +184,9 @@ int main()
         TEST_EXPECT(suite, !rows.empty());
         TEST_EXPECT(suite, rows.back().cm_x > 4.0);
         TEST_EXPECT(suite, std::any_of(rows.begin(), rows.end(),
-            [](const ParsedRow& row) { return row.loco_state == "Running"; }));
+            [](const ParsedRow& row) { return row.loco_state == "Course"; }));
         TEST_EXPECT(suite, std::any_of(rows.begin(), rows.end(),
-            [](const ParsedRow& row) { return row.foot_L_on_ground != row.foot_R_on_ground; }));
+            [](const ParsedRow& row) { return row.foot_left_on_ground != row.foot_right_on_ground; }));
     }
 
     {

@@ -23,10 +23,10 @@ static bool sliderDouble(const char* label, double& val, float lo, float hi, con
 const char* locomotionStateLabel(LocomotionState state)
 {
     switch (state) {
-        case LocomotionState::Standing: return "Standing";
-        case LocomotionState::Walking:  return "Walking";
-        case LocomotionState::Running:  return "Running";
-        case LocomotionState::Airborne: return "Airborne";
+        case LocomotionState::Standing: return "Debout";
+        case LocomotionState::Walking:  return "Marche";
+        case LocomotionState::Running:  return "Course";
+        case LocomotionState::Airborne: return "Aerien";
     }
     return "?";
 }
@@ -35,16 +35,16 @@ void renderLocomotionPoseDebug(const CharacterState&  charState,
                                const CharacterConfig& charConfig,
                                const Terrain&         terrain)
 {
-    ImGui::Text("state      = %s", locomotionStateLabel(charState.locomotion_state));
-    ImGui::Text("facing     = %+.2f", charState.facing);
-    ImGui::Text("on_floor   = %s", charState.debug_on_floor ? "true" : "false");
-    ImGui::Text("cm_target_y = %+.3f m", charState.debug_cm_target_y);
+    ImGui::Text("etat         = %s", locomotionStateLabel(charState.locomotion_state));
+    ImGui::Text("orientation  = %+.2f", charState.facing);
+    ImGui::Text("au_sol       = %s", charState.debug_on_floor ? "vrai" : "faux");
+    ImGui::Text("cm_target_y  = %+.3f m", charState.debug_cm_target_y);
 
     const double L        = charConfig.body_height_m / 5.0;
     const double ground_y = terrain.height_at(charState.pelvis.x);
     const double pelvis_h = charState.pelvis.y - ground_y;
-    ImGui::Text("pelvis_h    = %.3f m  (%.2f L)", pelvis_h, pelvis_h / L);
-    ImGui::Text("theta       = %+.2f deg  slope_lp = %+.3f",
+    ImGui::Text("hauteur_bassin = %.3f m  (%.2f L)", pelvis_h, pelvis_h / L);
+    ImGui::Text("theta          = %+.2f deg  pente_lp = %+.3f",
                 charState.theta * 180.0 / 3.14159265358979323846,
                 charState.filtered_slope);
 }
@@ -52,46 +52,46 @@ void renderLocomotionPoseDebug(const CharacterState&  charState,
 void renderFootDebug(const char* label, const FootState& foot)
 {
     ImGui::Separator();
-    ImGui::TextDisabled("%s foot", label);
-    ImGui::Text("pos        = (%+.4f, %+.4f)", foot.pos.x, foot.pos.y);
+    ImGui::TextDisabled("Pied %s", label);
+    ImGui::Text("pos       = (%+.4f, %+.4f)", foot.pos.x, foot.pos.y);
     if (foot.on_ground)
-        ImGui::TextColored({0.2f, 0.9f, 0.2f, 1.f}, "on_ground  = true");
+        ImGui::TextColored({0.2f, 0.9f, 0.2f, 1.f}, "au_sol    = vrai");
     else
-        ImGui::TextColored({0.9f, 0.5f, 0.1f, 1.f}, "on_ground  = false");
-    ImGui::Text("normal     = (%.3f, %.3f)", foot.ground_normal.x, foot.ground_normal.y);
+        ImGui::TextColored({0.9f, 0.5f, 0.1f, 1.f}, "au_sol    = faux");
+    ImGui::Text("normale   = (%.3f, %.3f)", foot.ground_normal.x, foot.ground_normal.y);
 }
 
 void renderWalkParams(WalkConfig& walkConfig)
 {
     ImGui::Separator();
-    ImGui::TextDisabled("Walk params");
+    ImGui::TextDisabled("Parametres de marche");
     sliderDouble("xcom_scale",              walkConfig.xcom_scale,          0.0f,  1.0f);
-    ImGui::SameLine(); ImGui::TextDisabled("alpha*v/w0 in xi");
+    ImGui::SameLine(); ImGui::TextDisabled("alpha*v/w0 dans xi");
     sliderDouble("d_rear_max (xL)",         walkConfig.d_rear_max,          0.5f,  3.0f);
-    ImGui::SameLine(); ImGui::TextDisabled("rear rescue trigger");
+    ImGui::SameLine(); ImGui::TextDisabled("seuil de rattrapage du pied arriere");
     sliderDouble("max_step_L (xL)",         walkConfig.max_step_L,          0.5f,  4.0f);
-    ImGui::SameLine(); ImGui::TextDisabled("max step from stance foot");
+    ImGui::SameLine(); ImGui::TextDisabled("longueur max depuis le pied d'appui");
     sliderDouble("stability_margin (xL)",   walkConfig.stability_margin,    0.0f,  1.5f);
-    sliderDouble("step_speed (steps/s)",    walkConfig.step_speed,          0.5f, 15.0f, "%.1f");
+    sliderDouble("step_speed (pas/s)",      walkConfig.step_speed,          0.5f, 15.0f, "%.1f");
     sliderDouble("cm_height_offset (m)",    walkConfig.cm_height_offset,   -0.3f,  0.3f, "%.3f");
     sliderDouble("double_support_time (s)", walkConfig.double_support_time, 0.0f,  0.15f, "%.3f");
-    ImGui::SameLine(); ImGui::TextDisabled("min both-feet time after heel-strike");
+    ImGui::SameLine(); ImGui::TextDisabled("temps minimal en double appui apres heel-strike");
     ImGui::Separator();
-    ImGui::TextDisabled("IP bob");
+    ImGui::TextDisabled("Oscillation IP");
     sliderDouble("leg_flex_coeff (xL)",     walkConfig.leg_flex_coeff,      0.0f,  0.3f, "%.3f");
-    ImGui::SameLine(); ImGui::TextDisabled("knee bend at mid-stance");
+    ImGui::SameLine(); ImGui::TextDisabled("flexion du genou a la mid-stance");
     sliderDouble("bob_scale",               walkConfig.bob_scale,           0.0f, 10.0f);
-    ImGui::SameLine(); ImGui::TextDisabled("arc deviation multiplier");
+    ImGui::SameLine(); ImGui::TextDisabled("multiplicateur d'ecart a l'arc");
     sliderDouble("bob_amp (xL)",            walkConfig.bob_amp,             0.0f,  0.5f, "%.3f");
-    ImGui::SameLine(); ImGui::TextDisabled("max drop cap");
+    ImGui::SameLine(); ImGui::TextDisabled("borne max de l'abaissement");
     ImGui::Separator();
-    ImGui::TextDisabled("Foot lift (h_clear)");
+    ImGui::TextDisabled("Levee du pied (h_clear)");
     sliderDouble("h_clear_slope (xL/slope)", walkConfig.h_clear_slope_factor, 0.0f, 2.0f);
-    ImGui::SameLine(); ImGui::TextDisabled("extra lift per unit uphill slope");
+    ImGui::SameLine(); ImGui::TextDisabled("levee supplementaire par unite de pente montante");
     sliderDouble("h_clear_speed (xL)",      walkConfig.h_clear_speed_factor, 0.0f, 0.5f, "%.3f");
-    ImGui::SameLine(); ImGui::TextDisabled("extra lift at walk_max_speed");
+    ImGui::SameLine(); ImGui::TextDisabled("levee supplementaire a walk_max_speed");
     sliderDouble("h_clear_min (xL)",        walkConfig.h_clear_min_ratio,   0.0f,  0.2f, "%.3f");
-    ImGui::SameLine(); ImGui::TextDisabled("minimum foot lift (anti-drag)");
+    ImGui::SameLine(); ImGui::TextDisabled("levee minimale du pied");
 }
 
 void renderPhysicsGravityControls(PhysicsConfig& config)
@@ -101,7 +101,7 @@ void renderPhysicsGravityControls(PhysicsConfig& config)
     float g = static_cast<float>(config.gravity);
     ImGui::BeginDisabled(!config.gravity_enabled);
     ImGui::SetNextItemWidth(180.f);
-    if (ImGui::SliderFloat("Gravity (m/s²)", &g, 0.f, 20.f, "%.2f"))
+    if (ImGui::SliderFloat("Gravite (m/s²)", &g, 0.f, 20.f, "%.2f"))
         config.gravity = static_cast<double>(g);
     ImGui::EndDisabled();
 }
@@ -122,7 +122,7 @@ void renderPhysicsLocomotionControls(PhysicsConfig& config)
     sliderDouble("Accel (m/s²)",       config.accel,          0.f,  20.f, "%.1f");
     sliderDouble("Max speed (m/s)",    config.walk_max_speed, 0.1f,  6.f);
     sliderDouble("Hold speed (m/s)",   config.hold_speed,     0.0f,  2.f);
-    sliderDouble("Jump impulse (m/s)", config.jump_impulse,   0.f,  15.f, "%.1f");
+    sliderDouble("Impulsion de saut (m/s)", config.jump_impulse,   0.f,  15.f, "%.1f");
 }
 
 void renderTerrainGenerationControls(TerrainConfig& config)
@@ -181,7 +181,7 @@ void renderCharacterPelvisControls(CharacterConfig& config)
     ImGui::SameLine();
     if (ImGui::Button("Reset##ratio")) config.cm_pelvis_ratio = 0.75;
 
-    ImGui::Checkbox("Show pelvis reach disk (2L)", &config.show_pelvis_reach_disk);
+    ImGui::Checkbox("Afficher le disque de portee du bassin (2L)", &config.show_pelvis_reach_disk);
 }
 
 void renderReconstructionFacingControls(CharacterReconstructionConfig& config)
@@ -194,7 +194,7 @@ void renderReconstructionLocomotionControls(CharacterReconstructionConfig& confi
 {
     ImGui::Separator();
     ImGui::TextDisabled("Locomotion");
-    sliderDouble("Walk threshold (m/s)", config.walk_eps, 0.01f, 1.0f);
+    sliderDouble("Seuil de marche (m/s)", config.walk_eps, 0.01f, 1.0f);
 }
 
 void renderReconstructionLeanControls(CharacterReconstructionConfig& config)
@@ -252,7 +252,7 @@ void renderVisualizationVectorControls(CMConfig& config)
 
 void renderVisualizationTrailControls(CMConfig& config, bool& clearTrail)
 {
-    ImGui::Checkbox("Trail", &config.show_trail);
+    ImGui::Checkbox("Trace", &config.show_trail);
     ImGui::BeginDisabled(!config.show_trail);
     float dur = static_cast<float>(config.trail_duration);
     ImGui::SetNextItemWidth(180.f);
@@ -274,7 +274,7 @@ void renderArmReachControls(ArmConfig& config)
     sliderDouble("walk_hand_phase_response",          config.walk_hand_phase_response,     1.0f, 30.0f, "%.1f");
     sliderDouble("walk_hand_phase_friction",          config.walk_hand_phase_friction,     0.1f, 12.0f, "%.1f");
     ImGui::Separator();
-    ImGui::TextDisabled("Run blend");
+    ImGui::TextDisabled("Blend vers la course");
     sliderDouble("run_blend_tau (s)",                 config.run_blend_tau,                0.02f, 0.60f);
     sliderDouble("run_hand_reach_reduction_L (xL)",   config.run_hand_reach_reduction_L,   0.0f,  1.25f);
     sliderDouble("run_hand_phase_speed_scale",        config.run_hand_phase_speed_scale,   0.1f,  2.0f);
@@ -294,11 +294,11 @@ void renderArmArcControls(ArmConfig& config)
     sliderDouble("back_start_deg",      config.walk_back_hand_start_deg,  -180.f, 180.f, "%.1f");
     sliderDouble("back_end_deg",        config.walk_back_hand_end_deg,    -180.f, 180.f, "%.1f");
     ImGui::Separator();
-    ImGui::TextDisabled("Run front hand arc");
+    ImGui::TextDisabled("Arc avant de la main en course");
     sliderDouble("run_front_start_deg", config.run_front_hand_start_deg,  -180.f, 180.f, "%.1f");
     sliderDouble("run_front_end_deg",   config.run_front_hand_end_deg,    -180.f, 180.f, "%.1f");
     ImGui::Separator();
-    ImGui::TextDisabled("Run back hand arc");
+    ImGui::TextDisabled("Arc arriere de la main en course");
     sliderDouble("run_back_start_deg",  config.run_back_hand_start_deg,   -180.f, 180.f, "%.1f");
     sliderDouble("run_back_end_deg",    config.run_back_hand_end_deg,     -180.f, 180.f, "%.1f");
 }
@@ -307,22 +307,22 @@ void renderArmOverlayControls(ArmConfig& config)
 {
     ImGui::Separator();
     ImGui::TextDisabled("Overlay");
-    ImGui::Checkbox("Show reach circles", &config.show_debug_reach_circles);
-    ImGui::Checkbox("Show swing points", &config.show_debug_swing_points);
-    ImGui::Checkbox("Show swing arcs", &config.show_debug_swing_arcs);
+    ImGui::Checkbox("Afficher les cercles de portee", &config.show_debug_reach_circles);
+    ImGui::Checkbox("Afficher les points de swing", &config.show_debug_swing_points);
+    ImGui::Checkbox("Afficher les arcs de swing", &config.show_debug_swing_arcs);
 }
 
 void renderSplineControls(SplineRenderConfig& config)
 {
     ImGui::Checkbox("Use spline renderer", &config.enabled);
     ImGui::Checkbox("Draw spline under legacy", &config.draw_under_legacy);
-    ImGui::Checkbox("Render head", &config.show_head);
-    ImGui::Checkbox("Render torso", &config.show_torso);
-    ImGui::Checkbox("Render arms", &config.show_arms);
-    ImGui::Checkbox("Render legs", &config.show_legs);
-    ImGui::Checkbox("Show test curve", &config.show_test_curve);
-    ImGui::Checkbox("Show control polygon", &config.show_control_polygon);
-    ImGui::Checkbox("Show sample points", &config.show_sample_points);
+    ImGui::Checkbox("Rendre la tete", &config.show_head);
+    ImGui::Checkbox("Rendre le torse", &config.show_torso);
+    ImGui::Checkbox("Rendre les bras", &config.show_arms);
+    ImGui::Checkbox("Rendre les jambes", &config.show_legs);
+    ImGui::Checkbox("Afficher la courbe de test", &config.show_test_curve);
+    ImGui::Checkbox("Afficher le polygone de controle", &config.show_control_polygon);
+    ImGui::Checkbox("Afficher les points echantillonnes", &config.show_sample_points);
 
     ImGui::Separator();
 
@@ -368,75 +368,113 @@ AppRequests DebugUI::render(const FrameStats&      stats,
     ImGui::SetNextWindowSize({debug_width, debug_height}, ImGuiCond_FirstUseEver);
 
     ImGui::Begin("Debug");
+    renderHelpPanel();
+    ImGui::Spacing();
+    ImGui::Separator();
+    ImGui::Spacing();
+
     renderSimLoopPanel(stats, simLoop, simConfig, req.sim_loop, req.step_back);
     renderCameraPanel(camera, camConfig, req.camera);
-    renderTerrainPanel(terrainConfig, req.terrain, req.regenerate_terrain);
+    ImGui::Spacing();
+    ImGui::Separator();
+    ImGui::Spacing();
+
     renderParticlesPanel(particlesConfig, req.particles);
     renderAudioPanel(audioConfig, req.audio);
-    renderHelpPanel();
-    renderCMKinematicsPanel(cmState, cmConfig, req.cm, req.clear_trail);
+    ImGui::Spacing();
+    ImGui::Separator();
+    ImGui::Spacing();
+
+    renderTerrainPanel(terrainConfig, req.terrain, req.regenerate_terrain);
     renderTerrainSamplingPanel(terrainSamplingConfig, cmConfig, req.terrain);
+    ImGui::Spacing();
+    ImGui::Separator();
+    ImGui::Spacing();
+
+    renderPhysicsPanel(physConfig, req.physics);
+    renderJumpPanel(jumpConfig, req.jump);
+    ImGui::Spacing();
+    ImGui::Separator();
+    ImGui::Spacing();
+
+    renderCMKinematicsPanel(cmState, cmConfig, req.cm, req.clear_trail);
     renderCharacterPanel(charConfig, standConfig, req.character);
-    renderHeadPanel(charState, headConfig, req.head);
     renderReconstructionPanel(reconstructionConfig, req.reconstruction);
-    renderSplinePanel(splineConfig, req.spline);
-    renderPresentationPanel(presentationConfig, req.presentation);
+    ImGui::Spacing();
+    ImGui::Separator();
+    ImGui::Spacing();
+
+    renderHeadPanel(charState, headConfig, req.head);
     renderTorsoPanel(charState, charConfig, reconstructionConfig, terrain, req.reconstruction);
     renderLegsPanel(charState, charConfig, cmConfig, req.character);
+    renderArmsPanel(armConfig, req.arms);
+    ImGui::Spacing();
+    ImGui::Separator();
+    ImGui::Spacing();
+
     renderLocomotionPanel(cmState, charState, charConfig, reconstructionConfig,
                           terrain, walkConfig, req.walk);
     renderBalancePanel(cmState, charState, charConfig, standConfig, cmConfig, req.cm);
-    renderArmsPanel(armConfig, req.arms);
-    renderJumpPanel(jumpConfig, req.jump);
-    renderPhysicsPanel(physConfig, req.physics);
-    renderIPTestPanel(cmState, charState, charConfig, standConfig, physConfig, simLoop, req);
+    ImGui::Spacing();
+    ImGui::Separator();
+    ImGui::Spacing();
+
+    renderSplinePanel(splineConfig, req.spline);
+    renderPresentationPanel(presentationConfig, req.presentation);
+    ImGui::Spacing();
+    ImGui::Separator();
+    ImGui::Spacing();
+
+    // Panel masqué pour l'instant : utile pour des vérifications ponctuelles
+    // du modèle de pendule inverse, mais trop spécialisé pour l'UI principale.
+    // renderIPTestPanel(cmState, charState, charConfig, standConfig, physConfig, simLoop, req);
     ImGui::End();
 
     return req;
 }
 
-// ─── Simulation Loop ─────────────────────────────────────────────────────────
+// ─── Boucle de simulation ────────────────────────────────────────────────────
 
 void DebugUI::renderSimLoopPanel(const FrameStats& stats, SimulationLoop& simLoop,
                                   SimLoopConfig& config, bool& saveRequested, bool& stepBack)
 {
-    if (!ImGui::CollapsingHeader("Simulation Loop", ImGuiTreeNodeFlags_None))
+    if (!ImGui::CollapsingHeader("Boucle de simulation", ImGuiTreeNodeFlags_None))
         return;
 
-    ImGui::Text("Current FPS : %.1f", stats.current_fps);
+    ImGui::Text("FPS courant : %.1f", stats.current_fps);
 
     ImGui::SetNextItemWidth(200.f);
-    ImGui::SliderInt("Max FPS", &config.max_fps, 0, 300);
+    ImGui::SliderInt("FPS max", &config.max_fps, 0, 300);
 
     ImGui::Separator();
 
-    ImGui::Text("Frame dt  : %.4f s  |  Fixed dt : %.4f s",
+    ImGui::Text("dt frame : %.4f s  |  dt fixe : %.4f s",
                 stats.frame_dt_s, static_cast<float>(simLoop.getFixedDt()));
-    ImGui::Text("Sim step  : %lu",  simLoop.getTotalStepCount());
-    ImGui::Text("Sim time  : %.3f s", simLoop.getSimulationTime());
+    ImGui::Text("Pas sim  : %lu",  simLoop.getTotalStepCount());
+    ImGui::Text("Temps sim: %.3f s", simLoop.getSimulationTime());
 
     ImGui::Separator();
 
     float timeScale = static_cast<float>(simLoop.getTimeScale());
     ImGui::SetNextItemWidth(200.f);
-    if (ImGui::SliderFloat("Time scale", &timeScale, 0.f, 3.f, "%.2fx"))
+    if (ImGui::SliderFloat("Echelle du temps", &timeScale, 0.f, 3.f, "%.2fx"))
         simLoop.setTimeScale(static_cast<double>(timeScale));
 
-    if (ImGui::Button("< Step back"))
+    if (ImGui::Button("< Retour pas"))
         stepBack = true;
 
     ImGui::SameLine();
-    if (ImGui::Button(simLoop.isPaused() ? "Resume" : "Pause"))
+    if (ImGui::Button(simLoop.isPaused() ? "Reprendre" : "Pause"))
         simLoop.togglePaused();
 
     ImGui::SameLine();
-    if (ImGui::Button("Step fwd >")) {
+    if (ImGui::Button("Pas suivant >")) {
         simLoop.setPaused(true);
         simLoop.requestSingleStep();
     }
 
     ImGui::Separator();
-    if (ImGui::Button("Save Simulation Loop Config"))
+    if (ImGui::Button("Sauver la config de boucle"))
         saveRequested = true;
 }
 
@@ -460,17 +498,17 @@ void DebugUI::renderCameraPanel(Camera2D& camera, CameraConfig& config, bool& sa
         config.zoom = 1.0;
     }
 
-    ImGui::Text("Scale : %.1f px/m", camera.getPixelsPerMeter());
+    ImGui::Text("Echelle : %.1f px/m", camera.getPixelsPerMeter());
 
     ImGui::Separator();
 
     const Vec2 center = camera.getCenter();
-    ImGui::Text("Center x, y : %.3f m , %.3f m", center.x, center.y);
+    ImGui::Text("Centre x, y : %.3f m , %.3f m", center.x, center.y);
 
-    ImGui::Checkbox("Follow CM.x", &config.follow_x);
-    ImGui::SameLine(); ImGui::TextDisabled("(False = drag to pan X)");
-    ImGui::Checkbox("Follow CM.y", &config.follow_y);
-    ImGui::SameLine(); ImGui::TextDisabled("(False = drag to pan Y)");
+    ImGui::Checkbox("Suivre CM.x", &config.follow_x);
+    ImGui::SameLine(); ImGui::TextDisabled("(Faux = glisser pour deplacer X)");
+    ImGui::Checkbox("Suivre CM.y", &config.follow_y);
+    ImGui::SameLine(); ImGui::TextDisabled("(Faux = glisser pour deplacer Y)");
 
     float sx = static_cast<float>(config.smooth_x);
     float sy = static_cast<float>(config.smooth_y);
@@ -478,38 +516,38 @@ void DebugUI::renderCameraPanel(Camera2D& camera, CameraConfig& config, bool& sa
     float dzy = static_cast<float>(config.deadzone_y);
 
     ImGui::SetNextItemWidth(200.f);
-    if (ImGui::SliderFloat("Smooth X", &sx, 0.f, 5.f, sx <= 0.f ? "instant" : "%.2f s"))
+    if (ImGui::SliderFloat("Lissage X", &sx, 0.f, 5.f, sx <= 0.f ? "instant" : "%.2f s"))
         config.smooth_x = static_cast<double>(sx);
 
     ImGui::SetNextItemWidth(200.f);
-    if (ImGui::SliderFloat("Smooth Y", &sy, 0.f, 5.f, sy <= 0.f ? "instant" : "%.2f s"))
+    if (ImGui::SliderFloat("Lissage Y", &sy, 0.f, 5.f, sy <= 0.f ? "instant" : "%.2f s"))
         config.smooth_y = static_cast<double>(sy);
 
     ImGui::SetNextItemWidth(200.f);
-    if (ImGui::SliderFloat("Deadzone X", &dzx, 0.f, 2.f, "%.2f m"))
+    if (ImGui::SliderFloat("Zone morte X", &dzx, 0.f, 2.f, "%.2f m"))
         config.deadzone_x = static_cast<double>(dzx);
 
     ImGui::SetNextItemWidth(200.f);
-    if (ImGui::SliderFloat("Deadzone Y", &dzy, 0.f, 2.f, "%.2f m"))
+    if (ImGui::SliderFloat("Zone morte Y", &dzy, 0.f, 2.f, "%.2f m"))
         config.deadzone_y = static_cast<double>(dzy);
 
     ImGui::Separator();
-    if (ImGui::Button("Save Camera Config"))
+    if (ImGui::Button("Sauver la config camera"))
         saveRequested = true;
 }
 
-// ─── Character Characteristics ───────────────────────────────────────────────
+// ─── Caracteristiques du personnage ──────────────────────────────────────────
 
 void DebugUI::renderCharacterPanel(CharacterConfig& config, const StandingConfig& standConfig, bool& saveRequested)
 {
-    if (!ImGui::CollapsingHeader("Character Characteristics", ImGuiTreeNodeFlags_None))
+    if (!ImGui::CollapsingHeader("Caracteristiques du personnage", ImGuiTreeNodeFlags_None))
         return;
 
     renderCharacterBodyControls(config);
 
     // Derived: limb length
     const double L = config.body_height_m / 5.0;
-    ImGui::Text("Limb length : H/5 = %.3f m", L);
+    ImGui::Text("Longueur de membre : H/5 = %.3f m", L);
 
     ImGui::Separator();
 
@@ -517,16 +555,16 @@ void DebugUI::renderCharacterPanel(CharacterConfig& config, const StandingConfig
 
     // Derived: nominal CM height (geometry-corrected)
     const double cm_height = computeNominalY(L, standConfig.d_pref, config.cm_pelvis_ratio);
-    ImGui::Text("Nominal CM height : %.3f m", cm_height);
+    ImGui::Text("Hauteur nominale du CM : %.3f m", cm_height);
 
     ImGui::Separator();
-    if (ImGui::Button("Save Character Config"))
+    if (ImGui::Button("Sauver la config personnage"))
         saveRequested = true;
 }
 
 void DebugUI::renderArmsPanel(ArmConfig& config, bool& saveRequested)
 {
-    if (!ImGui::CollapsingHeader("Arms", ImGuiTreeNodeFlags_None))
+    if (!ImGui::CollapsingHeader("Bras", ImGuiTreeNodeFlags_None))
         return;
 
     renderArmReachControls(config);
@@ -534,19 +572,19 @@ void DebugUI::renderArmsPanel(ArmConfig& config, bool& saveRequested)
     renderArmOverlayControls(config);
 
     ImGui::Separator();
-    if (ImGui::Button("Save Arms Config"))
+    if (ImGui::Button("Sauver la config bras"))
         saveRequested = true;
 }
 
 void DebugUI::renderHeadPanel(const CharacterState& charState, HeadConfig& config, bool& saveRequested)
 {
-    if (!ImGui::CollapsingHeader("Head", ImGuiTreeNodeFlags_None))
+    if (!ImGui::CollapsingHeader("Tete", ImGuiTreeNodeFlags_None))
         return;
 
-    ImGui::TextDisabled("Geometry");
-    ImGui::Text("head_center = (%+.3f, %+.3f)", charState.head_center.x, charState.head_center.y);
-    ImGui::Text("head_radius = %.3f m", charState.head_radius);
-    ImGui::Text("head_tilt   = %+.2f deg", charState.head_tilt * 180.0 / 3.14159265358979323846);
+    ImGui::TextDisabled("Geometrie");
+    ImGui::Text("centre_tete = (%+.3f, %+.3f)", charState.head_center.x, charState.head_center.y);
+    ImGui::Text("rayon_tete  = %.3f m", charState.head_radius);
+    ImGui::Text("incl_tete   = %+.2f deg", charState.head_tilt * 180.0 / 3.14159265358979323846);
 
     float offset = static_cast<float>(config.center_offset_L);
     ImGui::SetNextItemWidth(180.f);
@@ -559,7 +597,7 @@ void DebugUI::renderHeadPanel(const CharacterState& charState, HeadConfig& confi
         config.radius_L = static_cast<double>(radius);
 
     ImGui::Separator();
-    ImGui::TextDisabled("Gaze / Intent");
+    ImGui::TextDisabled("Regard / intention");
     float tilt = static_cast<float>(config.max_tilt_deg);
     ImGui::SetNextItemWidth(180.f);
     if (ImGui::SliderFloat("max_tilt_deg", &tilt, 0.f, 60.f, "%.1f"))
@@ -570,24 +608,24 @@ void DebugUI::renderHeadPanel(const CharacterState& charState, HeadConfig& confi
     if (ImGui::SliderFloat("tau_tilt", &tau, 0.01f, 1.0f, "%.2f"))
         config.tau_tilt = static_cast<double>(tau);
 
-    ImGui::Checkbox("Show eye marker", &config.show_eye_marker);
-    ImGui::Checkbox("Show gaze ray", &config.show_gaze_ray);
-    ImGui::Checkbox("Show gaze target", &config.show_gaze_target);
+    ImGui::Checkbox("Afficher le repere de l'oeil", &config.show_eye_marker);
+    ImGui::Checkbox("Afficher le rayon du regard", &config.show_gaze_ray);
+    ImGui::Checkbox("Afficher la cible du regard", &config.show_gaze_target);
 
     ImGui::Separator();
-    if (ImGui::Button("Save Head Config"))
+    if (ImGui::Button("Sauver la config tete"))
         saveRequested = true;
 }
 
 void DebugUI::renderSplinePanel(SplineRenderConfig& config, bool& saveRequested)
 {
-    if (!ImGui::CollapsingHeader("Spline Rendering", ImGuiTreeNodeFlags_None))
+    if (!ImGui::CollapsingHeader("Rendu spline", ImGuiTreeNodeFlags_None))
         return;
 
     renderSplineControls(config);
 
     ImGui::Separator();
-    if (ImGui::Button("Save Spline Config"))
+    if (ImGui::Button("Sauver la config spline"))
         saveRequested = true;
 }
 
@@ -596,43 +634,43 @@ void DebugUI::renderPresentationPanel(PresentationConfig& config, bool& saveRequ
     if (!ImGui::CollapsingHeader("Presentation", ImGuiTreeNodeFlags_None))
         return;
 
-    ImGui::Checkbox("Force spline renderer", &config.force_spline_renderer);
-    ImGui::Checkbox("Hide head debug", &config.hide_head_debug);
-    ImGui::Checkbox("Hide arm debug", &config.hide_arm_debug);
-    ImGui::Checkbox("Hide CM debug", &config.hide_cm_debug);
-    ImGui::Checkbox("Hide balance debug", &config.hide_balance_debug);
-    ImGui::Checkbox("Hide spline debug", &config.hide_spline_debug);
+    ImGui::Checkbox("Forcer le rendu spline", &config.force_spline_renderer);
+    ImGui::Checkbox("Masquer le debug tete", &config.hide_head_debug);
+    ImGui::Checkbox("Masquer le debug bras", &config.hide_arm_debug);
+    ImGui::Checkbox("Masquer le debug CM", &config.hide_cm_debug);
+    ImGui::Checkbox("Masquer le debug balance", &config.hide_balance_debug);
+    ImGui::Checkbox("Masquer le debug spline", &config.hide_spline_debug);
 
     ImGui::Separator();
-    if (ImGui::Button("Save Presentation Config"))
+    if (ImGui::Button("Sauver la config presentation"))
         saveRequested = true;
 }
 
-// ─── Character Reconstruction ────────────────────────────────────────────────
+// ─── Reconstruction du personnage ────────────────────────────────────────────
 
 void DebugUI::renderReconstructionPanel(CharacterReconstructionConfig& config, bool& saveRequested)
 {
-    if (!ImGui::CollapsingHeader("Character Reconstruction", ImGuiTreeNodeFlags_None))
+    if (!ImGui::CollapsingHeader("Reconstruction du personnage", ImGuiTreeNodeFlags_None))
         return;
 
     renderReconstructionFacingControls(config);
     renderReconstructionLocomotionControls(config);
 
     ImGui::Separator();
-    if (ImGui::Button("Save Reconstruction Config"))
+    if (ImGui::Button("Sauver la config reconstruction"))
         saveRequested = true;
 }
 
-// ─── Center of Mass / Torso / Legs / Locomotion / Balance ───────────────────
+// ─── Centre de masse / Torse / Jambes / Locomotion / Balance ────────────────
 
 void DebugUI::renderCMKinematicsPanel(const CMState& state, CMConfig& config, bool& saveRequested, bool& clearTrail)
 {
-    if (!ImGui::CollapsingHeader("Center of Mass", ImGuiTreeNodeFlags_None))
+    if (!ImGui::CollapsingHeader("Centre de masse", ImGuiTreeNodeFlags_None))
         return;
 
-    ImGui::Text("Position     x: %+.3f m    y: %.3f m",
+    ImGui::Text("Position      x: %+.3f m    y: %.3f m",
                 state.position.x, state.position.y);
-    ImGui::Text("Velocity    vx: %+.3f m/s  vy: %+.3f m/s  v: %.3f m/s",
+    ImGui::Text("Vitesse      vx: %+.3f m/s  vy: %+.3f m/s  v: %.3f m/s",
                 state.velocity.x, state.velocity.y, state.velocity.length());
     ImGui::Text("Acceleration ax: %+.3f m/s%c ay: %+.3f m/s%c a: %.3f m/s%c",
                 state.acceleration.x, static_cast<char>(178),
@@ -640,9 +678,9 @@ void DebugUI::renderCMKinematicsPanel(const CMState& state, CMConfig& config, bo
                 state.acceleration.length(), static_cast<char>(178));
 
     ImGui::Separator();
-    ImGui::Checkbox("Projection line",    &config.show_projection_line);
-    ImGui::Checkbox("Projection dot",     &config.show_projection_dot);
-    ImGui::Checkbox("Target height tick", &config.show_target_height_tick);
+    ImGui::Checkbox("Ligne de projection",     &config.show_projection_line);
+    ImGui::Checkbox("Point de projection",     &config.show_projection_dot);
+    ImGui::Checkbox("Repere de hauteur cible", &config.show_target_height_tick);
 
     ImGui::Separator();
     renderVisualizationVectorControls(config);
@@ -651,7 +689,7 @@ void DebugUI::renderCMKinematicsPanel(const CMState& state, CMConfig& config, bo
     renderVisualizationTrailControls(config, clearTrail);
 
     ImGui::Separator();
-    if (ImGui::Button("Save CM Config"))
+    if (ImGui::Button("Sauver la config CM"))
         saveRequested = true;
 }
 
@@ -661,7 +699,7 @@ void DebugUI::renderTorsoPanel(const CharacterState& charState,
                                const Terrain& terrain,
                                bool& saveRequested)
 {
-    if (!ImGui::CollapsingHeader("Torso", ImGuiTreeNodeFlags_None))
+    if (!ImGui::CollapsingHeader("Torse", ImGuiTreeNodeFlags_None))
         return;
 
     renderLocomotionPoseDebug(charState, charConfig, terrain);
@@ -670,7 +708,7 @@ void DebugUI::renderTorsoPanel(const CharacterState& charState,
     renderReconstructionLeanControls(reconstructionConfig);
 
     ImGui::Separator();
-    if (ImGui::Button("Save Torso Config"))
+    if (ImGui::Button("Sauver la config torse"))
         saveRequested = true;
 }
 
@@ -679,21 +717,21 @@ void DebugUI::renderLegsPanel(const CharacterState& charState,
                               CMConfig& /*cmConfig*/,
                               bool& saveRequested)
 {
-    if (!ImGui::CollapsingHeader("Legs", ImGuiTreeNodeFlags_None))
+    if (!ImGui::CollapsingHeader("Jambes", ImGuiTreeNodeFlags_None))
         return;
 
     if (!charState.feet_initialized) {
-        ImGui::TextDisabled("(awaiting bootstrap)");
+        ImGui::TextDisabled("(en attente du bootstrap)");
     } else {
-        renderFootDebug("Left",  charState.foot_left);
-        renderFootDebug("Right", charState.foot_right);
+        renderFootDebug("gauche",  charState.foot_left);
+        renderFootDebug("droit", charState.foot_right);
     }
 
     ImGui::Separator();
-    ImGui::Checkbox("Show pelvis reach disk (2L)", &charConfig.show_pelvis_reach_disk);
+    ImGui::Checkbox("Afficher le disque de portee du bassin (2L)", &charConfig.show_pelvis_reach_disk);
 
     ImGui::Separator();
-    if (ImGui::Button("Save Legs Visuals"))
+    if (ImGui::Button("Sauver les visuels des jambes"))
         saveRequested = true;
 }
 
@@ -706,12 +744,12 @@ void DebugUI::renderLocomotionPanel(const CMState& /*cmState*/, const CharacterS
     if (!ImGui::CollapsingHeader("Locomotion", ImGuiTreeNodeFlags_None))
         return;
 
-    ImGui::Text("state      = %s", locomotionStateLabel(charState.locomotion_state));
-    ImGui::Text("on_floor   = %s", charState.debug_on_floor ? "true" : "false");
+    ImGui::Text("etat      = %s", locomotionStateLabel(charState.locomotion_state));
+    ImGui::Text("au_sol    = %s", charState.debug_on_floor ? "vrai" : "faux");
     renderWalkParams(walkConfig);
 
     ImGui::Separator();
-    if (ImGui::Button("Save Walk Config"))
+    if (ImGui::Button("Sauver la config marche"))
         saveRequested = true;
 }
 
@@ -719,78 +757,78 @@ void DebugUI::renderBalancePanel(const CMState& /*cmState*/, const CharacterStat
                                   const CharacterConfig& charConfig, const StandingConfig& /*standConfig*/,
                                   CMConfig& cmConfig, bool& saveRequested)
 {
-    if (!ImGui::CollapsingHeader("Balance", ImGuiTreeNodeFlags_None))
+    if (!ImGui::CollapsingHeader("Equilibre", ImGuiTreeNodeFlags_None))
         return;
 
     if (!charState.feet_initialized) {
-        ImGui::TextDisabled("(awaiting bootstrap)");
+        ImGui::TextDisabled("(en attente du bootstrap)");
         return;
     }
 
     const double L = charConfig.body_height_m / 5.0;
     renderBalanceReachMetrics(charState, L);
     ImGui::Separator();
-    ImGui::Checkbox("Show XCoM line", &cmConfig.show_xcom_line);
-    ImGui::Checkbox("Show support line", &cmConfig.show_support_line);
+    ImGui::Checkbox("Afficher la ligne du CM extrapole", &cmConfig.show_xcom_line);
+    ImGui::Checkbox("Afficher la ligne de support", &cmConfig.show_support_line);
 
     ImGui::Separator();
-    if (ImGui::Button("Save Balance Visuals"))
+    if (ImGui::Button("Sauver les visuels de balance"))
         saveRequested = true;
 }
 
-// ─── Jump ────────────────────────────────────────────────────────────────────
+// ─── Saut ────────────────────────────────────────────────────────────────────
 
 void DebugUI::renderJumpPanel(JumpConfig& config, bool& saveRequested)
 {
-    if (!ImGui::CollapsingHeader("Jump", ImGuiTreeNodeFlags_None))
+    if (!ImGui::CollapsingHeader("Saut", ImGuiTreeNodeFlags_None))
         return;
 
-    ImGui::TextDisabled("Preload (crouch before takeoff)");
+    ImGui::TextDisabled("Preload (accroupissement avant decollage)");
     auto sliderDur   = [&](const char* label, double& val) { if (sliderDouble(label, val, 0.02f, 0.30f, "%.3f s"))  saveRequested = true; };
     auto sliderDepth = [&](const char* label, double& val) { if (sliderDouble(label, val, 0.05f, 0.60f, "%.2f ×L")) saveRequested = true; };
-    sliderDur  ("Dur run (s)",         config.preload_dur_run);
-    sliderDur  ("Dur walk (s)",        config.preload_dur_walk);
-    sliderDur  ("Dur stand (s)",       config.preload_dur_stand);
-    sliderDepth("Depth run (×L)",      config.preload_depth_run);
-    sliderDepth("Depth walk (×L)",     config.preload_depth_walk);
-    sliderDepth("Depth stand (×L)",    config.preload_depth_stand);
+    sliderDur  ("Duree course (s)",    config.preload_dur_run);
+    sliderDur  ("Duree marche (s)",    config.preload_dur_walk);
+    sliderDur  ("Duree debout (s)",    config.preload_dur_stand);
+    sliderDepth("Profondeur course (×L)", config.preload_depth_run);
+    sliderDepth("Profondeur marche (×L)", config.preload_depth_walk);
+    sliderDepth("Profondeur debout (×L)", config.preload_depth_stand);
 
     ImGui::Separator();
-    ImGui::TextDisabled("Flight");
-    sliderDepth("Tuck height (×L)",    config.tuck_height_ratio);
+    ImGui::TextDisabled("Vol");
+    sliderDepth("Hauteur de tuck (×L)",    config.tuck_height_ratio);
 
     ImGui::Separator();
-    ImGui::TextDisabled("Landing recovery");
-    sliderDur  ("Dur jump (s)",        config.landing_dur_jump);
-    sliderDur  ("Dur walk land (s)",   config.landing_dur_walk);
-    if (sliderDouble("Boost base jump",  config.landing_boost_base_jump,  0.0f, 2.0f)) saveRequested = true;
-    if (sliderDouble("Boost scale jump", config.landing_boost_scale_jump, 0.0f, 3.0f)) saveRequested = true;
-    if (sliderDouble("Boost base walk",  config.landing_boost_base_walk,  0.0f, 2.0f)) saveRequested = true;
-    if (sliderDouble("Boost scale walk", config.landing_boost_scale_walk, 0.0f, 3.0f)) saveRequested = true;
+    ImGui::TextDisabled("Recuperation a la reception");
+    sliderDur  ("Duree saut (s)",        config.landing_dur_jump);
+    sliderDur  ("Duree reception marche (s)",   config.landing_dur_walk);
+    if (sliderDouble("Boost base saut",  config.landing_boost_base_jump,  0.0f, 2.0f)) saveRequested = true;
+    if (sliderDouble("Boost echelle saut", config.landing_boost_scale_jump, 0.0f, 3.0f)) saveRequested = true;
+    if (sliderDouble("Boost base marche",  config.landing_boost_base_walk,  0.0f, 2.0f)) saveRequested = true;
+    if (sliderDouble("Boost echelle marche", config.landing_boost_scale_walk, 0.0f, 3.0f)) saveRequested = true;
 
     ImGui::Separator();
-    if (ImGui::Button("Save Jump Config"))
+    if (ImGui::Button("Sauver la config saut"))
         saveRequested = true;
 }
 
-// ─── Physics ─────────────────────────────────────────────────────────────────
+// ─── Physique ────────────────────────────────────────────────────────────────
 
 void DebugUI::renderPhysicsPanel(PhysicsConfig& config, bool& saveRequested)
 {
-    if (!ImGui::CollapsingHeader("Physics", ImGuiTreeNodeFlags_None))
+    if (!ImGui::CollapsingHeader("Physique", ImGuiTreeNodeFlags_None))
         return;
 
     renderPhysicsGravityControls(config);
 
-    // Floor friction
+    // Frottement au sol
     float kf = static_cast<float>(config.floor_friction);
     ImGui::SetNextItemWidth(180.f);
-    if (ImGui::SliderFloat("Floor friction (s⁻¹)", &kf, 0.f, 20.f, "%.2f"))
+    if (ImGui::SliderFloat("Frottement sol (s⁻¹)", &kf, 0.f, 20.f, "%.2f"))
         config.floor_friction = static_cast<double>(kf);
 
     ImGui::Separator();
 
-    // Vertical tracking (tanh nonlinear)
+    // Suivi vertical (tanh non lineaire)
     renderPhysicsVerticalTrackingControls(config);
 
     ImGui::Separator();
@@ -798,10 +836,10 @@ void DebugUI::renderPhysicsPanel(PhysicsConfig& config, bool& saveRequested)
     // Locomotion
     renderPhysicsLocomotionControls(config);
 
-    ImGui::TextDisabled("Q / D = left / right    SPACE = jump");
+    ImGui::TextDisabled("Q / D = gauche / droite    ESPACE = saut");
 
     ImGui::Separator();
-    if (ImGui::Button("Save Physics Config"))
+    if (ImGui::Button("Sauver la config physique"))
         saveRequested = true;
 }
 
@@ -812,7 +850,7 @@ void DebugUI::renderTerrainPanel(TerrainConfig& config, bool& saveRequested, boo
     if (!ImGui::CollapsingHeader("Terrain", ImGuiTreeNodeFlags_None))
         return;
 
-    if (ImGui::Checkbox("Enable terrain", &config.enabled))
+    if (ImGui::Checkbox("Activer le terrain", &config.enabled))
         regenerateRequested = true;
 
     ImGui::BeginDisabled(!config.enabled);
@@ -823,24 +861,24 @@ void DebugUI::renderTerrainPanel(TerrainConfig& config, bool& saveRequested, boo
     ImGui::EndDisabled();
 
     ImGui::Separator();
-    if (ImGui::Button("Regenerate"))
+    if (ImGui::Button("Regenerer"))
         regenerateRequested = true;
     ImGui::SameLine();
-    if (ImGui::Button("Save Terrain Config"))
+    if (ImGui::Button("Sauver la config terrain"))
         saveRequested = true;
 }
 
 void DebugUI::renderParticlesPanel(ParticlesConfig& config, bool& saveRequested)
 {
-    if (!ImGui::CollapsingHeader("Particles", ImGuiTreeNodeFlags_None))
+    if (!ImGui::CollapsingHeader("Particules", ImGuiTreeNodeFlags_None))
         return;
 
-    ImGui::Checkbox("Enable particles", &config.enabled);
+    ImGui::Checkbox("Activer les particules", &config.enabled);
     ImGui::BeginDisabled(!config.enabled);
-    ImGui::Checkbox("Enable dust", &config.dust_enabled);
-    ImGui::Checkbox("Impact puffs", &config.impact_enabled);
-    ImGui::Checkbox("Slope slide motes", &config.slide_enabled);
-    ImGui::Checkbox("Landing splash", &config.landing_enabled);
+    ImGui::Checkbox("Activer la poussiere", &config.dust_enabled);
+    ImGui::Checkbox("Bouffees d'impact", &config.impact_enabled);
+    ImGui::Checkbox("Poussiere de glissade", &config.slide_enabled);
+    ImGui::Checkbox("Projection de reception", &config.landing_enabled);
 
     ImGui::SetNextItemWidth(180.f);
     ImGui::SliderInt("dust_burst_count", &config.dust_burst_count, 0, 32);
@@ -874,7 +912,7 @@ void DebugUI::renderParticlesPanel(ParticlesConfig& config, bool& saveRequested)
     ImGui::EndDisabled();
 
     ImGui::Separator();
-    if (ImGui::Button("Save Particles Config"))
+    if (ImGui::Button("Sauver la config particules"))
         saveRequested = true;
 }
 
@@ -890,7 +928,7 @@ void DebugUI::renderAudioPanel(AudioConfig& config, bool& saveRequested)
         saveRequested = true;
     }
 
-    if (ImGui::Checkbox("Enable music", &config.music_enabled))
+    if (ImGui::Checkbox("Activer la musique", &config.music_enabled))
         saveRequested = true;
 
     float music_volume = static_cast<float>(config.music_volume);
@@ -904,7 +942,7 @@ void DebugUI::renderAudioPanel(AudioConfig& config, bool& saveRequested)
     if (track_count > 0) {
         int track = std::clamp(config.music_track, 0, track_count - 1);
         const char* preview = AudioSystem::musicTrackLabel(track);
-        if (ImGui::BeginCombo("Music track", preview)) {
+        if (ImGui::BeginCombo("Piste musicale", preview)) {
             for (int i = 0; i < track_count; ++i) {
                 const bool selected = (i == track);
                 if (ImGui::Selectable(AudioSystem::musicTrackLabel(i), selected)) {
@@ -916,60 +954,62 @@ void DebugUI::renderAudioPanel(AudioConfig& config, bool& saveRequested)
             }
             ImGui::EndCombo();
         }
+    } else {
+        ImGui::TextDisabled("Aucune piste trouvee dans data/audio/music/");
     }
 
     ImGui::Separator();
-    if (ImGui::Button("Save Audio Config"))
+    if (ImGui::Button("Sauver la config audio"))
         saveRequested = true;
 }
 
 void DebugUI::renderHelpPanel()
 {
-    if (!ImGui::CollapsingHeader("Help", ImGuiTreeNodeFlags_None))
+    if (!ImGui::CollapsingHeader("Aide", ImGuiTreeNodeFlags_None))
         return;
 
     ImGui::Separator();
-    ImGui::TextWrapped("Keyboard");
-    ImGui::BulletText("Q / D: move left / right");
-    ImGui::BulletText("Shift: run");
-    ImGui::BulletText("Space: jump");
-    ImGui::BulletText("P: toggle presentation mode");
-    ImGui::BulletText("Escape: quit");
+    ImGui::TextWrapped("Clavier");
+    ImGui::BulletText("Q / D : aller a gauche / droite");
+    ImGui::BulletText("Shift : courir");
+    ImGui::BulletText("Espace : sauter");
+    ImGui::BulletText("P : basculer le mode presentation");
+    ImGui::BulletText("Echap : quitter");
 
     ImGui::Separator();
-    ImGui::TextWrapped("Mouse");
-    ImGui::BulletText("Mouse wheel: zoom camera");
-    ImGui::BulletText("Left drag on empty space: pan camera");
-    ImGui::BulletText("Left drag on a foot: drag that foot");
-    ImGui::BulletText("Left drag on a hand: drag that hand");
-    ImGui::BulletText("Right click on a foot: pin or unpin that foot");
-    ImGui::BulletText("Right click on a hand: pin or unpin that hand");
-    ImGui::BulletText("Right drag near CM: set center-of-mass velocity");
+    ImGui::TextWrapped("Souris");
+    ImGui::BulletText("Molette : zoom camera");
+    ImGui::BulletText("Glisser gauche dans le vide : deplacer la camera");
+    ImGui::BulletText("Glisser gauche sur un pied : deplacer ce pied");
+    ImGui::BulletText("Glisser gauche sur une main : deplacer cette main");
+    ImGui::BulletText("Clic droit sur un pied : epingler ou desepingler ce pied");
+    ImGui::BulletText("Clic droit sur une main : epingler ou desepingler cette main");
+    ImGui::BulletText("Glisser droit pres du CM : fixer la vitesse du centre de masse");
 
     ImGui::Separator();
     ImGui::TextWrapped("Notes");
-    ImGui::BulletText("In presentation mode, most debug overlays are hidden.");
-    ImGui::BulletText("Hands and feet can only be picked when the hit target is close enough.");
+    ImGui::BulletText("En mode presentation, la plupart des overlays de debug sont masques.");
+    ImGui::BulletText("Les mains et les pieds ne peuvent etre saisis que si la cible est assez proche.");
 }
 
-// ─── Terrain Sampling ────────────────────────────────────────────────────────
+// ─── Echantillonnage du terrain ──────────────────────────────────────────────
 
 void DebugUI::renderTerrainSamplingPanel(TerrainSamplingConfig& config, CMConfig& cmConfig, bool& saveRequested)
 {
-    if (!ImGui::CollapsingHeader("Terrain Sampling", ImGuiTreeNodeFlags_None))
+    if (!ImGui::CollapsingHeader("Echantillonnage du terrain", ImGuiTreeNodeFlags_None))
         return;
 
     renderTerrainSamplingControls(config);
 
     ImGui::Separator();
-    ImGui::Checkbox("Show ground reference", &cmConfig.show_ground_reference);
+    ImGui::Checkbox("Afficher la reference de sol", &cmConfig.show_ground_reference);
 
     ImGui::Separator();
-    if (ImGui::Button("Save Terrain Sampling Config"))
+    if (ImGui::Button("Sauver la config d'echantillonnage"))
         saveRequested = true;
 }
 
-// ─── IP Completion Test ───────────────────────────────────────────────────────
+// ─── Test de completion du pendule inverse ───────────────────────────────────
 
 void DebugUI::renderIPTestPanel(const CMState&        cmState,
                                 const CharacterState& charState,
@@ -979,7 +1019,7 @@ void DebugUI::renderIPTestPanel(const CMState&        cmState,
                                 SimulationLoop&       simLoop,
                                 AppRequests&         req)
 {
-    if (!ImGui::CollapsingHeader("IP Completion Test"))
+    if (!ImGui::CollapsingHeader("Test de completion du pendule inverse"))
         return;
 
     const double L         = charConfig.body_height_m / 5.0;
@@ -987,15 +1027,15 @@ void DebugUI::renderIPTestPanel(const CMState&        cmState,
     const double omega0    = std::sqrt(physConfig.gravity / nominal_y);
     const double mu        = physConfig.floor_friction;
 
-    ImGui::TextDisabled("Tests: inverted pendulum prediction vs actual physics.");
-    ImGui::TextDisabled("Requires feet initialized.");
+    ImGui::TextDisabled("Test : prediction du pendule inverse vs physique reelle.");
+    ImGui::TextDisabled("Necessite des pieds initialises.");
     ImGui::Separator();
 
-    // Launch button — requires feet to be initialized
+    // Bouton de lancement — necessite des pieds initialises
     if (!charState.feet_initialized)
         ImGui::BeginDisabled();
 
-    if (ImGui::Button("Launch  [CM = L-foot + 0.3L,  vx = 0]") && charState.feet_initialized) {
+    if (ImGui::Button("Lancer  [CM = pied G + 0.3L,  vx = 0]") && charState.feet_initialized) {
         const FootState& stance_foot = charState.foot_left;
         const double stance_x  = stance_foot.pos.x;
         const double facing    = charState.facing;
@@ -1023,10 +1063,10 @@ void DebugUI::renderIPTestPanel(const CMState&        cmState,
     if (!charState.feet_initialized) {
         ImGui::EndDisabled();
         ImGui::SameLine();
-        ImGui::TextColored({1,0.4f,0,1}, "No feet yet");
+        ImGui::TextColored({1,0.4f,0,1}, "Pieds non initialises");
     }
 
-    if (m_ipTest.active && ImGui::Button("Stop test"))
+    if (m_ipTest.active && ImGui::Button("Arreter le test"))
         m_ipTest.active = false;
 
     if (!m_ipTest.active) return;
@@ -1050,13 +1090,13 @@ void DebugUI::renderIPTestPanel(const CMState&        cmState,
     ImGui::Text("omega0 = %.3f rad/s   mu = %.2f s^-1", omega0, mu);
     ImGui::Separator();
 
-    ImGui::TextColored({0.4f,1,0.4f,1}, "Analytical (IP + friction):");
-    ImGui::Text("  x_pred = stance %+.4f m   delta = %+.4f m", x_pred, dx_pred);
-    ImGui::Text("  v_pred =        %+.4f m/s", v_pred);
+    ImGui::TextColored({0.4f,1,0.4f,1}, "Analytique (IP + frottement) :");
+    ImGui::Text("  x_pred = appui %+.4f m   delta = %+.4f m", x_pred, dx_pred);
+    ImGui::Text("  v_pred =       %+.4f m/s", v_pred);
 
-    ImGui::TextColored({1,0.8f,0.2f,1}, "Actual:");
-    ImGui::Text("  x_act  = stance %+.4f m   delta = %+.4f m", x_rel_act, dx_act);
-    ImGui::Text("  v_act  =        %+.4f m/s", v_act);
+    ImGui::TextColored({1,0.8f,0.2f,1}, "Mesure :");
+    ImGui::Text("  x_act  = appui %+.4f m   delta = %+.4f m", x_rel_act, dx_act);
+    ImGui::Text("  v_act  =       %+.4f m/s", v_act);
 
     const double err_x = x_rel_act - x_pred;
     const double err_v = v_act - v_pred;
@@ -1064,9 +1104,9 @@ void DebugUI::renderIPTestPanel(const CMState&        cmState,
     ImGui::Separator();
 
     if (dx_act > 0.001)
-        ImGui::TextColored({0.2f,1,0.2f,1}, "PASS  IP force moving CM forward  (delta_x = %+.4f m)", dx_act);
+        ImGui::TextColored({0.2f,1,0.2f,1}, "PASS  le pendule inverse pousse bien le CM vers l'avant  (delta_x = %+.4f m)", dx_act);
     else if (dx_act > -0.001)
-        ImGui::TextColored({1,1,0.2f,1}, "WAIT  CM not yet moving...");
+        ImGui::TextColored({1,1,0.2f,1}, "WAIT  le CM ne bouge pas encore...");
     else
-        ImGui::TextColored({1,0.2f,0.2f,1}, "FAIL  CM moving backward!");
+        ImGui::TextColored({1,0.2f,0.2f,1}, "FAIL  le CM recule !");
 }

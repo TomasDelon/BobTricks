@@ -16,7 +16,7 @@ void updateCharacterState(CharacterState& ch,
 {
     const double vx = cm.velocity.x;
 
-    // ── Locomotion state ─────────────────────────────────────────────────────
+    // ── État locomoteur ──────────────────────────────────────────────────────
     if (!on_floor) {
         ch.locomotion_state = LocomotionState::Airborne;
     } else if (run_mode) {
@@ -27,16 +27,16 @@ void updateCharacterState(CharacterState& ch,
         ch.locomotion_state = LocomotionState::Standing;
     }
 
-    // ── Facing ────────────────────────────────────────────────────────────────
+    // ── Orientation ───────────────────────────────────────────────────────────
     if (vx >  rc.facing_eps) ch.facing =  1.0;
     else if (vx < -rc.facing_eps) ch.facing = -1.0;
 
-    // ── Torso spine ───────────────────────────────────────────────────────────
-    // Lean combines:
-    // - a locomotion lean towards movement direction
-    // - an uphill lean from terrain slope
-    // When descending, both components naturally oppose each other, so the
-    // torso still tilts toward the hill if the slope term dominates.
+    // ── Colonne du torse ──────────────────────────────────────────────────────
+    // L'inclinaison combine :
+    // - une inclinaison locomotrice vers la direction du mouvement ;
+    // - une inclinaison vers l'amont induite par la pente.
+    // En descente, les deux composantes peuvent se contrarier ; le torse reste
+    // néanmoins orienté vers la pente si ce terme domine.
     const double L         = config.body_height_m / 5.0;
     const double d         = config.cm_pelvis_ratio * L;
     const double theta_max   = rc.theta_max_deg * kDegToRad;
@@ -63,8 +63,8 @@ void updateCharacterState(CharacterState& ch,
     ch.airborne_lean_blend += (airborne_target - ch.airborne_lean_blend)
                             * dt / airborne_tau;
     ch.airborne_lean_blend = std::clamp(ch.airborne_lean_blend, 0.0, 1.0);
-    // In air the torso should lean slightly back, but not as strongly as the
-    // forward velocity lean used while grounded.
+    // En l'air, le torse doit légèrement repartir vers l'arrière, mais moins
+    // fortement que l'inclinaison vers l'avant utilisée au sol.
     const double velocity_lean_dir = std::lerp(1.0, -0.45, ch.airborne_lean_blend);
     const double theta_vel   = velocity_lean_dir * move_sign * theta_max
                              * std::tanh(std::abs(vx) / v_ref);
@@ -88,7 +88,7 @@ void updateCharacterState(CharacterState& ch,
     ch.torso_center = ch.pelvis + lower_dir * L;
     ch.torso_top = ch.torso_center + upper_dir * L;
 
-    // ── Knee positions (analytic IK) ──────────────────────────────────────────
+    // ── Position des genoux (IK analytique) ──────────────────────────────────
     if (ch.feet_initialized) {
         const auto ikL    = computeKnee(ch.pelvis, ch.foot_left.pos,  L, ch.facing);
         const auto ikR    = computeKnee(ch.pelvis, ch.foot_right.pos, L, ch.facing);

@@ -25,18 +25,18 @@ struct CameraConfig {
     double zoom       = 1.0;
     bool   follow_x   = true;
     bool   follow_y   = false;
-    double smooth_x   = 0.0;   // seconds time constant, 0 = instant
+    double smooth_x   = 0.0;   // constante de temps (s), 0 = instantané
     double smooth_y   = 0.0;
-    double deadzone_x = 0.35;  // m  — horizontal follow-free half-window around the target
-    double deadzone_y = 0.15;  // m  — vertical follow-free half-window around the target
+    double deadzone_x = 0.35;  // m  — demi-fenêtre horizontale sans recentrage
+    double deadzone_y = 0.15;  // m  — demi-fenêtre verticale sans recentrage
 };
 
 /** @brief Paramètres morphologiques globaux du personnage. */
 struct CharacterConfig {
     double body_height_m   = 1.80;  // H
-    double cm_pelvis_ratio = 0.75;  // CM is this many L above pelvis, range [0.60, 0.85]
+    double cm_pelvis_ratio = 0.75;  // hauteur relative CM→bassin en multiples de L, plage [0.60, 0.85]
     bool   show_pelvis_reach_disk = true;
-    // derived (not stored): L = H/5,  h_nominal = computeNominalY(L, d_pref, ratio)
+    // Dérivés non sérialisés : L = H/5, h_nominal = computeNominalY(L, d_pref, ratio)
 };
 
 /** @brief Paramètres de reconstruction du buste à partir de l'état du CM. */
@@ -129,12 +129,12 @@ struct CMConfig {
     // 0 = off, 1 = horizontal only, 2 = vertical only, 3 = both components
     int  velocity_components  = 3;
     int  accel_components     = 3;
-    // Trail
+    // Traînée
     bool   show_trail      = false;
-    double trail_duration  = 3.0;   // seconds
-    // Extra debug overlays
-    bool show_xcom_line           = true;   // vertical magenta line at XCoM
-    bool show_support_line        = true;   // horizontal segment between planted feet
+    double trail_duration  = 3.0;   // s
+    // Overlays de debug supplémentaires
+    bool show_xcom_line           = true;   // ligne verticale magenta au centre de masse extrapolé
+    bool show_support_line        = true;   // segment horizontal entre les pieds plantés
 };
 
 /** @brief Fenêtre d'échantillonnage du terrain utilisée pour la référence de sol. */
@@ -150,20 +150,20 @@ struct PhysicsConfig {
     bool   gravity_enabled  = true;
     double gravity          = 9.81;   // m/s²
 
-    // Horizontal locomotion (stickman3-style kinematic model)
-    double accel            =  6.0;   // m/s²  — horizontal acceleration while key held
-    double walk_max_speed   =  1.5;   // m/s   — maximum walking speed cap
-    double floor_friction   =  4.0;   // s⁻¹   — vel *= (1 - friction*dt) when not accelerating
-    double hold_speed       =  0.4;   // m/s   — below this, slope gravity is suppressed at rest
-    double stop_speed       =  0.05;  // m/s   — below this velocity snaps to zero (deadzone)
+    // Locomotion horizontale (modèle cinématique inspiré de stickman3)
+    double accel            =  6.0;   // m/s²  — accélération horizontale quand la touche est maintenue
+    double walk_max_speed   =  1.5;   // m/s   — plafond de vitesse en marche
+    double floor_friction   =  4.0;   // s⁻¹   — vel *= (1 - friction*dt) hors accélération
+    double hold_speed       =  0.4;   // m/s   — sous ce seuil la gravité de pente est supprimée au repos
+    double stop_speed       =  0.05;  // m/s   — sous ce seuil la vitesse est rabattue à zéro
 
-    // Vertical tracking — tanh-based nonlinear soft constraint
-    bool   spring_enabled = true;   // toggle vertical tracking
-    double vy_max         =  2.0;   // m/s   — max vertical correction speed (asymptote)
-    double d_soft         =  0.15;  // m     — half-saturation distance (knee of tanh)
-    double vy_tau         = 20.0;   // s⁻¹   — how fast vy adapts to vy_want
+    // Suivi vertical — contrainte douce non linéaire basée sur tanh
+    bool   spring_enabled = true;   // active le suivi vertical
+    double vy_max         =  2.0;   // m/s   — vitesse verticale corrective maximale
+    double d_soft         =  0.15;  // m     — distance de demi-saturation
+    double vy_tau         = 20.0;   // s⁻¹   — vitesse d'adaptation vers vy_want
 
-    double jump_impulse     =  5.5;   // m/s   — upward velocity on jump (Z key)
+    double jump_impulse     =  5.5;   // m/s   — impulsion verticale de saut
 };
 
 /** @brief Paramètres de génération du terrain procédural. */
@@ -198,20 +198,20 @@ struct ParticlesConfig {
 
 /** @brief Paramètres audio runtime pour les pas et la musique. */
 struct AudioConfig {
-    double footstep_volume = 2.40; // [0-4] gain global des pas / slides / landings
+    double footstep_volume = 2.40; // [0-4] gain global des pas / glissades / réceptions
     double music_volume    = 0.25; // [0-1] volume global de la musique
     bool   music_enabled   = true;
-    int    music_track     = 1;    // index dans la playlist embarquée par le runtime
+    int    music_track     = 1;    // index dans les pistes trouvées sous data/audio/music
 };
 
 /** @brief Paramètres géométriques du régime debout. */
 struct StandingConfig {
-    double d_pref          = 0.90;  // [×L] preferred foot separation
-    double d_min           = 0.75;  // [×L] minimum foot separation
-    double d_max           = 1.20;  // [×L] maximum foot separation
-    double eps_v           = 0.15;  // [m/s] max |vx| for standing validity
-    double delta_support   = 0.20;  // [×L] support degradation band
-    double k_ankle_factor  = 0.50;  // [-]  abstract ankle torque factor
+    double d_pref          = 0.90;  // [×L] écartement préféré des pieds
+    double d_min           = 0.75;  // [×L] écartement minimal des pieds
+    double d_max           = 1.20;  // [×L] écartement maximal des pieds
+    double eps_v           = 0.15;  // [m/s] vitesse horizontale max pour rester valide en station debout
+    double delta_support   = 0.20;  // [×L] bande de dégradation du support
+    double k_ankle_factor  = 0.50;  // [-] facteur abstrait de couple de cheville
 };
 
 /** @brief Paramètres du profil de levée du pied en swing. */
@@ -221,83 +221,76 @@ struct StepConfig {
 
 /** @brief Paramètres de la marche et du déclenchement des pas. */
 struct WalkConfig {
-    // Step trigger (window-based, stickman3-style)
-    double eps_step    = 0.15;  // [m/s]  minimum speed for a step to fire
-    double xcom_scale  = 0.5;   // [0-1]  scales v/ω₀ in ξ = x_cm + α·v/ω₀ (1=full capture point, 0=no lookahead)
-    double d_rear_max  = 1.5;   // [×L]   max distance rear foot may lag behind pelvis before forcing a step
-    double max_step_L  = 2.0;   // [×L]   max step length measured from stance foot to landing foot
+    // Déclenchement du pas (fenêtre de type stickman3)
+    double eps_step    = 0.15;  // [m/s]  vitesse minimale pour autoriser un pas
+    double xcom_scale  = 0.5;   // [0-1]  échelle appliquée à v/ω₀ dans ξ = x_cm + α·v/ω₀
+    double d_rear_max  = 1.5;   // [×L]   retard max du pied arrière avant pas forcé
+    double max_step_L  = 2.0;   // [×L]   longueur maximale d'un pas
 
-    // Swing animation
-    double step_speed = 5.5;  // [steps/s]  swing_t advances at this rate per second
+    // Animation du swing
+    double step_speed = 5.5;  // [steps/s] vitesse d'avancement de swing_t
 
-    // Foot target — dynamic per-frame planning
-    double stability_margin = 1.5;  // [×L]  foot lands this far ahead of xi (ξ)
+    // Cible de pied — planification dynamique à chaque frame
+    double stability_margin = 1.5;  // [×L] avance d'atterrissage par rapport à ξ
 
-
-    // CoM vertical bob — inverted pendulum arc model
-    // At mid-stance (CM over foot): y_cm = y_foot + R_bob
+    // Oscillation verticale du CM — modèle d'arc de pendule inversé
+    // À la mid-stance : y_cm = y_foot + R_bob
     // R_bob = (2 − leg_flex_coeff + cm_pelvis_ratio) · L
-    //   → pelvis-to-foot at mid-stance = (2 − leg_flex_coeff) · L
-    // bob_scale amplifies the descent away from that peak.
-    // bob_amp caps the maximum drop (hard limit on how far the CM dips).
-    double leg_flex_coeff = 0.05;  // [×L] knee bend at mid-stance (0=fully ext, 0.1=10% bent)
-    double bob_scale      = 3.0;   // [×]  IP arc deviation multiplier (0=flat, >1=expressive)
-    double bob_amp        = 0.15;  // [×L] max drop cap below R_bob
+    double leg_flex_coeff = 0.05;  // [×L] flexion du genou à la mid-stance
+    double bob_scale      = 3.0;   // [×] multiplicateur d'écart à l'arc
+    double bob_amp        = 0.15;  // [×L] borne max de l'abaissement
 
-    // Swing foot lift — computed dynamically at step initiation
-    // h_clear = h_clear_ratio*L  +  h_clear_slope*L*step_slope  +  h_clear_speed*L*(|vx|/vmax)
-    // h_clear_ratio is in StepConfig (base lift, already exists).
-    // On downhill, step_slope < 0 → h_clear decreases. Floor: h_clear_min * L.
-    double h_clear_slope_factor = 0.50;  // [×L per unit slope] extra lift going uphill
-    double h_clear_speed_factor = 0.10;  // [×L at vmax]        extra lift at full speed
-    double h_clear_min_ratio    = 0.05;  // [×L]                minimum foot lift (anti-drag)
+    // Levée du pied en swing — calculée au lancement du pas
+    double h_clear_slope_factor = 0.50;  // [×L par unité de pente] levée supplémentaire en montée
+    double h_clear_speed_factor = 0.10;  // [×L à vitesse max] levée supplémentaire à pleine vitesse
+    double h_clear_min_ratio    = 0.05;  // [×L] levée minimale du pied
 
-    // Double support: minimum time both feet stay grounded after heel-strike
-    double double_support_time = 0.06;  // [s] cooldown after heel-strike before next step fires
+    // Double appui : durée minimale où les deux pieds restent au sol après heel-strike
+    double double_support_time = 0.06;  // [s] temps mort avant le prochain déclenchement de pas
 
-    // CoM height adjustments
-    double cm_height_offset = 0.0;   // [m]   direct height offset (+ = taller, - = shorter)
-    double max_speed_drop   = 0.15;  // [×L]  max CM drop at walk_max_speed (speed-dependent crouch)
-    double max_slope_drop   = 0.20;  // [×L]  max CM drop at uphill_angle_deg slope
-    double downhill_crouch_max = 0.35;  // [×L] extra CoM drop when descending
-    double downhill_crouch_tau = 0.25;  // [s]  crouch engage time constant
-    double downhill_relax_tau  = 0.45;  // [s]  crouch release time constant
-    double downhill_step_bonus = 0.35;  // [×L] extra step length / margin while crouched
+    // Ajustements de hauteur du CM
+    double cm_height_offset = 0.0;   // [m] décalage direct de hauteur (+ = plus haut, - = plus bas)
+    double max_speed_drop   = 0.15;  // [×L] abaissement max du CM à walk_max_speed
+    double max_slope_drop   = 0.20;  // [×L] abaissement max du CM à la pente de référence
+    double downhill_crouch_max = 0.35;  // [×L] abaissement supplémentaire en descente
+    double downhill_crouch_tau = 0.25;  // [s] constante de temps d'engagement
+    double downhill_relax_tau  = 0.45;  // [s] constante de temps de relâchement
+    double downhill_step_bonus = 0.35;  // [×L] bonus de longueur / marge de pas en descente
 };
 
 /** @brief Paramètres du mode course (SLIP approximé). */
 struct RunConfig {
-    // Speed and steps
-    double max_speed        = 3.5;   // [m/s]   velocity cap while running
-    double accel_factor     = 1.8;   // [×]     multiplies physics.accel
-    double step_speed       = 6.5;   // [steps/s] faster swing closure than walk
-    double stability_margin = 0.55;  // [×L]    mild touchdown lead; run trigger handles the long step
-    double max_step_L       = 2.5;   // [×L]    max step from stance foot
-    double d_rear_max       = 0.9;   // [×L]    rear-foot lag threshold
-    double xcom_scale       = 0.75;  // [0-1]   capture-point lookahead
+    // Vitesse et pas
+    double max_speed        = 3.5;   // [m/s]   plafond de vitesse en course
+    double accel_factor     = 1.8;   // [×]     multiplicateur appliqué à physics.accel
+    double step_speed       = 6.5;   // [steps/s] fermeture du swing plus rapide qu'en marche
+    double stability_margin = 0.55;  // [×L]    légère avance d'atterrissage
+    double max_step_L       = 2.5;   // [×L]    longueur max depuis le pied d'appui
+    double d_rear_max       = 0.9;   // [×L]    seuil de retard du pied arrière
+    double xcom_scale       = 0.75;  // [0-1]   anticipation basée sur le centre de masse extrapolé
 
-    // Phase-based CM oscillation (stickman3 style)
-    double stride_len       = 5.8;   // [×L]    full stride target near max speed
-    double stride_len_min   = 5.4;   // [×L]    stride at minimum running speed
+    // Oscillation du CM pilotée par la phase
+    double stride_len       = 5.8;   // [×L]    foulée cible proche de la vitesse max
+    double stride_len_min   = 5.4;   // [×L]    foulée à la vitesse minimale de course
 
-    // Cadence (steps per minute) — interpolated with speed ratio
-    double cadence_spm_min  = 162.0; // [spm]   cadence at minimum run speed
-    double cadence_spm_max  = 176.0; // [spm]   cadence at maximum run speed
+    // Cadence interpolée avec le ratio de vitesse
+    double cadence_spm_min  = 162.0; // [spm]   cadence à la vitesse minimale
+    double cadence_spm_max  = 176.0; // [spm]   cadence à la vitesse maximale
 
-    // Body lean
-    double theta_max_deg    = 18.0;  // [°]     max lean at full run speed (replaces reconstruction theta_max_deg)
+    // Inclinaison du corps
+    double theta_max_deg    = 18.0;  // [°]     inclinaison max à pleine vitesse
 
-    // CoM height and bounce
-    double leg_flex_coeff   = 0.35;  // [×L]    knee bend — higher = more SLIP compression
-    double bob_scale        = 2.2;   // [×]     reduced run vertical excursion
-    double bob_amp          = 0.08;  // [×L]    max run oscillation amplitude
+    // Hauteur du CM et rebond
+    double leg_flex_coeff   = 0.35;  // [×L]    flexion du genou
+    double bob_scale        = 2.2;   // [×]     excursion verticale réduite en course
+    double bob_amp          = 0.08;  // [×L]    amplitude max de l'oscillation
 
-    // Swing foot lift
-    double h_clear_ratio    = 0.30;  // [×L]    base swing lift
-    double h_clear_min_ratio = 0.15; // [×L]    guaranteed minimum
+    // Levée du pied en swing
+    double h_clear_ratio    = 0.30;  // [×L]    levée de base
+    double h_clear_min_ratio = 0.15; // [×L]    minimum garanti
 
-    // Walk→run blend
-    double blend_tau        = 0.12;  // [s]     transition time constant
+    // Blend marche → course
+    double blend_tau        = 0.12;  // [s]     constante de temps de transition
 };
 
 /** @brief Paramètres du système de saut (preload, vol, réception). */

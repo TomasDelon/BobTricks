@@ -4,19 +4,52 @@
 
 #include <algorithm>
 #include <cmath>
+#include <cctype>
+#include <filesystem>
+#include <string>
+#include <vector>
 
 namespace {
 
 struct MusicTrack {
-    const char* label;
-    const char* path;
+    std::string label;
+    std::string path;
 };
 
-constexpr MusicTrack kMusicTracks[] = {
-    { "Alegend - Dawn", "/home/tomas/Downloads/bob/Alegend - Dawn (freetouse.com).mp3" },
-    { "Aylex - Off Road", "/home/tomas/Downloads/bob/Aylex - Off Road (freetouse.com).mp3" },
-    { "Pufino - Lucifer", "/home/tomas/Downloads/bob/Pufino - Lucifer (freetouse.com).mp3" },
-};
+const std::vector<MusicTrack>& musicTracks()
+{
+    static const std::vector<MusicTrack> tracks = [] {
+        namespace fs = std::filesystem;
+
+        std::vector<MusicTrack> out;
+        const fs::path music_dir = "data/audio/music";
+        if (!fs::exists(music_dir) || !fs::is_directory(music_dir))
+            return out;
+
+        std::vector<fs::path> paths;
+        for (const fs::directory_entry& entry : fs::directory_iterator(music_dir)) {
+            if (!entry.is_regular_file())
+                continue;
+
+            std::string ext = entry.path().extension().string();
+            std::transform(ext.begin(), ext.end(), ext.begin(),
+                           [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
+            if (ext == ".mp3" || ext == ".ogg" || ext == ".wav")
+                paths.push_back(entry.path());
+        }
+
+        std::sort(paths.begin(), paths.end());
+        for (const fs::path& path : paths) {
+            out.push_back({
+                path.stem().string(),
+                path.string(),
+            });
+        }
+        return out;
+    }();
+
+    return tracks;
+}
 
 int clampMixerVolume(double gain)
 {
@@ -71,14 +104,15 @@ void normalizeChunkPeak(Mix_Chunk* chunk)
 
 int AudioSystem::musicTrackCount()
 {
-    return static_cast<int>(std::size(kMusicTracks));
+    return static_cast<int>(musicTracks().size());
 }
 
 const char* AudioSystem::musicTrackLabel(int index)
 {
+    const auto& tracks = musicTracks();
     if (index < 0 || index >= musicTrackCount())
-        return "Unknown";
-    return kMusicTracks[index].label;
+        return "Inconnue";
+    return tracks[static_cast<std::size_t>(index)].label.c_str();
 }
 
 bool AudioSystem::init()
@@ -120,6 +154,8 @@ bool AudioSystem::loadFootstepSample(const char* path)
 
 bool AudioSystem::loadMusicTrack(int track_index)
 {
+    const auto& tracks = musicTracks();
+
     if (m_music) {
         Mix_HaltMusic();
         Mix_FreeMusic(m_music);
@@ -129,9 +165,10 @@ bool AudioSystem::loadMusicTrack(int track_index)
     if (track_index < 0 || track_index >= musicTrackCount())
         return false;
 
-    m_music = Mix_LoadMUS(kMusicTracks[track_index].path);
+    const std::string& path = tracks[static_cast<std::size_t>(track_index)].path;
+    m_music = Mix_LoadMUS(path.c_str());
     if (!m_music) {
-        SDL_Log("Mix_LoadMUS failed for %s: %s", kMusicTracks[track_index].path, Mix_GetError());
+        SDL_Log("Mix_LoadMUS failed for %s: %s", path.c_str(), Mix_GetError());
         return false;
     }
     return true;

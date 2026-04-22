@@ -204,7 +204,7 @@ static ScenarioDef makeRun3s(const AppConfig& cfg)
         });
         rec.addAssertion("run_3s contains single support", [](const std::vector<TelemetryRow>& rows) {
             return std::any_of(rows.begin(), rows.end(),
-                [](const TelemetryRow& r){ return r.foot_L_on_ground != r.foot_R_on_ground; });
+                [](const TelemetryRow& r){ return r.foot_left_on_ground != r.foot_right_on_ground; });
         });
     };
 

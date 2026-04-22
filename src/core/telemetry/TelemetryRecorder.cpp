@@ -6,12 +6,12 @@
 static const char* locoName(LocomotionState s)
 {
     switch (s) {
-        case LocomotionState::Standing: return "Standing";
-        case LocomotionState::Walking:  return "Walking";
-        case LocomotionState::Running:  return "Running";
-        case LocomotionState::Airborne: return "Airborne";
+        case LocomotionState::Standing: return "Debout";
+        case LocomotionState::Walking:  return "Marche";
+        case LocomotionState::Running:  return "Course";
+        case LocomotionState::Airborne: return "Aerien";
     }
-    return "Standing";
+    return "Debout";
 }
 
 void TelemetryRecorder::record(const SimState& s)
@@ -27,12 +27,12 @@ void TelemetryRecorder::record(const SimState& s)
     row.cm_vy             = cm.velocity.y;
     row.pelvis_x          = ch.pelvis.x;
     row.loco_state        = ch.locomotion_state;
-    row.foot_L_x          = ch.foot_left.pos.x;
-    row.foot_R_x          = ch.foot_right.pos.x;
-    row.foot_L_y          = ch.foot_left.pos.y;
-    row.foot_R_y          = ch.foot_right.pos.y;
-    row.foot_L_on_ground  = ch.foot_left.on_ground;
-    row.foot_R_on_ground  = ch.foot_right.on_ground;
+    row.foot_left_x          = ch.foot_left.pos.x;
+    row.foot_right_x         = ch.foot_right.pos.x;
+    row.foot_left_y          = ch.foot_left.pos.y;
+    row.foot_right_y         = ch.foot_right.pos.y;
+    row.foot_left_on_ground  = ch.foot_left.on_ground;
+    row.foot_right_on_ground = ch.foot_right.on_ground;
     row.cm_target_y       = ch.debug_cm_target_y;
     row.ref_ground        = ch.debug_ref_ground;
     row.ref_slope         = ch.debug_ref_slope;
@@ -48,9 +48,9 @@ void TelemetryRecorder::writeCsv(std::ostream& out) const
 {
     out << "t,cm_x,cm_vx,cm_y,cm_vy,"
            "pelvis_x,"
-           "foot_L_x,foot_R_x,"
-           "foot_L_y,foot_R_y,"
-           "foot_L_on_ground,foot_R_on_ground,"
+           "foot_left_x,foot_right_x,"
+           "foot_left_y,foot_right_y,"
+           "foot_left_on_ground,foot_right_on_ground,"
            "cm_target_y,"
            "loco_state,"
            "ref_ground,ref_slope,h_ip,cm_offset,speed_drop,slope_drop\n";
@@ -61,10 +61,10 @@ void TelemetryRecorder::writeCsv(std::ostream& out) const
             << r.cm_x     << ',' << r.cm_vx << ','
             << r.cm_y     << ',' << r.cm_vy << ','
             << r.pelvis_x << ','
-            << r.foot_L_x << ',' << r.foot_R_x << ','
-            << r.foot_L_y << ',' << r.foot_R_y << ','
-            << static_cast<int>(r.foot_L_on_ground) << ','
-            << static_cast<int>(r.foot_R_on_ground) << ','
+            << r.foot_left_x << ',' << r.foot_right_x << ','
+            << r.foot_left_y << ',' << r.foot_right_y << ','
+            << static_cast<int>(r.foot_left_on_ground) << ','
+            << static_cast<int>(r.foot_right_on_ground) << ','
             << r.cm_target_y << ','
             << locoName(r.loco_state) << ','
             << r.ref_ground << ','

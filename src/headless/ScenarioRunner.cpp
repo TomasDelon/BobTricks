@@ -18,18 +18,19 @@ bool runScenario(const ScenarioDef& def,
     if (def.setup_asserts)
         def.setup_asserts(rec);
 
-    // Record the initial state (t=0) before any integration.
-    // NOTE: feet are not yet bootstrapped at this point — foot positions,
-    // support, xcom and mos will be zero.  The row's cm position and velocity
-    // do reflect the ScenarioInit values exactly.  Bootstrap happens inside
-    // the first step() call below.
+    // Enregistre l'état initial (t=0) avant toute intégration.
+    // À cet instant les pieds ne sont pas encore bootstrapés : positions de
+    // pieds, support, centre de masse extrapolé et marge de stabilité valent
+    // encore zéro. En revanche, la position et la vitesse du CM reflètent bien
+    // exactement les valeurs de `ScenarioInit`. Le bootstrap est fait dans le
+    // premier appel à `step()` ci-dessous.
     rec.record(core.state());
 
     const double dt = config.sim_loop.fixed_dt_s;
 
-    // Step loop — deterministic fixed timestep, no real-time throttle.
-    // sim_time is read from core.state() so the InputFrame always gets
-    // the time that was current at the START of the step being built.
+    // Boucle de pas déterministe à dt fixe, sans contrainte temps réel.
+    // `sim_time` est lu depuis `core.state()` pour que l'`InputFrame` reçoive
+    // toujours le temps courant au DÉBUT du pas en cours de construction.
     while (core.time() < def.duration_s) {
         const InputFrame input = def.input_fn
                                ? def.input_fn(core.time())
@@ -41,7 +42,7 @@ bool runScenario(const ScenarioDef& def,
     rec.writeCsv(csv_out);
 
     if (rec.rows().empty() || rec.rows().front().t == rec.rows().back().t) {
-        // degenerate run — report but don't crash
+        // Exécution dégénérée : on le signale sans faire échouer brutalement.
         report_out << "WARN  empty or single-row run for scenario: " << def.name << '\n';
     }
 

@@ -5,11 +5,11 @@
  * @brief Système audio réactif aux événements de locomotion.
  */
 
-#include <SDL2/SDL_mixer.h>
-#include "config/AppConfig.h"
-
 #include <string>
-#include <vector>
+
+#include <SDL2/SDL_mixer.h>
+
+#include "config/AppConfig.h"
 
 /**
  * @brief Système audio piloté par les événements de contact pied-sol.
@@ -35,7 +35,7 @@ public:
      */
     bool loadFootstepSample(const char* path);
 
-    /** @brief Applique les réglages runtime (volumes, piste active, enable musique). */
+    /** @brief Applique les réglages runtime (volumes, piste active, activation musique). */
     void applyConfig(const AudioConfig& config);
 
     /**
@@ -59,9 +59,9 @@ public:
     /** @brief Libère le périphérique audio SDL2. */
     void shutdown();
 
-    /** @brief Nombre de pistes musicales disponibles dans le runtime. */
+    /** @brief Nombre de pistes musicales trouvées dans `data/audio/music/`. */
     static int musicTrackCount();
-    /** @brief Libellé d'une piste musicale pour l'UI de debug. */
+    /** @brief Libellé d'une piste musicale pour l'interface de debug. */
     static const char* musicTrackLabel(int index);
 
 private:
