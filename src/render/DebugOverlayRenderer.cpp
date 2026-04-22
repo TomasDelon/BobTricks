@@ -7,6 +7,8 @@
 
 namespace {
 
+constexpr double MAX_CM_DRAG_SPEED_MPS = 10.0;
+
 Vec2 armCirclePoint(Vec2 center, Vec2 body_right, Vec2 body_up, double radius, double angle_deg)
 {
     const double a = angle_deg * kDegToRad;
@@ -227,9 +229,20 @@ void DebugOverlayRenderer::renderForeground(SDL_Renderer*          renderer,
 
     // Drag preview (right-click set velocity)
     if (drag_active) {
+        const Vec2 drag_world = camera.screenToWorld(
+            drag_mouse_x, drag_mouse_y, ground_y, viewport_w, viewport_h);
+        Vec2 drag_velocity = drag_world - cm.position;
+        const double speed = drag_velocity.length();
+        if (speed > MAX_CM_DRAG_SPEED_MPS)
+            drag_velocity = drag_velocity * (MAX_CM_DRAG_SPEED_MPS / speed);
+        const SDL_FPoint clamped_drag_s = camera.worldToScreen(
+            cm.position.x + drag_velocity.x,
+            cm.position.y + drag_velocity.y,
+            ground_y, viewport_w, viewport_h);
+
         SDL_SetRenderDrawColor(renderer, 50, 220, 50, 180);
-        SDL_RenderDrawLineF(renderer, cm_s.x, cm_s.y, drag_mouse_x, drag_mouse_y);
-        drawArrowHead(renderer, cm_s.x, cm_s.y, drag_mouse_x, drag_mouse_y, 10.f);
+        SDL_RenderDrawLineF(renderer, cm_s.x, cm_s.y, clamped_drag_s.x, clamped_drag_s.y);
+        drawArrowHead(renderer, cm_s.x, cm_s.y, clamped_drag_s.x, clamped_drag_s.y, 10.f);
     }
 
     if (gaze_target_world.has_value()

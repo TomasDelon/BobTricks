@@ -9,6 +9,7 @@ constexpr double ZOOM_STEP = 1.1;
 constexpr float CM_HIT_RADIUS_PX = 20.f;
 constexpr float FOOT_HIT_RADIUS_PX = 15.f;
 constexpr float HAND_HIT_RADIUS_PX = 15.f;
+constexpr double MAX_CM_DRAG_SPEED_MPS = 10.0;
 
 float distancePx(const SDL_FPoint& point, float mx, float my)
 {
@@ -250,7 +251,11 @@ InputController::EventResult InputController::handleEvent(const SDL_Event& event
         SDL_GetRendererOutputSize(renderer, &vw, &vh);
         const Vec2 mouse_world = camera.screenToWorld(
             m_drag_mouse_x, m_drag_mouse_y, ground_y, vw, vh);
-        m_pending_set_velocity = mouse_world - core.state().cm.position;
+        Vec2 drag_velocity = mouse_world - core.state().cm.position;
+        const double speed = drag_velocity.length();
+        if (speed > MAX_CM_DRAG_SPEED_MPS)
+            drag_velocity = drag_velocity * (MAX_CM_DRAG_SPEED_MPS / speed);
+        m_pending_set_velocity = drag_velocity;
         m_drag_vel_active = false;
     }
 
