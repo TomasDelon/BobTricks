@@ -33,7 +33,6 @@ graph LR
         BalanceComputer
         LegIK
         StandingController
-        StepTriggerType
     end
 
     subgraph sim_g["Simulation"]

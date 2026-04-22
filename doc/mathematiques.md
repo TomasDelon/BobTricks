@@ -126,7 +126,7 @@ MoS = min( ξ − x_gauche,  x_droite − ξ )
 
 ### Déclenchement des pas
 
-Deux types de déclencheurs coexistent (`StepTriggerType`) :
+Deux mécanismes de déclenchement coexistent :
 
 | Type | Condition | Signification |
 |------|-----------|---------------|

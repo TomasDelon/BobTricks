@@ -92,9 +92,9 @@ AppConfig
 
 ---
 
-## 5. Deux types de déclencheurs de pas coexistent
+## 5. Deux mécanismes de déclenchement de pas coexistent
 
-**Décision :** `StepTriggerType::Normal` (cadence) et `StepTriggerType::Emergency`
+**Décision :** un déclencheur normal (cadence) et un déclencheur d'urgence
 (XCoM dehors) sont deux mécanismes distincts, jamais fusionnés.
 
 **Pourquoi :**
