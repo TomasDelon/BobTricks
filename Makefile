@@ -39,6 +39,8 @@ TEST_CORE_SRCS := src/core/character/CharacterState.cpp \
                   src/core/simulation/GroundReference.cpp \
                   src/core/simulation/SimVerbosity.cpp \
                   src/core/simulation/SimulationCore.cpp \
+                  src/core/simulation/SimulationCoreLifecycle.cpp \
+                  src/core/simulation/SimulationCoreLocomotion.cpp \
                   src/core/telemetry/TelemetryRecorder.cpp \
                   src/core/terrain/Terrain.cpp
 UNIT_TEST_BIN := build/tests/unit/core_unit_tests
