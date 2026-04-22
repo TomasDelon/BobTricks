@@ -36,7 +36,7 @@ int main(int argc, char** argv)
                 "  --scenario <name>   run one scenario (CSV to stdout, report to stderr)\n"
                 "  --all / -a          run all scenarios; exit 0 if all pass, 1 if any fail\n"
                 "  --list / -l         print available scenario names and exit\n"
-                "  --quiet / -q        suppress core debug logs (Bootstrap, StepPlanner, ...)\n"
+                "  --quiet / -q        suppress core debug logs (Bootstrap, stepping, ...)\n"
                 "  --help  / -h        show this message\n");
             return 0;
         }

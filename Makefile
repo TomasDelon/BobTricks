@@ -30,18 +30,12 @@ HEADLESS_DIRS := src/config \
 HEADLESS_SRCS := $(wildcard $(addsuffix /*.cpp, $(HEADLESS_DIRS)))
 HEADLESS_BIN  := build/bobtricks_headless
 
-ANALYSIS_DIRS := src/config \
-                 src/core/character src/core/locomotion \
-                 src/core/simulation src/core/telemetry src/core/terrain
-ANALYSIS_SRCS := $(wildcard $(addsuffix /*.cpp, $(ANALYSIS_DIRS)))
-
 TEST_CORE_SRCS := src/core/character/CharacterState.cpp \
                   src/core/character/ArmController.cpp \
                   src/core/character/HeadController.cpp \
                   src/core/locomotion/BalanceComputer.cpp \
                   src/core/locomotion/LegIK.cpp \
                   src/core/locomotion/StandingController.cpp \
-                  src/core/locomotion/StepPlanner.cpp \
                   src/core/simulation/GroundReference.cpp \
                   src/core/simulation/SimVerbosity.cpp \
                   src/core/simulation/SimulationCore.cpp \
@@ -70,7 +64,6 @@ test_mem: $(HEADLESS_BIN)
 
 .PHONY: all build build_headless build_asan run test test_headless test_unit \
         test_regression test_asan test_mem check_architecture docs clean help FORCE
-.PRECIOUS: build/analysis/%
 
 all: build
 
@@ -117,16 +110,6 @@ $(HEADLESS_BIN): $(HEADLESS_SRCS)
 	@mkdir -p $(@D)
 	$(CXX) -std=c++20 -Wall -Wextra -O2 -Isrc $^ -lm -o $@
 	@echo "Headless OK → $(HEADLESS_BIN)"
-
-# ── Headless analysis tools ───────────────────────────────────────────────────
-# No SDL, no ImGui. Shares headers from src/ via -Isrc.
-# Usage:  make analysis/test_ip_dynamics  &&  ./build/analysis/test_ip_dynamics > out.csv
-analysis/%: FORCE build/analysis/%
-	@true
-
-build/analysis/%: analysis/%.cpp
-	@mkdir -p $(@D)
-	$(CXX) -std=c++20 -O2 -Isrc $< $(ANALYSIS_SRCS) -lm -o $@
 
 $(UNIT_TEST_BIN): tests/unit/test_core_math.cpp tests/TestSupport.h \
                   src/core/math/Bezier.cpp \
@@ -180,6 +163,5 @@ help:
 	@echo "make test_asan               — build_asan + run all scenarios"
 	@echo "make test_mem                — Valgrind on headless binary"
 	@echo "make check_architecture      — verify repo invariants (core SDL-free, etc.)"
-	@echo "make analysis/<name>         — compile tool to build/analysis/<name>"
 	@echo "make docs                    — générer la doc Doxygen dans doc/doxygen/html/"
 	@echo "make clean                   — remove build/"

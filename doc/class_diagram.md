@@ -20,7 +20,6 @@ graph LR
         UpperBodyTypes
         BalanceState
         SupportState
-        StepPlan
     end
 
     subgraph charlogic["Character · Logic"]
@@ -34,7 +33,6 @@ graph LR
         BalanceComputer
         LegIK
         StandingController
-        StepPlanner
         StepTriggerType
     end
 
@@ -96,7 +94,6 @@ graph LR
     FootState        --> Vec2
     TrailPoint       --> Vec2
     UpperBodyTypes   --> Vec2
-    StepPlan         --> Vec2
 
     %% Character logic
     CharacterState      --> Vec2

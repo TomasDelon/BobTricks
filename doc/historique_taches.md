@@ -43,12 +43,14 @@ Les tâches d'un même commit sont listées dans leur ordre logique d'implément
 28. Définir `SupportState` : type de support (bilatéral, unilatéral gauche/droit, aérien)
 29. Définir `BalanceState` : XCoM, marge de stabilité, projection sur le polygone de support
 30. Définir `StepPlan` avec position cible du pied, durée de vol et phase de swing
+    Type supprimé ensuite lors de la recentralisation de la logique de pas dans `SimulationCore`.
 31. Implémenter le générateur de terrain procédural par méthode angle-walk (somme d'angles aléatoires)
 32. Paramétrer le terrain : fréquence, amplitude, lissage et graine aléatoire
 33. Implémenter l'IK analytique à 2 segments (`LegIK`) : calcul de l'angle du genou par la loi des cosinus
 34. Implémenter `BalanceComputer` : calcul du XCoM (extrapolated center of mass) avec `ω = sqrt(g/h)`
 35. Calculer la marge de stabilité comme distance signée du XCoM au bord du polygone de support
 36. Implémenter `StepPlanner` : condition de déclenchement par seuil du XCoM sur le pied d'appui
+    Module supprimé ensuite ; la logique active vit désormais dans `SimulationCore`.
 37. Calculer la position cible du pied (placement) relative au CM avec facteur `k_step = 0.90`
 38. Implémenter la trajectoire de swing avec arc parabolique (hauteur configurable)
 39. Implémenter `TelemetryRecorder` : buffer de `TelemetryRow` par frame avec export CSV
@@ -99,6 +101,7 @@ Les tâches d'un même commit sont listées dans leur ordre logique d'implément
 74. Étendre `CharacterState` avec `run_blend`, `arm_phase`, `arm_phase_velocity`
 75. Ajouter `FootState.pinned_normal` pour résoudre l'IK sur terrain incliné
 76. Étendre `StepPlan` avec des champs pour la trajectoire de swing sur terrain non plat
+    Héritage retiré depuis : la trajectoire de swing est maintenant portée par `FootState` et le contexte interne de `SimulationCore`.
 77. Affiner `StandingController` : séparer la logique de positionnement du bassin de celle du torse
 78. Affiner `BalanceComputer` : exposer `SupportState` comme sortie explicite du calcul
 79. Étendre `TelemetryRow` avec les champs upper body (angles de bras, phase de swing)
