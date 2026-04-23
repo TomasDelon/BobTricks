@@ -125,12 +125,28 @@ bool ConfigIO::load(const std::string& path, AppConfig& config)
             else if (key == "show_sample_points")   { config.spline_render.show_sample_points   = (value == "1" || value == "true"); handled = true; }
         }
         else if (section == "Presentation") {
-            if      (key == "force_spline_renderer") { config.presentation.force_spline_renderer = (value == "1" || value == "true"); handled = true; }
-            else if (key == "hide_head_debug")       { config.presentation.hide_head_debug       = (value == "1" || value == "true"); handled = true; }
-            else if (key == "hide_arm_debug")        { config.presentation.hide_arm_debug        = (value == "1" || value == "true"); handled = true; }
-            else if (key == "hide_cm_debug")         { config.presentation.hide_cm_debug         = (value == "1" || value == "true"); handled = true; }
-            else if (key == "hide_balance_debug")    { config.presentation.hide_balance_debug    = (value == "1" || value == "true"); handled = true; }
-            else if (key == "hide_spline_debug")     { config.presentation.hide_spline_debug     = (value == "1" || value == "true"); handled = true; }
+            if      (key == "show_spline_renderer")         { config.presentation.show_spline_renderer         = (value == "1" || value == "true"); handled = true; }
+            else if (key == "force_spline_renderer")        { config.presentation.show_spline_renderer         = (value == "1" || value == "true"); handled = true; }
+            else if (key == "show_legacy_skeleton")         { config.presentation.show_legacy_skeleton         = (value == "1" || value == "true"); handled = true; }
+            else if (key == "show_character_debug_markers") { config.presentation.show_character_debug_markers = (value == "1" || value == "true"); handled = true; }
+            else if (key == "show_pelvis_reach_disk")       { config.presentation.show_pelvis_reach_disk       = (value == "1" || value == "true"); handled = true; }
+            else if (key == "show_trail_overlay")           { config.presentation.show_trail_overlay           = (value == "1" || value == "true"); handled = true; }
+            else if (key == "show_ground_reference")        { config.presentation.show_ground_reference        = (value == "1" || value == "true"); handled = true; }
+            else if (key == "show_cm_projection")           { config.presentation.show_cm_projection           = (value == "1" || value == "true"); handled = true; }
+            else if (key == "velocity_components")          { config.presentation.velocity_components          = std::stoi(value); handled = true; }
+            else if (key == "accel_components")             { config.presentation.accel_components             = std::stoi(value); handled = true; }
+            else if (key == "debug_thickness_scale")        { config.presentation.debug_thickness_scale        = std::stof(value); handled = true; }
+            else if (key == "show_cm_vectors")              { const bool show = (value == "1" || value == "true"); config.presentation.velocity_components = show ? 3 : 0; config.presentation.accel_components = show ? 3 : 0; handled = true; }
+            else if (key == "show_xcom_overlay")            { config.presentation.show_xcom_overlay            = (value == "1" || value == "true"); handled = true; }
+            else if (key == "show_head_overlay")            { config.presentation.show_head_overlay            = (value == "1" || value == "true"); handled = true; }
+            else if (key == "show_arm_overlay")             { config.presentation.show_arm_overlay             = (value == "1" || value == "true"); handled = true; }
+            else if (key == "show_spline_debug_overlay")    { config.presentation.show_spline_debug_overlay    = (value == "1" || value == "true"); handled = true; }
+            // Backward-compatible keys from the former presentation preset.
+            else if (key == "hide_head_debug")       { config.presentation.show_head_overlay         = !(value == "1" || value == "true"); handled = true; }
+            else if (key == "hide_arm_debug")        { config.presentation.show_arm_overlay          = !(value == "1" || value == "true"); handled = true; }
+            else if (key == "hide_cm_debug")         { const bool show = !(value == "1" || value == "true"); config.presentation.show_ground_reference = show; config.presentation.show_cm_projection = show; config.presentation.velocity_components = show ? 3 : 0; config.presentation.accel_components = show ? 3 : 0; config.presentation.show_trail_overlay = show; handled = true; }
+            else if (key == "hide_balance_debug")    { config.presentation.show_xcom_overlay         = !(value == "1" || value == "true"); handled = true; }
+            else if (key == "hide_spline_debug")     { config.presentation.show_spline_debug_overlay = !(value == "1" || value == "true"); handled = true; }
         }
         else if (section == "CM") {
             if      (key == "show_ground_reference")   { config.cm.show_ground_reference   = (value == "1" || value == "true"); handled = true; }
@@ -361,12 +377,20 @@ bool ConfigIO::save(const std::string& path, const AppConfig& config)
     file << "show_sample_points="   << (config.spline_render.show_sample_points ? "1" : "0") << "\n\n";
 
     file << "[Presentation]\n";
-    file << "force_spline_renderer=" << (config.presentation.force_spline_renderer ? "1" : "0") << "\n";
-    file << "hide_head_debug="       << (config.presentation.hide_head_debug ? "1" : "0") << "\n";
-    file << "hide_arm_debug="        << (config.presentation.hide_arm_debug ? "1" : "0") << "\n";
-    file << "hide_cm_debug="         << (config.presentation.hide_cm_debug ? "1" : "0") << "\n";
-    file << "hide_balance_debug="    << (config.presentation.hide_balance_debug ? "1" : "0") << "\n";
-    file << "hide_spline_debug="     << (config.presentation.hide_spline_debug ? "1" : "0") << "\n\n";
+    file << "show_spline_renderer="         << (config.presentation.show_spline_renderer ? "1" : "0") << "\n";
+    file << "show_legacy_skeleton="         << (config.presentation.show_legacy_skeleton ? "1" : "0") << "\n";
+    file << "show_character_debug_markers=" << (config.presentation.show_character_debug_markers ? "1" : "0") << "\n";
+    file << "show_pelvis_reach_disk="       << (config.presentation.show_pelvis_reach_disk ? "1" : "0") << "\n";
+    file << "show_trail_overlay="           << (config.presentation.show_trail_overlay ? "1" : "0") << "\n";
+    file << "show_ground_reference="        << (config.presentation.show_ground_reference ? "1" : "0") << "\n";
+    file << "show_cm_projection="           << (config.presentation.show_cm_projection ? "1" : "0") << "\n";
+    file << "velocity_components="          << config.presentation.velocity_components << "\n";
+    file << "accel_components="             << config.presentation.accel_components << "\n";
+    file << "debug_thickness_scale="        << config.presentation.debug_thickness_scale << "\n";
+    file << "show_xcom_overlay="            << (config.presentation.show_xcom_overlay ? "1" : "0") << "\n";
+    file << "show_head_overlay="            << (config.presentation.show_head_overlay ? "1" : "0") << "\n";
+    file << "show_arm_overlay="             << (config.presentation.show_arm_overlay ? "1" : "0") << "\n";
+    file << "show_spline_debug_overlay="    << (config.presentation.show_spline_debug_overlay ? "1" : "0") << "\n\n";
 
     file << "[CM]\n";
     file << "show_ground_reference="   << (config.cm.show_ground_reference   ? "1" : "0") << "\n";

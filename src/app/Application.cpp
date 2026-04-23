@@ -154,7 +154,10 @@ void Application::stepSimulation(double dt)
     // Trail — record CM position, prune old entries.
     const SimState& s = m_core->state();
     const double sim_time = m_simLoop.getSimulationTime();
-    if (m_config.cm.show_trail) {
+    const bool presentation_mode = m_inputController.isGameView();
+    const bool record_trail = m_config.cm.show_trail
+        || (presentation_mode && m_config.presentation.show_trail_overlay);
+    if (record_trail) {
         m_trail.push_back({sim_time, s.cm.position});
         while (!m_trail.empty()
                && sim_time - m_trail.front().time > m_config.cm.trail_duration)
@@ -259,9 +262,11 @@ void Application::render()
     CMConfig render_cm_config = m_config.cm;
     SplineRenderConfig render_spline_config = m_config.spline_render;
 
-    if (m_inputController.isGameView())
+    const bool presentation_mode = m_inputController.isGameView();
+    if (presentation_mode)
         applyPresentationModeOverrides(render_char_config, render_head_config, render_arm_config,
                                        render_cm_config, render_spline_config);
+    const float debug_scale = presentation_mode ? m_config.presentation.debug_thickness_scale : 1.0f;
 
     SDL_SetRenderDrawColor(m_renderer, 18, 18, 18, 255);
     SDL_RenderClear(m_renderer);
@@ -269,19 +274,26 @@ void Application::render()
     m_sceneRenderer.render(m_renderer, m_camera, terrain, m_effectsSystem.dustParticles(),
                            m_simLoop.getSimulationTime(), GROUND_Y, vw, vh);
 
-    if (!m_inputController.isGameView()) {
+    const bool draw_background_overlay = !presentation_mode
+        || m_config.presentation.show_trail_overlay;
+    if (draw_background_overlay) {
         m_debugOverlay.renderBackground(m_renderer, m_camera, render_cm_config,
                                         m_trail, m_simLoop.getSimulationTime(),
-                                        GROUND_Y, vw, vh);
+                                        GROUND_Y, vw, vh, debug_scale);
     }
 
+    const bool spline_only = presentation_mode && !m_config.presentation.show_legacy_skeleton;
+    const bool legacy_debug_markers = !presentation_mode
+        || m_config.presentation.show_character_debug_markers;
     m_characterRenderer.render(m_renderer, m_camera, s.cm, s.character,
                                render_char_config, render_spline_config,
                                m_config.reconstruction, render_cm_config,
-                               m_inputController.isGameView(),
-                               terrain, GROUND_Y, vw, vh);
+                               spline_only, legacy_debug_markers,
+                               terrain, GROUND_Y, vw, vh, debug_scale);
 
-    if (!m_inputController.isGameView()) {
+    const bool draw_foreground_overlay = !presentation_mode
+        || presentationForegroundOverlayEnabled();
+    if (draw_foreground_overlay) {
         m_debugOverlay.renderForeground(m_renderer, m_camera, s.cm,
                                         s.character,
                                         render_char_config, render_head_config, render_arm_config,
@@ -290,13 +302,13 @@ void Application::render()
                                         m_inputController.isVelocityDragActive(),
                                         m_inputController.dragMouseX(),
                                         m_inputController.dragMouseY(),
-                                        GROUND_Y, vw, vh);
+                                        GROUND_Y, vw, vh, debug_scale);
 
         if (render_cm_config.show_xcom_line && s.character.feet_initialized) {
             const bool show_target = std::abs(s.cm.velocity.x) > 0.05;
             m_debugOverlay.renderXCoM(m_renderer, m_camera,
                                       s.xi, s.xi_target_x, s.xi_trigger, show_target,
-                                      terrain, GROUND_Y, vw, vh);
+                                      terrain, GROUND_Y, vw, vh, debug_scale);
         }
     }
 
@@ -305,43 +317,49 @@ void Application::render()
     SDL_RenderPresent(m_renderer);
 }
 
+bool Application::presentationForegroundOverlayEnabled() const
+{
+    const PresentationConfig& p = m_config.presentation;
+    return p.show_ground_reference
+        || p.show_cm_projection
+        || p.velocity_components > 0
+        || p.accel_components > 0
+        || p.show_xcom_overlay
+        || p.show_head_overlay
+        || p.show_arm_overlay;
+}
+
 void Application::applyPresentationModeOverrides(CharacterConfig& charConfig,
                                                  HeadConfig& headConfig,
                                                  ArmConfig& armConfig,
                                                  CMConfig& cmConfig,
                                                  SplineRenderConfig& splineConfig) const
 {
-    charConfig.show_pelvis_reach_disk = false;
+    const PresentationConfig& p = m_config.presentation;
 
-    if (m_config.presentation.hide_head_debug) {
-        headConfig.show_eye_marker = false;
-        headConfig.show_gaze_ray = false;
-        headConfig.show_gaze_target = false;
-    }
+    charConfig.show_pelvis_reach_disk = p.show_pelvis_reach_disk;
 
-    if (m_config.presentation.hide_arm_debug) {
-        armConfig.show_debug_reach_circles = false;
-        armConfig.show_debug_swing_points = false;
-        armConfig.show_debug_swing_arcs = false;
-    }
+    headConfig.show_eye_marker  = p.show_head_overlay;
+    headConfig.show_gaze_ray    = p.show_head_overlay;
+    headConfig.show_gaze_target = p.show_head_overlay;
 
-    if (m_config.presentation.hide_cm_debug) {
-        cmConfig.show_ground_reference = false;
-        cmConfig.show_projection_line = false;
-        cmConfig.show_projection_dot = false;
-        cmConfig.show_target_height_tick = false;
-        cmConfig.show_trail = false;
-    }
+    armConfig.show_debug_reach_circles = p.show_arm_overlay;
+    armConfig.show_debug_swing_points  = p.show_arm_overlay;
+    armConfig.show_debug_swing_arcs    = p.show_arm_overlay;
 
-    if (m_config.presentation.hide_balance_debug) {
-        cmConfig.show_xcom_line = false;
-        cmConfig.show_support_line = false;
-    }
+    cmConfig.show_ground_reference   = p.show_ground_reference;
+    cmConfig.show_projection_line    = p.show_cm_projection;
+    cmConfig.show_projection_dot     = p.show_cm_projection;
+    cmConfig.show_target_height_tick = p.show_cm_projection;
+    cmConfig.show_trail              = p.show_trail_overlay;
+    cmConfig.velocity_components     = p.velocity_components;
+    cmConfig.accel_components        = p.accel_components;
+    cmConfig.show_xcom_line          = p.show_xcom_overlay;
+    cmConfig.show_support_line       = p.show_xcom_overlay;
 
-    if (m_config.presentation.force_spline_renderer)
-        splineConfig.enabled = true;
+    splineConfig.enabled = p.show_spline_renderer;
 
-    if (m_config.presentation.hide_spline_debug) {
+    if (!p.show_spline_debug_overlay) {
         splineConfig.draw_under_legacy = false;
         splineConfig.show_test_curve = false;
         splineConfig.show_control_polygon = false;

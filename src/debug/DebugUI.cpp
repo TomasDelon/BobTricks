@@ -331,12 +331,39 @@ void DebugUI::renderPresentationPanel(PresentationConfig& config, bool& saveRequ
     if (!ImGui::CollapsingHeader("Presentation", ImGuiTreeNodeFlags_None))
         return;
 
-    ImGui::Checkbox("Forcer le rendu spline", &config.force_spline_renderer);
-    ImGui::Checkbox("Masquer le debug tete", &config.hide_head_debug);
-    ImGui::Checkbox("Masquer le debug bras", &config.hide_arm_debug);
-    ImGui::Checkbox("Masquer le debug CM", &config.hide_cm_debug);
-    ImGui::Checkbox("Masquer le debug balance", &config.hide_balance_debug);
-    ImGui::Checkbox("Masquer le debug spline", &config.hide_spline_debug);
+    ImGui::Checkbox("Afficher le rendu spline", &config.show_spline_renderer);
+
+    ImGui::Separator();
+    ImGui::TextDisabled("Corps");
+    ImGui::Checkbox("Afficher le squelette legacy", &config.show_legacy_skeleton);
+    ImGui::Checkbox("Afficher les marqueurs legacy", &config.show_character_debug_markers);
+    ImGui::Checkbox("Afficher le disque de portee du bassin", &config.show_pelvis_reach_disk);
+
+    ImGui::Separator();
+    ImGui::TextDisabled("Overlays CM / locomotion");
+    ImGui::Checkbox("Afficher la trainee du CM", &config.show_trail_overlay);
+    ImGui::Checkbox("Afficher la reference de sol", &config.show_ground_reference);
+    ImGui::Checkbox("Afficher projection / hauteur cible", &config.show_cm_projection);
+    ImGui::TextUnformatted("Vecteur vitesse");
+    ImGui::SameLine();
+    ImGui::RadioButton("Off##pres_vel", &config.velocity_components, 0); ImGui::SameLine();
+    ImGui::RadioButton("X##pres_vel",   &config.velocity_components, 1); ImGui::SameLine();
+    ImGui::RadioButton("Y##pres_vel",   &config.velocity_components, 2); ImGui::SameLine();
+    ImGui::RadioButton("XY##pres_vel",  &config.velocity_components, 3);
+    ImGui::TextUnformatted("Vecteur acceleration");
+    ImGui::SameLine();
+    ImGui::RadioButton("Off##pres_acc", &config.accel_components, 0); ImGui::SameLine();
+    ImGui::RadioButton("X##pres_acc",   &config.accel_components, 1); ImGui::SameLine();
+    ImGui::RadioButton("Y##pres_acc",   &config.accel_components, 2); ImGui::SameLine();
+    ImGui::RadioButton("XY##pres_acc",  &config.accel_components, 3);
+    ImGui::SliderFloat("Epaisseur debug", &config.debug_thickness_scale, 1.0f, 6.0f, "x%.1f");
+    ImGui::Checkbox("Afficher XCoM / cible de pas", &config.show_xcom_overlay);
+
+    ImGui::Separator();
+    ImGui::TextDisabled("Overlays tete / bras / spline");
+    ImGui::Checkbox("Afficher debug tete", &config.show_head_overlay);
+    ImGui::Checkbox("Afficher debug bras", &config.show_arm_overlay);
+    ImGui::Checkbox("Afficher debug spline", &config.show_spline_debug_overlay);
 
     ImGui::Separator();
     if (ImGui::Button("Sauver la config presentation"))
@@ -556,7 +583,7 @@ void DebugUI::renderHelpPanel()
 
     ImGui::Separator();
     ImGui::TextWrapped("Notes");
-    ImGui::BulletText("En mode presentation, la plupart des overlays de debug sont masques.");
+    ImGui::BulletText("Le mode presentation a ses propres toggles d'affichage.");
     ImGui::BulletText("Les mains et les pieds ne peuvent etre saisis que si la cible est assez proche.");
 }
 

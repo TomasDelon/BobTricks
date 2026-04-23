@@ -37,10 +37,12 @@ public:
                 const CharacterReconstructionConfig& reconstruction,
                 const CMConfig&       cmConfig,
                 bool                  spline_only,
+                bool                  legacy_debug_markers,
                 const Terrain&        terrain,
                 double                ground_y,
                 int                   viewport_w,
-                int                   viewport_h) const;
+                int                   viewport_h,
+                float                 debug_scale = 1.0f) const;
 
 private:
     struct ScreenSpacePose {
@@ -83,7 +85,8 @@ private:
 
     void renderLegacyBody(SDL_Renderer* renderer,
                           const CharacterState& character,
-                          const ScreenSpacePose& pose) const;
+                          const ScreenSpacePose& pose,
+                          float debug_scale) const;
     void renderVisualLayer(SDL_Renderer* renderer,
                            const Camera2D& camera,
                            const CharacterState& character,
@@ -100,7 +103,8 @@ private:
                                 const ScreenSpacePose& pose,
                                 double ground_y,
                                 int viewport_w,
-                                int viewport_h) const;
+                                int viewport_h,
+                                float debug_scale) const;
 
     void renderDebugMarkersBeforeBody(SDL_Renderer* renderer,
                                       const Camera2D& camera,
@@ -110,7 +114,8 @@ private:
                                       const ScreenSpacePose& pose,
                                       double ground_y,
                                       int viewport_w,
-                                      int viewport_h) const;
+                                      int viewport_h,
+                                      float debug_scale) const;
 
     void renderDebugMarkersAfterBody(SDL_Renderer* renderer,
                                      const Camera2D& camera,
@@ -118,7 +123,8 @@ private:
                                      const ScreenSpacePose& pose,
                                      double ground_y,
                                      int viewport_w,
-                                     int viewport_h) const;
+                                     int viewport_h,
+                                     float debug_scale) const;
 
     /** @brief Dessine une courbe de test pour le renderer spline. */
     void renderSplineTest(SDL_Renderer* renderer,

@@ -34,7 +34,8 @@ public:
                           double                         sim_time,
                           double                         ground_y,
                           int                            viewport_w,
-                          int                            viewport_h) const;
+                          int                            viewport_h,
+                          float                          debug_scale = 1.0f) const;
 
     /** @brief Dessine l'indicateur XCoM et la cible de pas. */
     void renderXCoM(SDL_Renderer*   renderer,
@@ -46,7 +47,8 @@ public:
                     const Terrain&  terrain,
                     double          ground_y,
                     int             viewport_w,
-                    int             viewport_h) const;
+                    int             viewport_h,
+                    float           debug_scale = 1.0f) const;
 
     /** @brief Dessine les overlays de premier plan: projections, vecteurs, regard, bras. */
     void renderForeground(SDL_Renderer*          renderer,
@@ -67,7 +69,8 @@ public:
                           float                  drag_mouse_y,
                           double                 ground_y,
                           int                    viewport_w,
-                          int                    viewport_h) const;
+                          int                    viewport_h,
+                          float                  debug_scale = 1.0f) const;
 
 private:
     /** @brief Utilitaire local pour dessiner un disque plein. */
@@ -75,7 +78,7 @@ private:
     /** @brief Utilitaire local pour dessiner un cercle filaire. */
     static void drawCircleOutline (SDL_Renderer* r, float cx, float cy, float radius);
     /** @brief Dessine la pointe d'une flèche. */
-    static void drawArrowHead     (SDL_Renderer* r, float fx, float fy, float tx, float ty, float size);
+    static void drawArrowHead     (SDL_Renderer* r, float fx, float fy, float tx, float ty, float size, float debug_scale);
     /** @brief Dessine une flèche de composante en couleur. */
-    static void drawComponentArrow(SDL_Renderer* r, float fx, float fy, float tx, float ty, Uint8 r_, Uint8 g, Uint8 b);
+    static void drawComponentArrow(SDL_Renderer* r, float fx, float fy, float tx, float ty, Uint8 r_, Uint8 g, Uint8 b, float debug_scale);
 };

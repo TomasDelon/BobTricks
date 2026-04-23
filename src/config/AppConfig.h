@@ -112,12 +112,20 @@ struct SplineRenderConfig {
 
 /** @brief Overrides appliqués quand le mode présentation est actif. */
 struct PresentationConfig {
-    bool force_spline_renderer     = true;
-    bool hide_head_debug           = true;
-    bool hide_arm_debug            = true;
-    bool hide_cm_debug             = true;
-    bool hide_balance_debug        = true;
-    bool hide_spline_debug         = true;
+    bool show_spline_renderer        = true;
+    bool show_legacy_skeleton        = false;
+    bool show_character_debug_markers = false;
+    bool show_pelvis_reach_disk      = false;
+    bool show_trail_overlay          = false;
+    bool show_ground_reference       = false;
+    bool show_cm_projection          = false;
+    int  velocity_components         = 0;     ///< 0: off, 1: X, 2: Y, 3: XY.
+    int  accel_components            = 0;     ///< 0: off, 1: X, 2: Y, 3: XY.
+    float debug_thickness_scale      = 1.0f;
+    bool show_xcom_overlay           = false;
+    bool show_head_overlay           = false;
+    bool show_arm_overlay            = false;
+    bool show_spline_debug_overlay   = false;
 };
 
 /** @brief Paramètres d'affichage et d'overlay liés au centre de masse. */

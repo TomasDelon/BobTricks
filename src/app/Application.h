@@ -58,6 +58,7 @@ private:
                                         ArmConfig& armConfig,
                                         CMConfig& cmConfig,
                                         SplineRenderConfig& splineConfig) const;
+    bool presentationForegroundOverlayEnabled() const;
 
     SDL_Window*   m_window   = nullptr;
     SDL_Renderer* m_renderer = nullptr;

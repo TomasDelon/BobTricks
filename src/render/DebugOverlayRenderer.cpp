@@ -15,6 +15,34 @@ Vec2 armCirclePoint(Vec2 center, Vec2 body_right, Vec2 body_up, double radius, d
     return center + body_right * (std::cos(a) * radius)
                   + body_up    * (std::sin(a) * radius);
 }
+
+float scaled(float value, float debug_scale)
+{
+    return value * std::max(1.0f, debug_scale);
+}
+
+void drawDebugLine(SDL_Renderer* renderer,
+                   float x0, float y0,
+                   float x1, float y1,
+                   float debug_scale)
+{
+    const int layers = std::max(1, static_cast<int>(std::round(std::max(1.0f, debug_scale))));
+    const float dx = x1 - x0;
+    const float dy = y1 - y0;
+    const float len = std::sqrt(dx * dx + dy * dy);
+    if (len < 0.5f) {
+        SDL_RenderDrawLineF(renderer, x0, y0, x1, y1);
+        return;
+    }
+    const float nx = -dy / len;
+    const float ny =  dx / len;
+    const float start = -0.5f * static_cast<float>(layers - 1);
+    for (int i = 0; i < layers; ++i) {
+        const float off = start + static_cast<float>(i);
+        SDL_RenderDrawLineF(renderer, x0 + nx * off, y0 + ny * off,
+                            x1 + nx * off, y1 + ny * off);
+    }
+}
 } // namespace
 
 void DebugOverlayRenderer::drawFilledCircle(SDL_Renderer* renderer, float cx, float cy, float radius)
@@ -43,26 +71,28 @@ void DebugOverlayRenderer::drawCircleOutline(SDL_Renderer* renderer, float cx, f
 }
 
 void DebugOverlayRenderer::drawArrowHead(SDL_Renderer* renderer,
-                                          float fx, float fy, float tx, float ty, float size)
+                                          float fx, float fy, float tx, float ty, float size, float debug_scale)
 {
     const float dx  = tx - fx, dy  = ty - fy;
     const float len = std::sqrt(dx*dx + dy*dy);
     if (len < 1.f) return;
     const float ux = dx/len, uy = dy/len;
     const float px = -uy,    py =  ux;
-    SDL_RenderDrawLineF(renderer, tx, ty, tx - ux*size + px*size*0.5f, ty - uy*size + py*size*0.5f);
-    SDL_RenderDrawLineF(renderer, tx, ty, tx - ux*size - px*size*0.5f, ty - uy*size - py*size*0.5f);
+    const float s = scaled(size, debug_scale);
+    drawDebugLine(renderer, tx, ty, tx - ux*s + px*s*0.5f, ty - uy*s + py*s*0.5f, debug_scale);
+    drawDebugLine(renderer, tx, ty, tx - ux*s - px*s*0.5f, ty - uy*s - py*s*0.5f, debug_scale);
 }
 
 void DebugOverlayRenderer::drawComponentArrow(SDL_Renderer* renderer,
                                                float fx, float fy, float tx, float ty,
-                                               Uint8 r, Uint8 g, Uint8 b)
+                                               Uint8 r, Uint8 g, Uint8 b,
+                                               float debug_scale)
 {
     const float dx = tx - fx, dy = ty - fy;
     if (dx*dx + dy*dy < 4.f) return;
     SDL_SetRenderDrawColor(renderer, r, g, b, 255);
-    SDL_RenderDrawLineF(renderer, fx, fy, tx, ty);
-    drawArrowHead(renderer, fx, fy, tx, ty, 8.f);
+    drawDebugLine(renderer, fx, fy, tx, ty, debug_scale);
+    drawArrowHead(renderer, fx, fy, tx, ty, 8.f, debug_scale);
 }
 
 void DebugOverlayRenderer::renderXCoM(SDL_Renderer*   renderer,
@@ -74,7 +104,8 @@ void DebugOverlayRenderer::renderXCoM(SDL_Renderer*   renderer,
                                        const Terrain&  terrain,
                                        double          ground_y,
                                        int             viewport_w,
-                                       int             viewport_h) const
+                                       int             viewport_h,
+                                       float           debug_scale) const
 {
     // ── ξ — vertical line upward from terrain, 30 px ─────────────────────────
     {
@@ -86,7 +117,7 @@ void DebugOverlayRenderer::renderXCoM(SDL_Renderer*   renderer,
         else
             SDL_SetRenderDrawColor(renderer, 0, 200, 255, 220);
 
-        SDL_RenderDrawLineF(renderer, base.x, base.y, base.x, base.y - 30.f);
+        drawDebugLine(renderer, base.x, base.y, base.x, base.y - scaled(30.f, debug_scale), debug_scale);
     }
 
     // ── Target palito — perpendicular to terrain normal, 8 px each side ──────
@@ -95,7 +126,7 @@ void DebugOverlayRenderer::renderXCoM(SDL_Renderer*   renderer,
         const Vec2       n   = terrain.normal_at(target_x);
         const SDL_FPoint ps  = camera.worldToScreen(target_x, ty, ground_y, viewport_w, viewport_h);
 
-        constexpr float kHalfPx = 8.f;
+        const float kHalfPx = scaled(8.f, debug_scale);
         const float snx =  static_cast<float>(n.x);
         const float sny = -static_cast<float>(n.y);
         const SDL_FPoint p0 = { ps.x - snx * kHalfPx, ps.y - sny * kHalfPx };
@@ -106,7 +137,7 @@ void DebugOverlayRenderer::renderXCoM(SDL_Renderer*   renderer,
         else
             SDL_SetRenderDrawColor(renderer, 200, 200, 200, 200);
 
-        SDL_RenderDrawLineF(renderer, p0.x, p0.y, p1.x, p1.y);
+        drawDebugLine(renderer, p0.x, p0.y, p1.x, p1.y, debug_scale);
     }
 }
 
@@ -117,7 +148,8 @@ void DebugOverlayRenderer::renderBackground(SDL_Renderer*                 render
                                              double                        sim_time,
                                              double                        ground_y,
                                              int                           viewport_w,
-                                             int                           viewport_h) const
+                                             int                           viewport_h,
+                                             float                         debug_scale) const
 {
     if (!cmConfig.show_trail || trail.size() < 2) return;
 
@@ -131,7 +163,7 @@ void DebugOverlayRenderer::renderBackground(SDL_Renderer*                 render
         const SDL_FPoint p1 = camera.worldToScreen(trail[i+1].pos.x, trail[i+1].pos.y,
                                                     ground_y, viewport_w, viewport_h);
         SDL_SetRenderDrawColor(renderer, 0, 170, 255, a);
-        SDL_RenderDrawLineF(renderer, p0.x, p0.y, p1.x, p1.y);
+        drawDebugLine(renderer, p0.x, p0.y, p1.x, p1.y, debug_scale);
     }
 }
 
@@ -153,7 +185,8 @@ void DebugOverlayRenderer::renderForeground(SDL_Renderer*          renderer,
                                              float                  drag_mouse_y,
                                              double                 ground_y,
                                              int                    viewport_w,
-                                             int                    viewport_h) const
+                                             int                    viewport_h,
+                                             float                  debug_scale) const
 {
     const SDL_FPoint cm_s     = camera.worldToScreen(cm.position.x, cm.position.y, ground_y, viewport_w, viewport_h);
     const SDL_FPoint ground_s = camera.worldToScreen(cm.position.x, ref_h,         ground_y, viewport_w, viewport_h);
@@ -165,9 +198,9 @@ void DebugOverlayRenderer::renderForeground(SDL_Renderer*          renderer,
         const SDL_FPoint pb = camera.worldToScreen(back.x, back.y, ground_y, viewport_w, viewport_h);
         const SDL_FPoint pf = camera.worldToScreen(fwd.x,  fwd.y,  ground_y, viewport_w, viewport_h);
         SDL_SetRenderDrawColor(renderer, 80, 220, 80, 220);
-        SDL_RenderDrawLineF(renderer, pb.x, pb.y, pf.x, pf.y);
-        drawFilledCircle(renderer, pb.x, pb.y, 3.f);
-        drawFilledCircle(renderer, pf.x, pf.y, 3.f);
+        drawDebugLine(renderer, pb.x, pb.y, pf.x, pf.y, debug_scale);
+        drawFilledCircle(renderer, pb.x, pb.y, scaled(3.f, debug_scale));
+        drawFilledCircle(renderer, pf.x, pf.y, scaled(3.f, debug_scale));
     }
 
     SDL_SetRenderDrawColor(renderer, 0, 170, 255, 220);
@@ -179,14 +212,14 @@ void DebugOverlayRenderer::renderForeground(SDL_Renderer*          renderer,
         const float y_bot = std::max(cm_s.y, ground_s.y);
         float y = y_top;
         while (y < y_bot) {
-            SDL_RenderDrawLineF(renderer, cm_s.x, y, cm_s.x, std::min(y + DASH, y_bot));
+            drawDebugLine(renderer, cm_s.x, y, cm_s.x, std::min(y + DASH, y_bot), debug_scale);
             y += DASH * 2.f;
         }
     }
 
     // Projection dot
     if (cmConfig.show_projection_dot)
-        drawFilledCircle(renderer, ground_s.x, ground_s.y, 4.f);
+        drawFilledCircle(renderer, ground_s.x, ground_s.y, scaled(4.f, debug_scale));
 
     // Target-height tick
     if (cmConfig.show_target_height_tick) {
@@ -196,7 +229,8 @@ void DebugOverlayRenderer::renderForeground(SDL_Renderer*          renderer,
                                                            cm.position.y - cm_offset,
                                                            ground_y, viewport_w, viewport_h);
         SDL_SetRenderDrawColor(renderer, 0, 170, 255, 220);
-        SDL_RenderDrawLineF(renderer, tick_s.x - 12.f, tick_s.y, tick_s.x + 12.f, tick_s.y);
+        drawDebugLine(renderer, tick_s.x - scaled(12.f, debug_scale), tick_s.y,
+                      tick_s.x + scaled(12.f, debug_scale), tick_s.y, debug_scale);
     }
 
     // Acceleration vector (red)
@@ -207,9 +241,9 @@ void DebugOverlayRenderer::renderForeground(SDL_Renderer*          renderer,
             const SDL_FPoint sh    = camera.worldToScreen(cm.position.x + a.x, cm.position.y,       ground_y, viewport_w, viewport_h);
             const SDL_FPoint sv    = camera.worldToScreen(cm.position.x,       cm.position.y + a.y, ground_y, viewport_w, viewport_h);
             const SDL_FPoint sfull = camera.worldToScreen(cm.position.x + a.x, cm.position.y + a.y, ground_y, viewport_w, viewport_h);
-            if (mode == 1) drawComponentArrow(renderer, cm_s.x, cm_s.y, sh.x,    sh.y,    230, 50, 50);
-            if (mode == 2) drawComponentArrow(renderer, cm_s.x, cm_s.y, sv.x,    sv.y,    230, 50, 50);
-            if (mode == 3) drawComponentArrow(renderer, cm_s.x, cm_s.y, sfull.x, sfull.y, 230, 50, 50);
+            if (mode == 1) drawComponentArrow(renderer, cm_s.x, cm_s.y, sh.x,    sh.y,    230, 50, 50, debug_scale);
+            if (mode == 2) drawComponentArrow(renderer, cm_s.x, cm_s.y, sv.x,    sv.y,    230, 50, 50, debug_scale);
+            if (mode == 3) drawComponentArrow(renderer, cm_s.x, cm_s.y, sfull.x, sfull.y, 230, 50, 50, debug_scale);
         }
     }
 
@@ -221,9 +255,9 @@ void DebugOverlayRenderer::renderForeground(SDL_Renderer*          renderer,
             const SDL_FPoint sh    = camera.worldToScreen(cm.position.x + v.x, cm.position.y,       ground_y, viewport_w, viewport_h);
             const SDL_FPoint sv    = camera.worldToScreen(cm.position.x,       cm.position.y + v.y, ground_y, viewport_w, viewport_h);
             const SDL_FPoint sfull = camera.worldToScreen(cm.position.x + v.x, cm.position.y + v.y, ground_y, viewport_w, viewport_h);
-            if (mode == 1) drawComponentArrow(renderer, cm_s.x, cm_s.y, sh.x,    sh.y,    50, 220, 50);
-            if (mode == 2) drawComponentArrow(renderer, cm_s.x, cm_s.y, sv.x,    sv.y,    50, 220, 50);
-            if (mode == 3) drawComponentArrow(renderer, cm_s.x, cm_s.y, sfull.x, sfull.y, 50, 220, 50);
+            if (mode == 1) drawComponentArrow(renderer, cm_s.x, cm_s.y, sh.x,    sh.y,    50, 220, 50, debug_scale);
+            if (mode == 2) drawComponentArrow(renderer, cm_s.x, cm_s.y, sv.x,    sv.y,    50, 220, 50, debug_scale);
+            if (mode == 3) drawComponentArrow(renderer, cm_s.x, cm_s.y, sfull.x, sfull.y, 50, 220, 50, debug_scale);
         }
     }
 
@@ -241,8 +275,8 @@ void DebugOverlayRenderer::renderForeground(SDL_Renderer*          renderer,
             ground_y, viewport_w, viewport_h);
 
         SDL_SetRenderDrawColor(renderer, 50, 220, 50, 180);
-        SDL_RenderDrawLineF(renderer, cm_s.x, cm_s.y, clamped_drag_s.x, clamped_drag_s.y);
-        drawArrowHead(renderer, cm_s.x, cm_s.y, clamped_drag_s.x, clamped_drag_s.y, 10.f);
+        drawDebugLine(renderer, cm_s.x, cm_s.y, clamped_drag_s.x, clamped_drag_s.y, debug_scale);
+        drawArrowHead(renderer, cm_s.x, cm_s.y, clamped_drag_s.x, clamped_drag_s.y, 10.f, debug_scale);
     }
 
     if (gaze_target_world.has_value()
@@ -256,11 +290,11 @@ void DebugOverlayRenderer::renderForeground(SDL_Renderer*          renderer,
 
         SDL_SetRenderDrawColor(renderer, 255, 120, 120, 210);
         if (headConfig.show_gaze_ray)
-            SDL_RenderDrawLineF(renderer, eye_s.x, eye_s.y, gaze_s.x, gaze_s.y);
+            drawDebugLine(renderer, eye_s.x, eye_s.y, gaze_s.x, gaze_s.y, debug_scale);
         if (headConfig.show_eye_marker)
-            drawFilledCircle(renderer, eye_s.x, eye_s.y, 3.f);
+            drawFilledCircle(renderer, eye_s.x, eye_s.y, scaled(3.f, debug_scale));
         if (headConfig.show_gaze_target) {
-            drawFilledCircle(renderer, gaze_s.x, gaze_s.y, 4.f);
+            drawFilledCircle(renderer, gaze_s.x, gaze_s.y, scaled(4.f, debug_scale));
             SDL_SetRenderDrawColor(renderer, 255, 120, 120, 255);
             drawCircleOutline(renderer, gaze_s.x, gaze_s.y, 7.f);
         }
@@ -311,7 +345,7 @@ void DebugOverlayRenderer::renderForeground(SDL_Renderer*          renderer,
             const double angle = start_deg + (end_deg - start_deg) * t;
             const Vec2 p = armCirclePoint(center, body_right, body_up, inner_radius, angle);
             const SDL_FPoint cur = toScreen(p);
-            SDL_RenderDrawLineF(renderer, prev.x, prev.y, cur.x, cur.y);
+            drawDebugLine(renderer, prev.x, prev.y, cur.x, cur.y, debug_scale);
             prev = cur;
         }
     };
@@ -323,10 +357,10 @@ void DebugOverlayRenderer::renderForeground(SDL_Renderer*          renderer,
 
     if (armConfig.show_debug_swing_points) {
         SDL_SetRenderDrawColor(renderer, 255, 210, 60, 255);
-        drawFilledCircle(renderer, front_start_s.x, front_start_s.y, 3.f);
-        drawFilledCircle(renderer, front_end_s.x, front_end_s.y, 3.f);
+        drawFilledCircle(renderer, front_start_s.x, front_start_s.y, scaled(3.f, debug_scale));
+        drawFilledCircle(renderer, front_end_s.x, front_end_s.y, scaled(3.f, debug_scale));
         SDL_SetRenderDrawColor(renderer, 60, 210, 255, 255);
-        drawFilledCircle(renderer, back_start_s.x, back_start_s.y, 3.f);
-        drawFilledCircle(renderer, back_end_s.x, back_end_s.y, 3.f);
+        drawFilledCircle(renderer, back_start_s.x, back_start_s.y, scaled(3.f, debug_scale));
+        drawFilledCircle(renderer, back_end_s.x, back_end_s.y, scaled(3.f, debug_scale));
     }
 }

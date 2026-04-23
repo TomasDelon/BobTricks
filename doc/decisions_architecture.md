@@ -177,8 +177,9 @@ coexistent. `SplineRenderConfig::enabled` bascule entre les deux, et
   et utile pour le debug.
 - La superposition permet de valider visuellement que la pose spline correspond
   bien à la pose legacy.
-- En mode présentation (`PresentationConfig`), tous les overlays de debug sont
-  masqués et seul le rendu spline est visible.
+- En mode présentation (`PresentationConfig`), le rendu spline est forcé par
+  défaut, mais les overlays et le squelette legacy peuvent être réactivés
+  séparément pour adapter l'affichage à la démonstration orale.
 
 ---
 
