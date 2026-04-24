@@ -332,6 +332,7 @@ void DebugUI::renderPresentationPanel(PresentationConfig& config, bool& saveRequ
         return;
 
     ImGui::Checkbox("Afficher le rendu spline", &config.show_spline_renderer);
+    ImGui::Checkbox("Afficher la grille de fond", &config.show_background_grid);
 
     ImGui::Separator();
     ImGui::TextDisabled("Corps");

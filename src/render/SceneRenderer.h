@@ -27,6 +27,7 @@ public:
                 const Camera2D& camera,
                 const Terrain& terrain,
                 const std::deque<DustParticle>& dustParticles,
+                bool show_background_grid,
                 double sim_time,
                 double ground_y,
                 int viewport_w,

@@ -113,6 +113,7 @@ struct SplineRenderConfig {
 /** @brief Overrides appliqués quand le mode présentation est actif. */
 struct PresentationConfig {
     bool show_spline_renderer        = true;
+    bool show_background_grid        = true;
     bool show_legacy_skeleton        = false;
     bool show_character_debug_markers = false;
     bool show_pelvis_reach_disk      = false;

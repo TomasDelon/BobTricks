@@ -221,11 +221,13 @@ void SceneRenderer::render(SDL_Renderer* renderer,
                            const Camera2D& camera,
                            const Terrain& terrain,
                            const std::deque<DustParticle>& dustParticles,
+                           bool show_background_grid,
                            double sim_time,
                            double ground_y,
                            int viewport_w, int viewport_h) const
 {
-    drawGrid(renderer, camera, ground_y, viewport_w, viewport_h);
+    if (show_background_grid)
+        drawGrid(renderer, camera, ground_y, viewport_w, viewport_h);
     drawGround(renderer, camera, terrain, ground_y, viewport_w, viewport_h);
     drawDust(renderer, camera, dustParticles, sim_time, ground_y, viewport_w, viewport_h);
 }

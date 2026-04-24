@@ -271,7 +271,10 @@ void Application::render()
     SDL_SetRenderDrawColor(m_renderer, 18, 18, 18, 255);
     SDL_RenderClear(m_renderer);
 
+    const bool show_background_grid = !presentation_mode
+        || m_config.presentation.show_background_grid;
     m_sceneRenderer.render(m_renderer, m_camera, terrain, m_effectsSystem.dustParticles(),
+                           show_background_grid,
                            m_simLoop.getSimulationTime(), GROUND_Y, vw, vh);
 
     const bool draw_background_overlay = !presentation_mode

@@ -127,6 +127,7 @@ bool ConfigIO::load(const std::string& path, AppConfig& config)
         else if (section == "Presentation") {
             if      (key == "show_spline_renderer")         { config.presentation.show_spline_renderer         = (value == "1" || value == "true"); handled = true; }
             else if (key == "force_spline_renderer")        { config.presentation.show_spline_renderer         = (value == "1" || value == "true"); handled = true; }
+            else if (key == "show_background_grid")         { config.presentation.show_background_grid         = (value == "1" || value == "true"); handled = true; }
             else if (key == "show_legacy_skeleton")         { config.presentation.show_legacy_skeleton         = (value == "1" || value == "true"); handled = true; }
             else if (key == "show_character_debug_markers") { config.presentation.show_character_debug_markers = (value == "1" || value == "true"); handled = true; }
             else if (key == "show_pelvis_reach_disk")       { config.presentation.show_pelvis_reach_disk       = (value == "1" || value == "true"); handled = true; }
@@ -378,6 +379,7 @@ bool ConfigIO::save(const std::string& path, const AppConfig& config)
 
     file << "[Presentation]\n";
     file << "show_spline_renderer="         << (config.presentation.show_spline_renderer ? "1" : "0") << "\n";
+    file << "show_background_grid="         << (config.presentation.show_background_grid ? "1" : "0") << "\n";
     file << "show_legacy_skeleton="         << (config.presentation.show_legacy_skeleton ? "1" : "0") << "\n";
     file << "show_character_debug_markers=" << (config.presentation.show_character_debug_markers ? "1" : "0") << "\n";
     file << "show_pelvis_reach_disk="       << (config.presentation.show_pelvis_reach_disk ? "1" : "0") << "\n";
