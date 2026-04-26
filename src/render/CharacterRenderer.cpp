@@ -12,16 +12,23 @@ static constexpr double CIRCLE_KAPPA = 0.5522847498307936;
 
 namespace {
 
+std::uint8_t darkenChannel(std::uint8_t channel, float darken)
+{
+    const float value = static_cast<float>(channel) * (1.0f - darken);
+    return static_cast<std::uint8_t>(std::max(0.0f, std::min(255.0f, value)));
+}
+
 SDL_Color splineDepthColor(int depth_index)
 {
     const SDL_Color base{0xF6, 0x6C, 0x00, 0xFF};
     const int clamped = std::max(0, std::min(depth_index, 2));
     const float darken = 0.14f * static_cast<float>(clamped);
-    auto apply = [&](std::uint8_t c) -> std::uint8_t {
-        const float v = static_cast<float>(c) * (1.0f - darken);
-        return static_cast<std::uint8_t>(std::max(0.0f, std::min(255.0f, v)));
+    return SDL_Color{
+        darkenChannel(base.r, darken),
+        darkenChannel(base.g, darken),
+        darkenChannel(base.b, darken),
+        base.a
     };
-    return SDL_Color{apply(base.r), apply(base.g), apply(base.b), base.a};
 }
 
 void drawFilledCircle(SDL_Renderer* renderer, float cx, float cy, float radius)
@@ -52,6 +59,15 @@ void drawCircleOutline(SDL_Renderer* renderer, float cx, float cy, float radius)
 float scaled(float value, float debug_scale)
 {
     return value * std::max(1.0f, debug_scale);
+}
+
+SDL_FPoint worldToScreenPoint(const Camera2D& camera,
+                              Vec2 p,
+                              double ground_y,
+                              int viewport_w,
+                              int viewport_h)
+{
+    return camera.worldToScreen(p.x, p.y, ground_y, viewport_w, viewport_h);
 }
 
 void drawDebugLine(SDL_Renderer* renderer,
@@ -114,6 +130,67 @@ void renderFlattenedPath(SDL_Renderer* renderer,
     }
 }
 
+void drawPinnableHand(SDL_Renderer* renderer,
+                      const SDL_FPoint& p,
+                      bool pinned,
+                      float debug_scale)
+{
+    if (pinned) SDL_SetRenderDrawColor(renderer, 255, 210, 60, 255);
+    else        SDL_SetRenderDrawColor(renderer, 220, 220, 220, 255);
+    drawFilledCircle(renderer, p.x, p.y, scaled(3.f, debug_scale));
+}
+
+void drawHandTarget(SDL_Renderer* renderer,
+                    bool pinned,
+                    const SDL_FPoint& target,
+                    float debug_scale)
+{
+    if (!pinned) return;
+    const float half_px = scaled(6.f, debug_scale);
+    SDL_SetRenderDrawColor(renderer, 255, 210, 60, 255);
+    drawDebugLine(renderer, target.x - half_px, target.y,
+                  target.x + half_px, target.y, debug_scale);
+    drawDebugLine(renderer, target.x, target.y - half_px,
+                  target.x, target.y + half_px, debug_scale);
+}
+
+void drawFootMarker(SDL_Renderer* renderer,
+                    const Camera2D& camera,
+                    const FootState& foot,
+                    const SDL_FPoint& foot_pos,
+                    double ground_y,
+                    int viewport_w,
+                    int viewport_h,
+                    float debug_scale)
+{
+    if (foot.pinned)
+        SDL_SetRenderDrawColor(renderer, 255, 210, 60, 255);
+    else
+        SDL_SetRenderDrawColor(renderer, 240, 240, 240, 255);
+    drawFilledCircle(renderer, foot_pos.x, foot_pos.y, scaled(4.f, debug_scale));
+
+    if (foot.on_ground) {
+        SDL_SetRenderDrawColor(renderer, 255, 210, 60, 255);
+        drawFilledCircle(renderer, foot_pos.x, foot_pos.y, scaled(2.f, debug_scale));
+    } else if (foot.pinned) {
+        SDL_SetRenderDrawColor(renderer, 240, 240, 240, 255);
+        drawFilledCircle(renderer, foot_pos.x, foot_pos.y, scaled(2.f, debug_scale));
+    }
+
+    if (foot.pinned) {
+        const float half_px = scaled(8.f, debug_scale);
+        const SDL_FPoint pinned_pos = camera.worldToScreen(
+            foot.pinned_pos.x, foot.pinned_pos.y,
+            ground_y, viewport_w, viewport_h);
+        const float snx = static_cast<float>(foot.pinned_normal.x);
+        const float sny = -static_cast<float>(foot.pinned_normal.y);
+        const SDL_FPoint p0 = { pinned_pos.x - snx * half_px, pinned_pos.y - sny * half_px };
+        const SDL_FPoint p1 = { pinned_pos.x + snx * half_px, pinned_pos.y + sny * half_px };
+        SDL_SetRenderDrawColor(renderer, 255, 210, 60, 255);
+        drawDebugLine(renderer, p0.x, p0.y, p1.x, p1.y, debug_scale);
+    }
+}
+
 } // namespace
 
 CharacterRenderer::ScreenSpacePose CharacterRenderer::computeScreenSpacePose(const Camera2D& camera,
@@ -133,33 +210,32 @@ CharacterRenderer::ScreenSpacePose CharacterRenderer::computeScreenSpacePose(con
     const Vec2 neck_attach_world = character.head_center
                                  - neck_dir_world * character.head_radius;
 
-    auto toScreen = [&](Vec2 p) {
-        return camera.worldToScreen(p.x, p.y, ground_y, viewport_w, viewport_h);
-    };
-
     ScreenSpacePose pose;
-    pose.cm                = toScreen(cm.position);
-    pose.pelvis            = toScreen(character.pelvis);
-    pose.torso_center      = toScreen(character.torso_center);
-    pose.torso_top         = toScreen(character.torso_top);
-    pose.head              = toScreen(character.head_center);
-    pose.neck              = toScreen(neck_attach_world);
-    pose.elbow_left        = toScreen(character.elbow_left);
-    pose.elbow_right       = toScreen(character.elbow_right);
-    pose.hand_left         = toScreen(character.hand_left);
-    pose.hand_right        = toScreen(character.hand_right);
-    pose.hand_left_target  = toScreen(character.hand_left_target);
-    pose.hand_right_target = toScreen(character.hand_right_target);
-    pose.knee_left         = toScreen(character.knee_left);
-    pose.knee_right        = toScreen(character.knee_right);
-    pose.foot_left         = toScreen(character.foot_left.pos);
-    pose.foot_right        = toScreen(character.foot_right.pos);
+    pose.cm                = worldToScreenPoint(camera, cm.position, ground_y, viewport_w, viewport_h);
+    pose.pelvis            = worldToScreenPoint(camera, character.pelvis, ground_y, viewport_w, viewport_h);
+    pose.torso_center      = worldToScreenPoint(camera, character.torso_center, ground_y, viewport_w, viewport_h);
+    pose.torso_top         = worldToScreenPoint(camera, character.torso_top, ground_y, viewport_w, viewport_h);
+    pose.head              = worldToScreenPoint(camera, character.head_center, ground_y, viewport_w, viewport_h);
+    pose.neck              = worldToScreenPoint(camera, neck_attach_world, ground_y, viewport_w, viewport_h);
+    pose.elbow_left        = worldToScreenPoint(camera, character.elbow_left, ground_y, viewport_w, viewport_h);
+    pose.elbow_right       = worldToScreenPoint(camera, character.elbow_right, ground_y, viewport_w, viewport_h);
+    pose.hand_left         = worldToScreenPoint(camera, character.hand_left, ground_y, viewport_w, viewport_h);
+    pose.hand_right        = worldToScreenPoint(camera, character.hand_right, ground_y, viewport_w, viewport_h);
+    pose.hand_left_target  = worldToScreenPoint(camera, character.hand_left_target, ground_y, viewport_w, viewport_h);
+    pose.hand_right_target = worldToScreenPoint(camera, character.hand_right_target, ground_y, viewport_w, viewport_h);
+    pose.knee_left         = worldToScreenPoint(camera, character.knee_left, ground_y, viewport_w, viewport_h);
+    pose.knee_right        = worldToScreenPoint(camera, character.knee_right, ground_y, viewport_w, viewport_h);
+    pose.foot_left         = worldToScreenPoint(camera, character.foot_left.pos, ground_y, viewport_w, viewport_h);
+    pose.foot_right        = worldToScreenPoint(camera, character.foot_right.pos, ground_y, viewport_w, viewport_h);
 
-    const SDL_FPoint reach_s = toScreen({character.pelvis.x + 2.0 * L, character.pelvis.y});
+    const SDL_FPoint reach_s = worldToScreenPoint(
+        camera, {character.pelvis.x + 2.0 * L, character.pelvis.y},
+        ground_y, viewport_w, viewport_h);
     pose.reach_radius = std::abs(reach_s.x - pose.pelvis.x);
 
-    const SDL_FPoint head_r_s = toScreen({character.head_center.x + character.head_radius,
-                                           character.head_center.y});
+    const SDL_FPoint head_r_s = worldToScreenPoint(
+        camera, {character.head_center.x + character.head_radius, character.head_center.y},
+        ground_y, viewport_w, viewport_h);
     pose.head_radius = std::abs(head_r_s.x - pose.head.x);
     return pose;
 }
@@ -238,13 +314,8 @@ void CharacterRenderer::renderLegacyBody(SDL_Renderer* renderer,
     drawFilledCircle(renderer, pose.elbow_left.x, pose.elbow_left.y, scaled(3.f, debug_scale));
     drawFilledCircle(renderer, pose.elbow_right.x, pose.elbow_right.y, scaled(3.f, debug_scale));
 
-    auto drawPinnableHand = [&](const SDL_FPoint& p, bool pinned) {
-        if (pinned) SDL_SetRenderDrawColor(renderer, 255, 210, 60, 255);
-        else        SDL_SetRenderDrawColor(renderer, 220, 220, 220, 255);
-        drawFilledCircle(renderer, p.x, p.y, scaled(3.f, debug_scale));
-    };
-    drawPinnableHand(pose.hand_left,  character.hand_left_pinned);
-    drawPinnableHand(pose.hand_right, character.hand_right_pinned);
+    drawPinnableHand(renderer, pose.hand_left,  character.hand_left_pinned,  debug_scale);
+    drawPinnableHand(renderer, pose.hand_right, character.hand_right_pinned, debug_scale);
 
     SDL_SetRenderDrawColor(renderer, 220, 220, 220, 255);
     drawCircleOutline(renderer, pose.head.x, pose.head.y, pose.head_radius);
@@ -279,6 +350,7 @@ void CharacterRenderer::renderLegacyDebugLayer(SDL_Renderer* renderer,
                                                const Camera2D& camera,
                                                const CharacterState& character,
                                                const CharacterConfig& charConfig,
+                                               const CMConfig& cmConfig,
                                                const Terrain& terrain,
                                                const ScreenSpacePose& pose,
                                                double ground_y,
@@ -286,7 +358,7 @@ void CharacterRenderer::renderLegacyDebugLayer(SDL_Renderer* renderer,
                                                int viewport_h,
                                                float debug_scale) const
 {
-    renderDebugMarkersBeforeBody(renderer, camera, character, charConfig, terrain, pose,
+    renderDebugMarkersBeforeBody(renderer, camera, character, charConfig, cmConfig, terrain, pose,
                                  ground_y, viewport_w, viewport_h, debug_scale);
     renderLegacyBody(renderer, character, pose, debug_scale);
     renderDebugMarkersAfterBody(renderer, camera, character, pose,
@@ -297,6 +369,7 @@ void CharacterRenderer::renderDebugMarkersBeforeBody(SDL_Renderer* renderer,
                                                      const Camera2D& camera,
                                                      const CharacterState& character,
                                                      const CharacterConfig& charConfig,
+                                                     const CMConfig& cmConfig,
                                                      const Terrain& terrain,
                                                      const ScreenSpacePose& pose,
                                                      double ground_y,
@@ -304,7 +377,8 @@ void CharacterRenderer::renderDebugMarkersBeforeBody(SDL_Renderer* renderer,
                                                      int viewport_h,
                                                      float debug_scale) const
 {
-    if (character.feet_initialized
+    if (cmConfig.show_support_line
+        && character.feet_initialized
         && character.foot_left.pinned  && character.foot_left.on_ground
         && character.foot_right.pinned && character.foot_right.on_ground)
     {
@@ -326,7 +400,7 @@ void CharacterRenderer::renderDebugMarkersBeforeBody(SDL_Renderer* renderer,
 
     if (charConfig.show_pelvis_reach_disk) {
         SDL_SetRenderDrawColor(renderer, 255, 210, 60, 48);
-        drawFilledCircle(renderer, pose.pelvis.x, pose.pelvis.y, scaled(pose.reach_radius, debug_scale));
+        drawFilledCircle(renderer, pose.pelvis.x, pose.pelvis.y, pose.reach_radius);
         SDL_SetRenderDrawColor(renderer, 255, 210, 60, 160);
         drawCircleOutline(renderer, pose.pelvis.x, pose.pelvis.y, pose.reach_radius);
     }
@@ -341,48 +415,14 @@ void CharacterRenderer::renderDebugMarkersAfterBody(SDL_Renderer* renderer,
                                                     int viewport_h,
                                                     float debug_scale) const
 {
-    auto drawHandTarget = [&](bool pinned, const SDL_FPoint& target) {
-        if (!pinned) return;
-        const float kHalfPx = scaled(6.f, debug_scale);
-        SDL_SetRenderDrawColor(renderer, 255, 210, 60, 255);
-        drawDebugLine(renderer, target.x - kHalfPx, target.y, target.x + kHalfPx, target.y, debug_scale);
-        drawDebugLine(renderer, target.x, target.y - kHalfPx, target.x, target.y + kHalfPx, debug_scale);
-    };
-    drawHandTarget(character.hand_left_pinned, pose.hand_left_target);
-    drawHandTarget(character.hand_right_pinned, pose.hand_right_target);
+    drawHandTarget(renderer, character.hand_left_pinned, pose.hand_left_target, debug_scale);
+    drawHandTarget(renderer, character.hand_right_pinned, pose.hand_right_target, debug_scale);
 
     if (character.feet_initialized) {
-        auto drawFoot = [&](const FootState& foot, const SDL_FPoint& foot_pos) {
-            if (foot.pinned)
-                SDL_SetRenderDrawColor(renderer, 255, 210, 60, 255);
-            else
-                SDL_SetRenderDrawColor(renderer, 240, 240, 240, 255);
-            drawFilledCircle(renderer, foot_pos.x, foot_pos.y, scaled(4.f, debug_scale));
-
-            if (foot.on_ground) {
-                SDL_SetRenderDrawColor(renderer, 255, 210, 60, 255);
-                drawFilledCircle(renderer, foot_pos.x, foot_pos.y, scaled(2.f, debug_scale));
-            } else if (foot.pinned) {
-                SDL_SetRenderDrawColor(renderer, 240, 240, 240, 255);
-                drawFilledCircle(renderer, foot_pos.x, foot_pos.y, scaled(2.f, debug_scale));
-            }
-
-            if (foot.pinned) {
-                const float kHalfPx = scaled(8.f, debug_scale);
-                const SDL_FPoint pinned_pos = camera.worldToScreen(
-                    foot.pinned_pos.x, foot.pinned_pos.y,
-                    ground_y, viewport_w, viewport_h);
-                const float snx = static_cast<float>(foot.pinned_normal.x);
-                const float sny = -static_cast<float>(foot.pinned_normal.y);
-                const SDL_FPoint p0 = { pinned_pos.x - snx * kHalfPx, pinned_pos.y - sny * kHalfPx };
-                const SDL_FPoint p1 = { pinned_pos.x + snx * kHalfPx, pinned_pos.y + sny * kHalfPx };
-                SDL_SetRenderDrawColor(renderer, 255, 210, 60, 255);
-                drawDebugLine(renderer, p0.x, p0.y, p1.x, p1.y, debug_scale);
-            }
-        };
-
-        drawFoot(character.foot_left, pose.foot_left);
-        drawFoot(character.foot_right, pose.foot_right);
+        drawFootMarker(renderer, camera, character.foot_left, pose.foot_left,
+                       ground_y, viewport_w, viewport_h, debug_scale);
+        drawFootMarker(renderer, camera, character.foot_right, pose.foot_right,
+                       ground_y, viewport_w, viewport_h, debug_scale);
     }
 
     SDL_SetRenderDrawColor(renderer, 0, 170, 255, 255);
@@ -396,7 +436,7 @@ void CharacterRenderer::render(SDL_Renderer*         renderer,
                                const CharacterConfig& charConfig,
                                const SplineRenderConfig& splineConfig,
                                const CharacterReconstructionConfig& /*reconstruction*/,
-                               const CMConfig&       /*cmConfig*/,
+                               const CMConfig&       cmConfig,
                                bool                  spline_only,
                                bool                  legacy_debug_markers,
                                const Terrain&        terrain,
@@ -411,6 +451,8 @@ void CharacterRenderer::render(SDL_Renderer*         renderer,
     SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
 
     if (spline_only) {
+        renderDebugMarkersBeforeBody(renderer, camera, character, charConfig, cmConfig, terrain, pose,
+                                     ground_y, viewport_w, viewport_h, debug_scale);
         renderVisualLayer(renderer, camera, character, charConfig, splineConfig,
                           ground_y, viewport_w, viewport_h);
         return;
@@ -421,7 +463,7 @@ void CharacterRenderer::render(SDL_Renderer*         renderer,
                           ground_y, viewport_w, viewport_h);
 
     if (legacy_debug_markers) {
-        renderLegacyDebugLayer(renderer, camera, character, charConfig, terrain, pose,
+        renderLegacyDebugLayer(renderer, camera, character, charConfig, cmConfig, terrain, pose,
                                ground_y, viewport_w, viewport_h, debug_scale);
     } else {
         renderLegacyBody(renderer, character, pose, debug_scale);

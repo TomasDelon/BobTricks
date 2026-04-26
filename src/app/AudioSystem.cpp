@@ -16,38 +16,44 @@ struct MusicTrack {
     std::string path;
 };
 
+char lowerAscii(unsigned char c)
+{
+    return static_cast<char>(std::tolower(c));
+}
+
+std::vector<MusicTrack> buildMusicTracks()
+{
+    namespace fs = std::filesystem;
+
+    std::vector<MusicTrack> out;
+    const fs::path music_dir = "data/audio/music";
+    if (!fs::exists(music_dir) || !fs::is_directory(music_dir))
+        return out;
+
+    std::vector<fs::path> paths;
+    for (const fs::directory_entry& entry : fs::directory_iterator(music_dir)) {
+        if (!entry.is_regular_file())
+            continue;
+
+        std::string ext = entry.path().extension().string();
+        std::transform(ext.begin(), ext.end(), ext.begin(), lowerAscii);
+        if (ext == ".mp3" || ext == ".ogg" || ext == ".wav")
+            paths.push_back(entry.path());
+    }
+
+    std::sort(paths.begin(), paths.end());
+    for (const fs::path& path : paths) {
+        out.push_back({
+            path.stem().string(),
+            path.string(),
+        });
+    }
+    return out;
+}
+
 const std::vector<MusicTrack>& musicTracks()
 {
-    static const std::vector<MusicTrack> tracks = [] {
-        namespace fs = std::filesystem;
-
-        std::vector<MusicTrack> out;
-        const fs::path music_dir = "data/audio/music";
-        if (!fs::exists(music_dir) || !fs::is_directory(music_dir))
-            return out;
-
-        std::vector<fs::path> paths;
-        for (const fs::directory_entry& entry : fs::directory_iterator(music_dir)) {
-            if (!entry.is_regular_file())
-                continue;
-
-            std::string ext = entry.path().extension().string();
-            std::transform(ext.begin(), ext.end(), ext.begin(),
-                           [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
-            if (ext == ".mp3" || ext == ".ogg" || ext == ".wav")
-                paths.push_back(entry.path());
-        }
-
-        std::sort(paths.begin(), paths.end());
-        for (const fs::path& path : paths) {
-            out.push_back({
-                path.stem().string(),
-                path.string(),
-            });
-        }
-        return out;
-    }();
-
+    static const std::vector<MusicTrack> tracks = buildMusicTracks();
     return tracks;
 }
 
@@ -109,7 +115,7 @@ int AudioSystem::musicTrackCount()
 
 const char* AudioSystem::musicTrackLabel(int index)
 {
-    const auto& tracks = musicTracks();
+    const std::vector<MusicTrack>& tracks = musicTracks();
     if (index < 0 || index >= musicTrackCount())
         return "Inconnue";
     return tracks[static_cast<std::size_t>(index)].label.c_str();
@@ -154,7 +160,7 @@ bool AudioSystem::loadFootstepSample(const char* path)
 
 bool AudioSystem::loadMusicTrack(int track_index)
 {
-    const auto& tracks = musicTracks();
+    const std::vector<MusicTrack>& tracks = musicTracks();
 
     if (m_music) {
         Mix_HaltMusic();

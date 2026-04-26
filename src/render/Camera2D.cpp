@@ -6,6 +6,14 @@
 static constexpr double ZOOM_MIN = 0.1;
 static constexpr double ZOOM_MAX = 5.0;
 
+static double clampToDeadzone(double center, double target, double deadzone)
+{
+    const double dz = std::max(0.0, deadzone);
+    if (target > center + dz) return target - dz;
+    if (target < center - dz) return target + dz;
+    return center;
+}
+
 Camera2D::Camera2D(const Config& config)
     : m_config(config)
 {}
@@ -21,13 +29,6 @@ void Camera2D::update(double dt,
                       double smooth_x, double smooth_y,
                       double deadzone_x, double deadzone_y)
 {
-    auto clampToDeadzone = [](double center, double target, double deadzone) {
-        const double dz = std::max(0.0, deadzone);
-        if (target > center + dz) return target - dz;
-        if (target < center - dz) return target + dz;
-        return center;
-    };
-
     if (follow_x) {
         const double desired_x = clampToDeadzone(m_center.x, target_x, deadzone_x);
         if (smooth_x <= 0.0)

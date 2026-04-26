@@ -98,6 +98,26 @@ bool solveTwoBoneArm(Vec2 target,
     return reached;
 }
 
+static void updateOneArm(Vec2 target,
+                         Vec2 shoulder,
+                         Vec2 bend_pref,
+                         const std::optional<Vec2>& dragged_target,
+                         const std::optional<Vec2>& previous_elbow,
+                         double upper_len,
+                         double fore_len,
+                         Vec2& elbow_out,
+                         Vec2& hand_out)
+{
+    if (dragged_target.has_value()) {
+        target = *dragged_target;
+    }
+
+    ArmPose pose;
+    solveTwoBoneArm(target, upper_len, fore_len, shoulder, bend_pref, previous_elbow, pose);
+    elbow_out = pose.elbow;
+    hand_out  = pose.hand;
+}
+
 void updateArmState(CharacterState& ch,
                     const CMState& cm,
                     const CharacterConfig& char_config,
@@ -208,31 +228,17 @@ void updateArmState(CharacterState& ch,
     const Vec2 hand_front_walk_target = armCirclePoint(shoulder_root, body_right, body_up, walk_radius, front_angle);
     const Vec2 hand_back_walk_target  = armCirclePoint(shoulder_root, body_right, body_up, walk_radius, back_angle);
 
-    auto updateOneArm = [&](Vec2 target, Vec2 shoulder, Vec2 bend_pref,
-                            const std::optional<Vec2>& dragged_target,
-                            const std::optional<Vec2>& previous_elbow,
-                            Vec2& elbow_out, Vec2& hand_out) {
-        if (dragged_target.has_value()) {
-            target = *dragged_target;
-        }
-
-        ArmPose pose;
-        solveTwoBoneArm(target, upper_len, fore_len, shoulder, bend_pref, previous_elbow, pose);
-        elbow_out = pose.elbow;
-        hand_out  = pose.hand;
-    };
-
     const Vec2 left_auto_target  = (ch.facing > 0.0 ? hand_back_walk_target  : hand_front_walk_target);
     const Vec2 right_auto_target = (ch.facing > 0.0 ? hand_front_walk_target : hand_back_walk_target);
 
     updateOneArm(left_auto_target, ch.shoulder_left, elbow_bend_pref,
                  left_hand_target,
                  keep_branch_memory ? std::optional<Vec2>(ch.elbow_left) : std::nullopt,
-                 ch.elbow_left, ch.hand_left);
+                 upper_len, fore_len, ch.elbow_left, ch.hand_left);
     updateOneArm(right_auto_target, ch.shoulder_right, elbow_bend_pref,
                  right_hand_target,
                  keep_branch_memory ? std::optional<Vec2>(ch.elbow_right) : std::nullopt,
-                 ch.elbow_right, ch.hand_right);
+                 upper_len, fore_len, ch.elbow_right, ch.hand_right);
     ch.arm_pose_initialized = true;
     ch.arm_pose_facing = ch.facing;
 }

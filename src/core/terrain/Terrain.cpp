@@ -15,13 +15,17 @@ struct TerrainSegment {
     Vec2 b;
 };
 
+bool pointXLessThan(const Vec2& point, double x)
+{
+    return point.x < x;
+}
+
 TerrainSegment findSegment(const std::vector<Vec2>& verts, double x)
 {
     if (verts.size() < 2) return {};
 
-    const auto it = std::lower_bound(
-        verts.begin(), verts.end(), x,
-        [](const Vec2& v, double val) { return v.x < val; });
+    const std::vector<Vec2>::const_iterator it = std::lower_bound(
+        verts.begin(), verts.end(), x, pointXLessThan);
 
     if (it == verts.end()) {
         return {verts[verts.size() - 2], verts.back()};

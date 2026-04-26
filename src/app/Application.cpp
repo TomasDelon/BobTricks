@@ -358,7 +358,7 @@ void Application::applyPresentationModeOverrides(CharacterConfig& charConfig,
     cmConfig.velocity_components     = p.velocity_components;
     cmConfig.accel_components        = p.accel_components;
     cmConfig.show_xcom_line          = p.show_xcom_overlay;
-    cmConfig.show_support_line       = p.show_xcom_overlay;
+    cmConfig.show_support_line       = p.show_support_line;
 
     splineConfig.enabled = p.show_spline_renderer;
 

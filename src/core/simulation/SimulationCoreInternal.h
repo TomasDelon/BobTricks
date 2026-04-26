@@ -60,6 +60,8 @@ void beginAirborneLandingProtocol(CharacterState& ch,
                                   double g,
                                   double L);
 
+void prepareJumpFoot(FootState& foot);
+
 void updateJumpLandingTargets(CharacterState& ch,
                               const AppConfig& config,
                               const Terrain& terrain,
@@ -71,6 +73,14 @@ void updateJumpLandingTargets(CharacterState& ch,
 void updateJumpFeetInFlight(CharacterState& ch,
                             const Vec2& pelvis,
                             double progress);
+
+void updateJumpFootInFlight(FootState& foot,
+                            Vec2 start,
+                            Vec2 target,
+                            const Vec2& pelvis,
+                            double smooth_progress,
+                            double tuck,
+                            double tuck_weight);
 
 RunTimingTargets computeRunTimingTargets(const RunConfig& run_cfg,
                                          double speed_abs,
@@ -118,6 +128,22 @@ double retargetLandingRecoveryX(double target_x,
                                 const WalkConfig& walk_cfg,
                                 double recovery_gain);
 
+void retargetSwingIfLate(FootState& swing_foot,
+                         const FootState& stance_foot,
+                         const CharacterState& ch,
+                         const Terrain& terrain,
+                         const Vec2& pelvis,
+                         const WalkConfig& walk_cfg,
+                         const StepConfig& step_cfg,
+                         double cm_x,
+                         double cm_vx,
+                         double reach_radius,
+                         double L,
+                         double ref_slope,
+                         double recovery_gain,
+                         double speed_abs,
+                         double walk_max_speed);
+
 void beginSwingStep(FootState& step_foot,
                     FootState& stance_foot,
                     CharacterState& ch,
@@ -131,6 +157,9 @@ void beginSwingStep(FootState& step_foot,
                     double walk_max_speed);
 
 void releaseFeetAirborne(CharacterState& ch);
+void releaseFootAirborne(FootState& foot);
+void plantFootOnTerrain(FootState& foot, const Terrain& terrain, double x);
+void plantFootAtTarget(FootState& foot, Vec2 target);
 
 void bootstrapFeetOnLanding(CharacterState& ch,
                             const StandingConfig& stand_cfg,
@@ -236,6 +265,14 @@ bool integrateVerticalMotion(CMState& cm,
 
 void refreshGroundContact(FootState& foot, const Terrain& terrain);
 void applyGroundConstraint(FootState& foot, const Terrain& terrain);
+
+void unpinFootIfLifted(FootState& foot, bool was_grounded);
+
+double invertedPendulumFootY(const FootState& foot,
+                             const CMState& cm,
+                             const WalkConfig& walk_cfg,
+                             double R_bob,
+                             double bob_max);
 
 void blendWalkRunConfig(WalkConfig& eff_walk,
                         StepConfig& eff_step,

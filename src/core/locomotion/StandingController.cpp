@@ -3,6 +3,13 @@
 #include <cmath>
 #include <algorithm>
 
+static double distance2D(Vec2 a, Vec2 b)
+{
+    const double dx = b.x - a.x;
+    const double dy = b.y - a.y;
+    return std::sqrt(dx * dx + dy * dy);
+}
+
 std::optional<double> computeStandingCMTarget(const SupportState&   support,
                                               const CharacterConfig& char_cfg)
 {
@@ -53,12 +60,8 @@ StandingDiag diagStanding(const CMState&        cm,
     // Criterion 4: reach of each leg = |pelvis - foot| <= 2L.
     // With the geometry-corrected nominal height (pelvis at h_pelvis_max, not 2L),
     // legs are fully extended but not over-extended at d_pref separation.
-    auto dist2d = [](Vec2 a, Vec2 b) {
-        const double dx = b.x - a.x, dy = b.y - a.y;
-        return std::sqrt(dx*dx + dy*dy);
-    };
-    diag.reach_L = dist2d(pelvis, foot_L.pos);
-    diag.reach_R = dist2d(pelvis, foot_R.pos);
+    diag.reach_L = distance2D(pelvis, foot_L.pos);
+    diag.reach_R = distance2D(pelvis, foot_R.pos);
     diag.c4 = (diag.reach_L <= max_reach) && (diag.reach_R <= max_reach);
 
     // Criterion 5: horizontal speed below eps_v

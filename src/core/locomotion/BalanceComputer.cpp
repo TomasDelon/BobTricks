@@ -3,13 +3,14 @@
 
 #include <cmath>
 #include <algorithm>
+#include <optional>
 
 BalanceState computeBalanceState(const CMState&        cm,
                                  const SupportState&   support,
                                  const CharacterConfig& char_cfg,
                                  const PhysicsConfig&   phys_cfg)
 {
-    const auto opt_target = computeStandingCMTarget(support, char_cfg);
+    const std::optional<double> opt_target = computeStandingCMTarget(support, char_cfg);
     if (!opt_target) return {};  // standing geometry impossible — zero-state balance
 
     const double h_ref = *opt_target - support.ground_center();

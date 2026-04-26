@@ -1,5 +1,6 @@
 #include <cstdio>
 #include <iostream>
+#include <map>
 #include <string>
 
 #include "config/AppConfig.h"
@@ -25,8 +26,8 @@ int main(int argc, char** argv)
         else if (arg == "--quiet" || arg == "-q")
             quiet = true;
         else if (arg == "--list"  || arg == "-l") {
-            for (const auto& [name, _] : scenarioLibrary())
-                fprintf(stdout, "%s\n", name.c_str());
+            for (const std::pair<const std::string, ScenarioFactory>& entry : scenarioLibrary())
+                fprintf(stdout, "%s\n", entry.first.c_str());
             return 0;
         }
         else if (arg == "--help"  || arg == "-h") {
@@ -47,23 +48,23 @@ int main(int argc, char** argv)
     AppConfig config;
     ConfigIO::load(CONFIG_PATH, config);  // silently uses defaults if file missing
 
-    const auto& lib = scenarioLibrary();
+    const std::map<std::string, ScenarioFactory>& lib = scenarioLibrary();
 
     // ── --all: run every registered scenario ────────────────────────────────
     if (run_all) {
         int n_pass = 0, n_fail = 0;
-        for (const auto& [name, factory] : lib) {
+        for (const std::pair<const std::string, ScenarioFactory>& entry : lib) {
             // Fresh config copy per scenario: SimulationCore::reset() may mutate
             // config.terrain.seed, so each run must start from a clean state.
             AppConfig   run_cfg = config;
-            ScenarioDef def     = factory(run_cfg);
+            ScenarioDef def     = entry.second(run_cfg);
             fprintf(stderr, "[headless] scenario=%-20s  duration=%.1fs\n",
-                    name.c_str(), def.duration_s);
+                    entry.first.c_str(), def.duration_s);
 
             // Discard CSV to /dev/null equivalent (null stream) — only assertions matter.
             std::ostream null_out(nullptr);
             const bool passed = runScenario(def, run_cfg, null_out, std::cerr);
-            fprintf(stderr, "%s  %s\n\n", passed ? "PASS" : "FAIL", name.c_str());
+            fprintf(stderr, "%s  %s\n\n", passed ? "PASS" : "FAIL", entry.first.c_str());
             passed ? ++n_pass : ++n_fail;
         }
         fprintf(stderr, "Results: %d PASS  %d FAIL\n", n_pass, n_fail);
@@ -74,7 +75,7 @@ int main(int argc, char** argv)
     if (scenario_name.empty())
         scenario_name = "walk_3s";   // default
 
-    const auto it = lib.find(scenario_name);
+    const std::map<std::string, ScenarioFactory>::const_iterator it = lib.find(scenario_name);
     if (it == lib.end()) {
         fprintf(stderr, "Unknown scenario: %s\n", scenario_name.c_str());
         fprintf(stderr, "Run --list to see available scenarios.\n");

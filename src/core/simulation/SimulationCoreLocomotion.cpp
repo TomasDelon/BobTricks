@@ -5,11 +5,8 @@
 
 #include <algorithm>
 #include <cmath>
-#include <cstdio>
 
 using namespace simcore_detail;
-
-#define SIM_LOG(...) do { if (g_sim_verbose) std::fprintf(stderr, __VA_ARGS__); } while (0)
 
 void SimulationCore::stepRetargetLateSwings(StepCtx& ctx)
 {
@@ -17,23 +14,15 @@ void SimulationCore::stepRetargetLateSwings(StepCtx& ctx)
 
     CMState&        cm = m_state.cm;
     CharacterState& ch = m_state.character;
-    auto retargetSwingIfLate = [&](FootState& swing_foot, const FootState& stance_foot) {
-        if (!swing_foot.swinging) return;
-        const double t_remaining  = estimateSwingRemainingTime(swing_foot, ctx.eff_walk);
-        const double future_cm_x  = cm.position.x + cm.velocity.x * t_remaining;
-        const double old_target_x = swing_foot.swing_target.x;
-        const double new_target_x = retargetLandingRecoveryX(
-            old_target_x, ch, stance_foot, ctx.pelvis, future_cm_x,
-            ctx.reach_radius, ctx.L, ctx.ref_slope, ctx.eff_walk, ctx.landing_recovery_gain);
-        if (std::abs(new_target_x - old_target_x) <= 1.0e-5) return;
-        swing_foot.swing_target.x = new_target_x;
-        swing_foot.swing_target.y = m_terrain.height_at(new_target_x);
-        refreshSwingArcProfile(swing_foot, m_terrain, ctx.L, ctx.eff_step, ctx.eff_walk,
-                               ctx.speed_abs, ctx.max_spd);
-    };
 
-    retargetSwingIfLate(ch.foot_left,  ch.foot_right);
-    retargetSwingIfLate(ch.foot_right, ch.foot_left);
+    retargetSwingIfLate(ch.foot_left,  ch.foot_right, ch, m_terrain, ctx.pelvis,
+                        ctx.eff_walk, ctx.eff_step, cm.position.x, cm.velocity.x,
+                        ctx.reach_radius, ctx.L, ctx.ref_slope,
+                        ctx.landing_recovery_gain, ctx.speed_abs, ctx.max_spd);
+    retargetSwingIfLate(ch.foot_right, ch.foot_left, ch, m_terrain, ctx.pelvis,
+                        ctx.eff_walk, ctx.eff_step, cm.position.x, cm.velocity.x,
+                        ctx.reach_radius, ctx.L, ctx.ref_slope,
+                        ctx.landing_recovery_gain, ctx.speed_abs, ctx.max_spd);
 }
 
 void SimulationCore::stepHandleJumpFlight(StepCtx& ctx)
@@ -71,16 +60,8 @@ void SimulationCore::stepHandleGroundRecontact(StepCtx& ctx)
         impact_speed / std::max(m_config.physics.jump_impulse, 1.0e-4), 0.0, 2.0);
 
     if (ch.jump_flight_active && ch.jump_targets_valid) {
-        auto plantFootAt = [](FootState& foot, Vec2 target) {
-            foot.pos        = target;
-            foot.pinned     = true;
-            foot.pinned_pos = target;
-            foot.swinging   = false;
-            foot.airborne   = false;
-            foot.on_ground  = true;
-        };
-        plantFootAt(ch.foot_left,  ch.jump_left_target);
-        plantFootAt(ch.foot_right, ch.jump_right_target);
+        plantFootAtTarget(ch.foot_left,  ch.jump_left_target);
+        plantFootAtTarget(ch.foot_right, ch.jump_right_target);
         ch.jump_flight_active    = false;
         ch.jump_preload_active   = false;
         ch.jump_targets_valid    = false;
@@ -144,11 +125,11 @@ void SimulationCore::stepFireWalkTrigger(StepCtx& ctx)
                                && trigger_eval.rear_trigger
                                && !trigger_eval.xcom_trigger;
     stepLaunchSwing(trigger_eval.step_left_xcom, corrective, ctx);
-    SIM_LOG("Step trigger: %s  d_rear=%.2fL  xcom=%d  rear=%d\n",
-            trigger_eval.step_left_xcom ? "LEFT" : "RIGHT",
-            trigger_eval.d_rear / ctx.L,
-            static_cast<int>(trigger_eval.xcom_trigger),
-            static_cast<int>(trigger_eval.rear_trigger));
+    simLog("Step trigger: %s  d_rear=%.2fL  xcom=%d  rear=%d\n",
+           trigger_eval.step_left_xcom ? "LEFT" : "RIGHT",
+           trigger_eval.d_rear / ctx.L,
+           static_cast<int>(trigger_eval.xcom_trigger),
+           static_cast<int>(trigger_eval.rear_trigger));
 }
 
 void SimulationCore::stepUpdateContactEvents(StepCtx& ctx)

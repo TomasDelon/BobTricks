@@ -110,6 +110,18 @@ void renderSplineControls(SplineRenderConfig& config)
     ImGui::SliderInt("samples_per_curve", &config.samples_per_curve, 4, 96);
 }
 
+void sliderJumpDuration(const char* label, double& val, bool& saveRequested)
+{
+    if (sliderDouble(label, val, 0.02f, 0.30f, "%.3f s"))
+        saveRequested = true;
+}
+
+void sliderJumpDepth(const char* label, double& val, bool& saveRequested)
+{
+    if (sliderDouble(label, val, 0.05f, 0.60f, "%.2f ×L"))
+        saveRequested = true;
+}
+
 } // namespace
 
 AppRequests DebugUI::render(const FrameStats&      stats,
@@ -344,6 +356,7 @@ void DebugUI::renderPresentationPanel(PresentationConfig& config, bool& saveRequ
     ImGui::TextDisabled("Overlays CM / locomotion");
     ImGui::Checkbox("Afficher la trainee du CM", &config.show_trail_overlay);
     ImGui::Checkbox("Afficher la reference de sol", &config.show_ground_reference);
+    ImGui::Checkbox("Afficher la ligne de support", &config.show_support_line);
     ImGui::Checkbox("Afficher projection / hauteur cible", &config.show_cm_projection);
     ImGui::TextUnformatted("Vecteur vitesse");
     ImGui::SameLine();
@@ -380,23 +393,21 @@ void DebugUI::renderJumpPanel(JumpConfig& config, bool& saveRequested)
         return;
 
     ImGui::TextDisabled("Preload (accroupissement avant decollage)");
-    auto sliderDur   = [&](const char* label, double& val) { if (sliderDouble(label, val, 0.02f, 0.30f, "%.3f s"))  saveRequested = true; };
-    auto sliderDepth = [&](const char* label, double& val) { if (sliderDouble(label, val, 0.05f, 0.60f, "%.2f ×L")) saveRequested = true; };
-    sliderDur  ("Duree course (s)",    config.preload_dur_run);
-    sliderDur  ("Duree marche (s)",    config.preload_dur_walk);
-    sliderDur  ("Duree debout (s)",    config.preload_dur_stand);
-    sliderDepth("Profondeur course (×L)", config.preload_depth_run);
-    sliderDepth("Profondeur marche (×L)", config.preload_depth_walk);
-    sliderDepth("Profondeur debout (×L)", config.preload_depth_stand);
+    sliderJumpDuration("Duree course (s)", config.preload_dur_run, saveRequested);
+    sliderJumpDuration("Duree marche (s)", config.preload_dur_walk, saveRequested);
+    sliderJumpDuration("Duree debout (s)", config.preload_dur_stand, saveRequested);
+    sliderJumpDepth("Profondeur course (×L)", config.preload_depth_run, saveRequested);
+    sliderJumpDepth("Profondeur marche (×L)", config.preload_depth_walk, saveRequested);
+    sliderJumpDepth("Profondeur debout (×L)", config.preload_depth_stand, saveRequested);
 
     ImGui::Separator();
     ImGui::TextDisabled("Vol");
-    sliderDepth("Hauteur de tuck (×L)",    config.tuck_height_ratio);
+    sliderJumpDepth("Hauteur de tuck (×L)", config.tuck_height_ratio, saveRequested);
 
     ImGui::Separator();
     ImGui::TextDisabled("Recuperation a la reception");
-    sliderDur  ("Duree saut (s)",        config.landing_dur_jump);
-    sliderDur  ("Duree reception marche (s)",   config.landing_dur_walk);
+    sliderJumpDuration("Duree saut (s)", config.landing_dur_jump, saveRequested);
+    sliderJumpDuration("Duree reception marche (s)", config.landing_dur_walk, saveRequested);
     if (sliderDouble("Boost base saut",  config.landing_boost_base_jump,  0.0f, 2.0f)) saveRequested = true;
     if (sliderDouble("Boost echelle saut", config.landing_boost_scale_jump, 0.0f, 3.0f)) saveRequested = true;
     if (sliderDouble("Boost base marche",  config.landing_boost_base_walk,  0.0f, 2.0f)) saveRequested = true;

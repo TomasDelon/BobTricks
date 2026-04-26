@@ -141,8 +141,8 @@ void renderReconstructionLeanControls(CharacterReconstructionConfig& config)
 
 void renderBalanceReachMetrics(const CharacterState& charState, double L)
 {
-    const auto& lf = charState.foot_left;
-    const auto& rf = charState.foot_right;
+    const FootState& lf = charState.foot_left;
+    const FootState& rf = charState.foot_right;
     const double dx_l = lf.pos.x - charState.pelvis.x;
     const double dy_l = lf.pos.y - charState.pelvis.y;
     const double dx_r = rf.pos.x - charState.pelvis.x;

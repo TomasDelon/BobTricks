@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <map>
 #include <sstream>
 #include <string>
 #include <vector>
@@ -44,7 +45,7 @@ std::vector<ParsedRow> parseRows(const std::string& csv, TestSuite& suite)
     while (std::getline(in, line)) {
         if (line.empty())
             continue;
-        const auto cols = splitCsvLine(line);
+        const std::vector<std::string> cols = splitCsvLine(line);
         if (!header_seen) {
             header_seen = true;
             TEST_EXPECT_MSG(suite, cols.size() >= 15, "unexpected telemetry header width");
@@ -79,6 +80,15 @@ double distance(Vec2 a, Vec2 b)
     return std::sqrt(dx * dx + dy * dy);
 }
 
+bool everyRowUnderSpeed(const std::vector<ParsedRow>& rows, double max_speed)
+{
+    for (const ParsedRow& row : rows) {
+        if (row.cm_vx > max_speed)
+            return false;
+    }
+    return true;
+}
+
 }  // namespace
 
 int main()
@@ -86,7 +96,7 @@ int main()
     g_sim_verbose = false;
     TestSuite suite("headless_regression_tests");
 
-    const auto& lib = scenarioLibrary();
+    const std::map<std::string, ScenarioFactory>& lib = scenarioLibrary();
     AppConfig   base_cfg;
 
     {
@@ -95,13 +105,13 @@ int main()
         std::ostringstream csv;
         std::ostringstream report;
         const bool ok = runScenario(def, run_cfg, csv, report);
-        const auto rows = parseRows(csv.str(), suite);
+        const std::vector<ParsedRow> rows = parseRows(csv.str(), suite);
 
         TEST_EXPECT_MSG(suite, ok, report.str());
         TEST_EXPECT(suite, !rows.empty());
 
         double max_abs_cm_x = 0.0;
-        for (const auto& row : rows)
+        for (const ParsedRow& row : rows)
             max_abs_cm_x = std::max(max_abs_cm_x, std::fabs(row.cm_x));
 
         TEST_EXPECT(suite, max_abs_cm_x < 0.2);
@@ -114,7 +124,7 @@ int main()
         std::ostringstream csv;
         std::ostringstream report;
         const bool ok = runScenario(def, run_cfg, csv, report);
-        const auto rows = parseRows(csv.str(), suite);
+        const std::vector<ParsedRow> rows = parseRows(csv.str(), suite);
 
         TEST_EXPECT_MSG(suite, ok, report.str());
         TEST_EXPECT(suite, !rows.empty());
@@ -132,7 +142,7 @@ int main()
         std::ostringstream csv;
         std::ostringstream report;
         const bool ok = runScenario(def, run_cfg, csv, report);
-        const auto rows = parseRows(csv.str(), suite);
+        const std::vector<ParsedRow> rows = parseRows(csv.str(), suite);
 
         TEST_EXPECT_MSG(suite, ok, report.str());
         TEST_EXPECT(suite, !rows.empty());
@@ -147,7 +157,7 @@ int main()
         std::ostringstream csv;
         std::ostringstream report;
         const bool ok = runScenario(def, run_cfg, csv, report);
-        const auto rows = parseRows(csv.str(), suite);
+        const std::vector<ParsedRow> rows = parseRows(csv.str(), suite);
 
         TEST_EXPECT_MSG(suite, ok, report.str());
         TEST_EXPECT(suite, !rows.empty());
@@ -162,14 +172,13 @@ int main()
         std::ostringstream csv;
         std::ostringstream report;
         const bool ok = runScenario(def, run_cfg, csv, report);
-        const auto rows = parseRows(csv.str(), suite);
+        const std::vector<ParsedRow> rows = parseRows(csv.str(), suite);
 
         TEST_EXPECT_MSG(suite, ok, report.str());
         TEST_EXPECT(suite, rows.size() >= 2);
         TEST_EXPECT(suite, rows[1].loco_state == "Marche");
         TEST_EXPECT(suite, std::abs(rows[1].cm_vx - run_cfg.physics.walk_max_speed) <= 0.05);
-        TEST_EXPECT(suite, std::all_of(rows.begin(), rows.end(),
-            [&](const ParsedRow& row) { return row.cm_vx <= run_cfg.physics.walk_max_speed + 0.05; }));
+        TEST_EXPECT(suite, everyRowUnderSpeed(rows, run_cfg.physics.walk_max_speed + 0.05));
     }
 
     {
@@ -178,7 +187,7 @@ int main()
         std::ostringstream csv;
         std::ostringstream report;
         const bool ok = runScenario(def, run_cfg, csv, report);
-        const auto rows = parseRows(csv.str(), suite);
+        const std::vector<ParsedRow> rows = parseRows(csv.str(), suite);
 
         TEST_EXPECT_MSG(suite, ok, report.str());
         TEST_EXPECT(suite, !rows.empty());
@@ -209,8 +218,8 @@ int main()
                 input.set_velocity = Vec2{0.0, run_cfg.physics.jump_impulse};
 
             core.step(run_cfg.sim_loop.fixed_dt_s, input);
-            const SimState& s  = core.state();
-            const auto&     ch = s.character;
+            const SimState&       s  = core.state();
+            const CharacterState& ch = s.character;
             if (ch.locomotion_state == LocomotionState::Airborne)
                 airborne_seen = true;
 
@@ -254,8 +263,8 @@ int main()
 
             const double prev_y = core.state().cm.position.y;
             core.step(run_cfg.sim_loop.fixed_dt_s, input);
-            const SimState& s  = core.state();
-            const auto& ch = s.character;
+            const SimState&       s  = core.state();
+            const CharacterState& ch = s.character;
 
             if (!airborne_seen && s.cm.position.y < prev_y - 1e-5)
                 preload_seen = true;
@@ -289,8 +298,8 @@ int main()
             input.gaze_target_world = Vec2{2.0, 2.6};
 
             core.step(run_cfg.sim_loop.fixed_dt_s, input);
-            const SimState& s  = core.state();
-            const auto& ch = s.character;
+            const SimState&       s  = core.state();
+            const CharacterState& ch = s.character;
 
             TEST_EXPECT(suite, isFinite(ch.head_center));
             TEST_EXPECT(suite, isFinite(ch.eye_left));

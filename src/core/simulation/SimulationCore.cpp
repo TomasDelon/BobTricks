@@ -12,9 +12,6 @@
 
 #include <algorithm>
 #include <cmath>
-#include <cstdio>
-
-#define SIM_LOG(...) do { if (g_sim_verbose) std::fprintf(stderr, __VA_ARGS__); } while (0)
 
 static constexpr double kInputDirDeadzone = 0.01;
 
@@ -162,14 +159,16 @@ void beginAirborneLandingProtocol(CharacterState&                       ch,
     ch.jump_right_target = plan.right;
     ch.jump_targets_valid = true;
 
-    auto prepFoot = [](FootState& foot) {
-        foot.pinned = false;
-        foot.on_ground = false;
-        foot.airborne = true;
-        foot.swinging = false;
-    };
-    prepFoot(ch.foot_left);
-    prepFoot(ch.foot_right);
+    prepareJumpFoot(ch.foot_left);
+    prepareJumpFoot(ch.foot_right);
+}
+
+void prepareJumpFoot(FootState& foot)
+{
+    foot.pinned = false;
+    foot.on_ground = false;
+    foot.airborne = true;
+    foot.swinging = false;
 }
 
 void updateJumpLandingTargets(CharacterState&                      ch,
@@ -206,18 +205,28 @@ void updateJumpFeetInFlight(CharacterState& ch,
     const double s = smooth01(progress);
     const double tuck_weight = 4.0 * s * (1.0 - s);
     const double tuck = ch.jump_tuck_height * tuck_weight;
-    auto updateFoot = [&](FootState& foot, Vec2 start, Vec2 target) {
-        const double base_x = start.x + (target.x - start.x) * s;
-        const double tucked_x = pelvis.x + 0.18 * (target.x - pelvis.x);
-        foot.pos.x = base_x + (tucked_x - base_x) * (0.70 * tuck_weight);
-        foot.pos.y = start.y + (target.y - start.y) * s + tuck;
-        foot.on_ground = false;
-        foot.airborne = true;
-        foot.pinned = false;
-        foot.swinging = false;
-    };
-    updateFoot(ch.foot_left,  ch.jump_left_start,  ch.jump_left_target);
-    updateFoot(ch.foot_right, ch.jump_right_start, ch.jump_right_target);
+    updateJumpFootInFlight(ch.foot_left,  ch.jump_left_start,  ch.jump_left_target,
+                           pelvis, s, tuck, tuck_weight);
+    updateJumpFootInFlight(ch.foot_right, ch.jump_right_start, ch.jump_right_target,
+                           pelvis, s, tuck, tuck_weight);
+}
+
+void updateJumpFootInFlight(FootState& foot,
+                            Vec2 start,
+                            Vec2 target,
+                            const Vec2& pelvis,
+                            double smooth_progress,
+                            double tuck,
+                            double tuck_weight)
+{
+    const double base_x = start.x + (target.x - start.x) * smooth_progress;
+    const double tucked_x = pelvis.x + 0.18 * (target.x - pelvis.x);
+    foot.pos.x = base_x + (tucked_x - base_x) * (0.70 * tuck_weight);
+    foot.pos.y = start.y + (target.y - start.y) * smooth_progress + tuck;
+    foot.on_ground = false;
+    foot.airborne = true;
+    foot.pinned = false;
+    foot.swinging = false;
 }
 
 RunTimingTargets computeRunTimingTargets(const RunConfig& run_cfg,
@@ -422,6 +431,38 @@ double retargetLandingRecoveryX(double                 target_x,
     return std::clamp(desired_x, base_lo, base_hi);
 }
 
+void retargetSwingIfLate(FootState& swing_foot,
+                         const FootState& stance_foot,
+                         const CharacterState& ch,
+                         const Terrain& terrain,
+                         const Vec2& pelvis,
+                         const WalkConfig& walk_cfg,
+                         const StepConfig& step_cfg,
+                         double cm_x,
+                         double cm_vx,
+                         double reach_radius,
+                         double L,
+                         double ref_slope,
+                         double recovery_gain,
+                         double speed_abs,
+                         double walk_max_speed)
+{
+    if (!swing_foot.swinging) return;
+
+    const double t_remaining  = estimateSwingRemainingTime(swing_foot, walk_cfg);
+    const double future_cm_x  = cm_x + cm_vx * t_remaining;
+    const double old_target_x = swing_foot.swing_target.x;
+    const double new_target_x = retargetLandingRecoveryX(
+        old_target_x, ch, stance_foot, pelvis, future_cm_x,
+        reach_radius, L, ref_slope, walk_cfg, recovery_gain);
+    if (std::abs(new_target_x - old_target_x) <= 1.0e-5) return;
+
+    swing_foot.swing_target.x = new_target_x;
+    swing_foot.swing_target.y = terrain.height_at(new_target_x);
+    refreshSwingArcProfile(swing_foot, terrain, L, step_cfg, walk_cfg,
+                           speed_abs, walk_max_speed);
+}
+
 void beginSwingStep(FootState&       step_foot,
                     FootState&       stance_foot,
                     CharacterState&  ch,
@@ -464,14 +505,16 @@ void beginSwingStep(FootState&       step_foot,
 
 void releaseFeetAirborne(CharacterState& ch)
 {
-    auto releaseFootAirborne = [](FootState& foot) {
-        foot.swinging  = false;
-        foot.pinned    = false;
-        foot.on_ground = false;
-        foot.airborne  = false;
-    };
     releaseFootAirborne(ch.foot_left);
     releaseFootAirborne(ch.foot_right);
+}
+
+void releaseFootAirborne(FootState& foot)
+{
+    foot.swinging  = false;
+    foot.pinned    = false;
+    foot.on_ground = false;
+    foot.airborne  = false;
 }
 
 void bootstrapFeetOnLanding(CharacterState&       ch,
@@ -487,16 +530,23 @@ void bootstrapFeetOnLanding(CharacterState&       ch,
     const double rx = clampTerrainEndpointX(terrain, pelvis, reach_radius,
                                             pelvis.x, pelvis.x + ch.facing * half);
 
-    auto plantFoot = [&terrain](FootState& foot, double fx) {
-        foot.pos        = { fx, terrain.height_at(fx) };
-        foot.pinned     = true;
-        foot.pinned_pos = foot.pos;
-        foot.swinging   = false;
-        foot.airborne   = false;
-        foot.on_ground  = true;
-    };
-    plantFoot(ch.foot_left,  lx);
-    plantFoot(ch.foot_right, rx);
+    plantFootOnTerrain(ch.foot_left,  terrain, lx);
+    plantFootOnTerrain(ch.foot_right, terrain, rx);
+}
+
+void plantFootOnTerrain(FootState& foot, const Terrain& terrain, double x)
+{
+    plantFootAtTarget(foot, { x, terrain.height_at(x) });
+}
+
+void plantFootAtTarget(FootState& foot, Vec2 target)
+{
+    foot.pos        = target;
+    foot.pinned     = true;
+    foot.pinned_pos = target;
+    foot.swinging   = false;
+    foot.airborne   = false;
+    foot.on_ground  = true;
 }
 
 void initializeFeetUnderPelvis(CharacterState& ch,
@@ -623,28 +673,6 @@ StepTriggerEval evaluateStepTriggers(const CharacterState& ch,
     return eval;
 }
 
-template <typename LaunchStepFn>
-void tryRecoveryStepOnLiftOff(const CharacterState& ch,
-                              bool                  airborne_final,
-                              bool                  any_swinging,
-                              bool                  was_grounded_L,
-                              bool                  was_grounded_R,
-                              double                input_dir,
-                              LaunchStepFn&&        launchStep)
-{
-    const bool lift_off_L = was_grounded_L && !ch.foot_left.on_ground && !ch.foot_left.swinging;
-    const bool lift_off_R = was_grounded_R && !ch.foot_right.on_ground && !ch.foot_right.swinging;
-    if (airborne_final || any_swinging) return;
-
-    if (lift_off_L && ch.foot_right.on_ground) {
-        launchStep(true, std::abs(input_dir) <= kInputDirDeadzone);
-        SIM_LOG("Step trigger: LEFT  lift_off=1\n");
-    } else if (lift_off_R && ch.foot_left.on_ground) {
-        launchStep(false, std::abs(input_dir) <= kInputDirDeadzone);
-        SIM_LOG("Step trigger: RIGHT  lift_off=1\n");
-    }
-}
-
 void unpinLiftedFeet(CharacterState& ch,
                      bool            airborne_final,
                      bool            was_grounded_L,
@@ -652,12 +680,14 @@ void unpinLiftedFeet(CharacterState& ch,
 {
     if (airborne_final) return;
 
-    auto unpinIfLifted = [](FootState& foot, bool was_grounded) {
-        if (foot.pinned && was_grounded && !foot.on_ground && !foot.swinging)
-            foot.pinned = false;
-    };
-    unpinIfLifted(ch.foot_left,  was_grounded_L);
-    unpinIfLifted(ch.foot_right, was_grounded_R);
+    unpinFootIfLifted(ch.foot_left,  was_grounded_L);
+    unpinFootIfLifted(ch.foot_right, was_grounded_R);
+}
+
+void unpinFootIfLifted(FootState& foot, bool was_grounded)
+{
+    if (foot.pinned && was_grounded && !foot.on_ground && !foot.swinging)
+        foot.pinned = false;
 }
 
 void cacheXCoMState(SimState&              state,
@@ -736,13 +766,6 @@ HeightTargetState computeHeightTargetState(const CharacterState& ch,
     const double R_bob   = (2.0 - walk_cfg.leg_flex_coeff + cm_pelvis_ratio) * L;
     const double bob_max = walk_cfg.bob_amp * L;
 
-    auto ipY = [&](const FootState& foot) -> double {
-        const double dx    = cm.position.x - foot.pos.x;
-        const double h_arc = std::sqrt(std::max(0.0, R_bob * R_bob - dx * dx));
-        const double dev   = std::max(h_arc - R_bob, -bob_max);  // ≤ 0, capped
-        return foot.pos.y + R_bob + walk_cfg.bob_scale * dev;
-    };
-
     // Combine grounded feet with min(): gives the valley at double support.
     //
     // Single support: only one foot contributes → its arc rises to peak at
@@ -755,11 +778,12 @@ HeightTargetState computeHeightTargetState(const CharacterState& ch,
 
     double y_ip;
     if (grounded_L && grounded_R) {
-        y_ip = std::min(ipY(ch.foot_left), ipY(ch.foot_right));
+        y_ip = std::min(invertedPendulumFootY(ch.foot_left, cm, walk_cfg, R_bob, bob_max),
+                        invertedPendulumFootY(ch.foot_right, cm, walk_cfg, R_bob, bob_max));
     } else if (grounded_L) {
-        y_ip = ipY(ch.foot_left);
+        y_ip = invertedPendulumFootY(ch.foot_left, cm, walk_cfg, R_bob, bob_max);
     } else if (grounded_R) {
-        y_ip = ipY(ch.foot_right);
+        y_ip = invertedPendulumFootY(ch.foot_right, cm, walk_cfg, R_bob, bob_max);
     } else {
         y_ip = ref_ground + h_nominal;
     }
@@ -777,6 +801,18 @@ HeightTargetState computeHeightTargetState(const CharacterState& ch,
     state.y_tgt = y_ip + walk_cfg.cm_height_offset
                 - state.speed_drop - state.slope_drop - downhill_crouch_drop;
     return state;
+}
+
+double invertedPendulumFootY(const FootState& foot,
+                             const CMState& cm,
+                             const WalkConfig& walk_cfg,
+                             double R_bob,
+                             double bob_max)
+{
+    const double dx    = cm.position.x - foot.pos.x;
+    const double h_arc = std::sqrt(std::max(0.0, R_bob * R_bob - dx * dx));
+    const double dev   = std::max(h_arc - R_bob, -bob_max);
+    return foot.pos.y + R_bob + walk_cfg.bob_scale * dev;
 }
 
 double computeHorizontalAcceleration(const CharacterState& ch,
@@ -982,7 +1018,7 @@ void SimulationCore::stepBootstrapCM(StepCtx& ctx, const InputFrame& input)
         cm.position.y = m_terrain.height_at(cm.position.x) + ctx.h_nominal;
         cm.velocity.y = 0.0;
         ch.ground_reference_initialized = false;
-        SIM_LOG("Bootstrap: CM=(%.3f, %.3f)\n", cm.position.x, cm.position.y);
+        simLog("Bootstrap: CM=(%.3f, %.3f)\n", cm.position.x, cm.position.y);
     }
 
     if (input.set_velocity.has_value())
@@ -1267,12 +1303,31 @@ void SimulationCore::stepApplyConstraints(StepCtx& ctx)
 
     applyFootConstraints(ch, m_terrain, ctx.pelvis, ctx.reach_radius);
 
-    tryRecoveryStepOnLiftOff(ch, ctx.airborne_final, ctx.any_swinging,
-                             ctx.was_grounded_L, ctx.was_grounded_R,
-                             ctx.input_dir,
-                             [&](bool l, bool c) { stepLaunchSwing(l, c, ctx); });
+    stepTryRecoveryStepOnLiftOff(ctx);
 
     unpinLiftedFeet(ch, ctx.airborne_final, ctx.was_grounded_L, ctx.was_grounded_R);
+}
+
+void SimulationCore::stepTryRecoveryStepOnLiftOff(StepCtx& ctx)
+{
+    CharacterState& ch = m_state.character;
+
+    const bool lift_off_L = ctx.was_grounded_L
+                         && !ch.foot_left.on_ground
+                         && !ch.foot_left.swinging;
+    const bool lift_off_R = ctx.was_grounded_R
+                         && !ch.foot_right.on_ground
+                         && !ch.foot_right.swinging;
+    if (ctx.airborne_final || ctx.any_swinging) return;
+
+    const bool corrective = std::abs(ctx.input_dir) <= kInputDirDeadzone;
+    if (lift_off_L && ch.foot_right.on_ground) {
+        stepLaunchSwing(true, corrective, ctx);
+        simLog("Step trigger: LEFT  lift_off=1\n");
+    } else if (lift_off_R && ch.foot_left.on_ground) {
+        stepLaunchSwing(false, corrective, ctx);
+        simLog("Step trigger: RIGHT  lift_off=1\n");
+    }
 }
 
 void SimulationCore::stepWriteOutput(StepCtx& ctx, const InputFrame& input, double dt)

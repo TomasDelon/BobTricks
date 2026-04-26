@@ -9,9 +9,9 @@ namespace
 
 std::string trim(const std::string& s)
 {
-    const auto start = s.find_first_not_of(" \t\r\n");
+    const std::string::size_type start = s.find_first_not_of(" \t\r\n");
     if (start == std::string::npos) return {};
-    const auto end = s.find_last_not_of(" \t\r\n");
+    const std::string::size_type end = s.find_last_not_of(" \t\r\n");
     return s.substr(start, end - start + 1);
 }
 
@@ -36,7 +36,7 @@ bool ConfigIO::load(const std::string& path, AppConfig& config)
             continue;
         }
 
-        const auto eq = line.find('=');
+        const std::string::size_type eq = line.find('=');
         if (eq == std::string::npos) continue;
 
         const std::string key   = trim(line.substr(0, eq));
@@ -139,6 +139,7 @@ bool ConfigIO::load(const std::string& path, AppConfig& config)
             else if (key == "debug_thickness_scale")        { config.presentation.debug_thickness_scale        = std::stof(value); handled = true; }
             else if (key == "show_cm_vectors")              { const bool show = (value == "1" || value == "true"); config.presentation.velocity_components = show ? 3 : 0; config.presentation.accel_components = show ? 3 : 0; handled = true; }
             else if (key == "show_xcom_overlay")            { config.presentation.show_xcom_overlay            = (value == "1" || value == "true"); handled = true; }
+            else if (key == "show_support_line")            { config.presentation.show_support_line            = (value == "1" || value == "true"); handled = true; }
             else if (key == "show_head_overlay")            { config.presentation.show_head_overlay            = (value == "1" || value == "true"); handled = true; }
             else if (key == "show_arm_overlay")             { config.presentation.show_arm_overlay             = (value == "1" || value == "true"); handled = true; }
             else if (key == "show_spline_debug_overlay")    { config.presentation.show_spline_debug_overlay    = (value == "1" || value == "true"); handled = true; }
@@ -390,6 +391,7 @@ bool ConfigIO::save(const std::string& path, const AppConfig& config)
     file << "accel_components="             << config.presentation.accel_components << "\n";
     file << "debug_thickness_scale="        << config.presentation.debug_thickness_scale << "\n";
     file << "show_xcom_overlay="            << (config.presentation.show_xcom_overlay ? "1" : "0") << "\n";
+    file << "show_support_line="            << (config.presentation.show_support_line ? "1" : "0") << "\n";
     file << "show_head_overlay="            << (config.presentation.show_head_overlay ? "1" : "0") << "\n";
     file << "show_arm_overlay="             << (config.presentation.show_arm_overlay ? "1" : "0") << "\n";
     file << "show_spline_debug_overlay="    << (config.presentation.show_spline_debug_overlay ? "1" : "0") << "\n\n";

@@ -18,3 +18,11 @@
  * la pile d'appels de l'exécutable headless.
  */
 extern bool g_sim_verbose;
+
+/**
+ * @brief Écrit un message de diagnostic si la verbosité de simulation est active.
+ *
+ * Le format suit les mêmes règles que `std::fprintf` : le premier argument est
+ * une chaîne de format, puis viennent les valeurs à insérer dans cette chaîne.
+ */
+void simLog(const char* format, ...);

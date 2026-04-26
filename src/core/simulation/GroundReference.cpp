@@ -23,6 +23,14 @@ bool terrainPointInsideDisk(const Terrain& terrain,
     return terrainDistSqToPelvis(terrain, pelvis, x) <= radius * radius;
 }
 
+bool isInsideInterval(const Terrain& terrain,
+                      const Vec2& pelvis,
+                      double radius_sq,
+                      double x)
+{
+    return terrainDistSqToPelvis(terrain, pelvis, x) <= radius_sq;
+}
+
 double slideTerrainEndpointX(const Terrain& terrain,
                              const Vec2& pelvis,
                              double radius,
@@ -57,23 +65,20 @@ double clampTerrainEndpointX(const Terrain& terrain,
                              double x_target)
 {
     const double r_sq = radius * radius;
-    auto inside = [&](double x) {
-        return terrainDistSqToPelvis(terrain, pelvis, x) <= r_sq;
-    };
 
-    if (!inside(x_start)) return x_start;
-    if (inside(x_target)) return x_target;
+    if (!isInsideInterval(terrain, pelvis, r_sq, x_start)) return x_start;
+    if (isInsideInterval(terrain, pelvis, r_sq, x_target)) return x_target;
 
     double x_valid = x_start;
     constexpr int coarse_steps = 32;
     for (int i = 1; i <= coarse_steps; ++i) {
         const double t = static_cast<double>(i) / static_cast<double>(coarse_steps);
         const double x = x_start + (x_target - x_start) * t;
-        if (!inside(x)) {
+        if (!isInsideInterval(terrain, pelvis, r_sq, x)) {
             double x_invalid = x;
             for (int j = 0; j < 28; ++j) {
                 const double xm = 0.5 * (x_valid + x_invalid);
-                if (inside(xm)) x_valid = xm;
+                if (isInsideInterval(terrain, pelvis, r_sq, xm)) x_valid = xm;
                 else            x_invalid = xm;
             }
             return x_valid;

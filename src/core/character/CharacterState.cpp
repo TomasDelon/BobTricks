@@ -90,8 +90,8 @@ void updateCharacterState(CharacterState& ch,
 
     // ── Position des genoux (IK analytique) ──────────────────────────────────
     if (ch.feet_initialized) {
-        const auto ikL    = computeKnee(ch.pelvis, ch.foot_left.pos,  L, ch.facing);
-        const auto ikR    = computeKnee(ch.pelvis, ch.foot_right.pos, L, ch.facing);
+        const LegIKResult ikL = computeKnee(ch.pelvis, ch.foot_left.pos,  L, ch.facing);
+        const LegIKResult ikR = computeKnee(ch.pelvis, ch.foot_right.pos, L, ch.facing);
         ch.knee_left      = ikL.knee;
         ch.knee_right     = ikR.knee;
     }

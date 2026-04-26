@@ -22,7 +22,7 @@
  * StrokePath path;
  * path.moveTo(shoulder);
  * path.cubicTo(c1, c2, hand);
- * auto pts = path.flatten(24);
+ * std::vector<Vec2> pts = path.flatten(24);
  * // convertir pts en SDL_FPoint puis appeler StrokeRenderer
  * @endcode
  */

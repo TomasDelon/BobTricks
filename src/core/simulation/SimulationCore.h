@@ -151,5 +151,6 @@ private:
     void stepFireWalkTrigger    (StepCtx& ctx);
     void stepUpdateContactEvents(StepCtx& ctx);
     void stepUpdateSlideEvents  (double dt);
+    void stepTryRecoveryStepOnLiftOff(StepCtx& ctx);
     bool stepLaunchSwing        (bool step_left, bool corrective, StepCtx& ctx);
 };

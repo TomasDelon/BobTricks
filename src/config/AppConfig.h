@@ -124,6 +124,7 @@ struct PresentationConfig {
     int  accel_components            = 0;     ///< 0: off, 1: X, 2: Y, 3: XY.
     float debug_thickness_scale      = 1.0f;
     bool show_xcom_overlay           = false;
+    bool show_support_line           = false;
     bool show_head_overlay           = false;
     bool show_arm_overlay            = false;
     bool show_spline_debug_overlay   = false;

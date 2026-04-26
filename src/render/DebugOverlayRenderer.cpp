@@ -21,6 +21,15 @@ float scaled(float value, float debug_scale)
     return value * std::max(1.0f, debug_scale);
 }
 
+SDL_FPoint worldToScreenPoint(const Camera2D& camera,
+                              Vec2 p,
+                              double ground_y,
+                              int viewport_w,
+                              int viewport_h)
+{
+    return camera.worldToScreen(p.x, p.y, ground_y, viewport_w, viewport_h);
+}
+
 void drawDebugLine(SDL_Renderer* renderer,
                    float x0, float y0,
                    float x1, float y1,
@@ -41,6 +50,36 @@ void drawDebugLine(SDL_Renderer* renderer,
         const float off = start + static_cast<float>(i);
         SDL_RenderDrawLineF(renderer, x0 + nx * off, y0 + ny * off,
                             x1 + nx * off, y1 + ny * off);
+    }
+}
+
+void drawArmSwingArc(SDL_Renderer* renderer,
+                     const Camera2D& camera,
+                     Vec2 center,
+                     Vec2 body_right,
+                     Vec2 body_up,
+                     double inner_radius,
+                     double start_deg,
+                     double end_deg,
+                     Uint8 r,
+                     Uint8 g,
+                     Uint8 b,
+                     double ground_y,
+                     int viewport_w,
+                     int viewport_h,
+                     float debug_scale)
+{
+    constexpr int SEGMENTS = 32;
+    SDL_SetRenderDrawColor(renderer, r, g, b, 180);
+    const Vec2 p0 = armCirclePoint(center, body_right, body_up, inner_radius, start_deg);
+    SDL_FPoint prev = worldToScreenPoint(camera, p0, ground_y, viewport_w, viewport_h);
+    for (int i = 1; i <= SEGMENTS; ++i) {
+        const double t = static_cast<double>(i) / static_cast<double>(SEGMENTS);
+        const double angle = start_deg + (end_deg - start_deg) * t;
+        const Vec2 p = armCirclePoint(center, body_right, body_up, inner_radius, angle);
+        const SDL_FPoint cur = worldToScreenPoint(camera, p, ground_y, viewport_w, viewport_h);
+        drawDebugLine(renderer, prev.x, prev.y, cur.x, cur.y, debug_scale);
+        prev = cur;
     }
 }
 } // namespace
@@ -327,32 +366,18 @@ void DebugOverlayRenderer::renderForeground(SDL_Renderer*          renderer,
     const Vec2 back_start  = armCirclePoint(center, body_right, body_up, inner_radius, armConfig.walk_back_hand_start_deg);
     const Vec2 back_end    = armCirclePoint(center, body_right, body_up, inner_radius, armConfig.walk_back_hand_end_deg);
 
-    auto toScreen = [&](Vec2 p) {
-        return camera.worldToScreen(p.x, p.y, ground_y, viewport_w, viewport_h);
-    };
-    const SDL_FPoint front_start_s = toScreen(front_start);
-    const SDL_FPoint front_end_s   = toScreen(front_end);
-    const SDL_FPoint back_start_s  = toScreen(back_start);
-    const SDL_FPoint back_end_s    = toScreen(back_end);
-
-    auto drawArc = [&](double start_deg, double end_deg, Uint8 r, Uint8 g, Uint8 b) {
-        constexpr int SEGMENTS = 32;
-        SDL_SetRenderDrawColor(renderer, r, g, b, 180);
-        Vec2 p0 = armCirclePoint(center, body_right, body_up, inner_radius, start_deg);
-        SDL_FPoint prev = toScreen(p0);
-        for (int i = 1; i <= SEGMENTS; ++i) {
-            const double t = static_cast<double>(i) / static_cast<double>(SEGMENTS);
-            const double angle = start_deg + (end_deg - start_deg) * t;
-            const Vec2 p = armCirclePoint(center, body_right, body_up, inner_radius, angle);
-            const SDL_FPoint cur = toScreen(p);
-            drawDebugLine(renderer, prev.x, prev.y, cur.x, cur.y, debug_scale);
-            prev = cur;
-        }
-    };
+    const SDL_FPoint front_start_s = worldToScreenPoint(camera, front_start, ground_y, viewport_w, viewport_h);
+    const SDL_FPoint front_end_s   = worldToScreenPoint(camera, front_end, ground_y, viewport_w, viewport_h);
+    const SDL_FPoint back_start_s  = worldToScreenPoint(camera, back_start, ground_y, viewport_w, viewport_h);
+    const SDL_FPoint back_end_s    = worldToScreenPoint(camera, back_end, ground_y, viewport_w, viewport_h);
 
     if (armConfig.show_debug_swing_arcs) {
-        drawArc(armConfig.walk_front_hand_start_deg, armConfig.walk_front_hand_end_deg, 255, 210, 60);
-        drawArc(armConfig.walk_back_hand_start_deg, armConfig.walk_back_hand_end_deg, 60, 210, 255);
+        drawArmSwingArc(renderer, camera, center, body_right, body_up, inner_radius,
+                        armConfig.walk_front_hand_start_deg, armConfig.walk_front_hand_end_deg,
+                        255, 210, 60, ground_y, viewport_w, viewport_h, debug_scale);
+        drawArmSwingArc(renderer, camera, center, body_right, body_up, inner_radius,
+                        armConfig.walk_back_hand_start_deg, armConfig.walk_back_hand_end_deg,
+                        60, 210, 255, ground_y, viewport_w, viewport_h, debug_scale);
     }
 
     if (armConfig.show_debug_swing_points) {

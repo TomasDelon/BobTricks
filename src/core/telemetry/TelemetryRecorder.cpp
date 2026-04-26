@@ -16,8 +16,8 @@ static const char* locoName(LocomotionState s)
 
 void TelemetryRecorder::record(const SimState& s)
 {
-    const auto& cm  = s.cm;
-    const auto& ch  = s.character;
+    const CMState&        cm = s.cm;
+    const CharacterState& ch = s.character;
 
     TelemetryRow row;
     row.t                 = s.sim_time;
@@ -56,7 +56,7 @@ void TelemetryRecorder::writeCsv(std::ostream& out) const
            "ref_ground,ref_slope,h_ip,cm_offset,speed_drop,slope_drop\n";
 
     out << std::fixed << std::setprecision(6);
-    for (const auto& r : m_rows) {
+    for (const TelemetryRow& r : m_rows) {
         out << r.t        << ','
             << r.cm_x     << ',' << r.cm_vx << ','
             << r.cm_y     << ',' << r.cm_vy << ','
@@ -92,7 +92,7 @@ void TelemetryRecorder::addAssertion(
 bool TelemetryRecorder::runAssertions(std::ostream& report) const
 {
     bool all_pass = true;
-    for (const auto& a : m_asserts) {
+    for (const Assertion& a : m_asserts) {
         const bool pass = a.check(m_rows);
         report << (pass ? "PASS" : "FAIL") << "  " << a.name << '\n';
         if (!pass) all_pass = false;

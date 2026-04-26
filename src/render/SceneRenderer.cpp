@@ -33,6 +33,22 @@ void drawMotionStreak(SDL_Renderer* renderer,
     }
 }
 
+void addWorldPoint(std::vector<SDL_FPoint>& pts,
+                   const Camera2D& camera,
+                   double wx,
+                   double wy,
+                   double ground_y,
+                   int viewport_w,
+                   int viewport_h)
+{
+    pts.push_back(camera.worldToScreen(wx, wy, ground_y, viewport_w, viewport_h));
+}
+
+bool pointXLessThan(const Vec2& point, double x)
+{
+    return point.x < x;
+}
+
 } // namespace
 
 void SceneRenderer::drawGrid(SDL_Renderer* renderer,
@@ -89,28 +105,27 @@ void SceneRenderer::drawGround(SDL_Renderer* renderer,
     // Add virtual endpoints at the viewport edges for a clean fill.
     std::vector<SDL_FPoint> pts;
 
-    auto addWorld = [&](double wx, double wy) {
-        pts.push_back(camera.worldToScreen(wx, wy, ground_y, viewport_w, viewport_h));
-    };
-
-    const auto& verts = terrain.vertices();
+    const std::vector<Vec2>& verts = terrain.vertices();
 
     if (verts.size() < 2) {
         // Terrain disabled or not generated — flat ground
-        addWorld(x_left,  ground_y);
-        addWorld(x_right, ground_y);
+        addWorldPoint(pts, camera, x_left,  ground_y, ground_y, viewport_w, viewport_h);
+        addWorldPoint(pts, camera, x_right, ground_y, ground_y, viewport_w, viewport_h);
     } else {
         // Virtual left edge (always first, x strictly increasing from here)
-        addWorld(x_left, ground_y + terrain.height_at(x_left));
+        addWorldPoint(pts, camera, x_left, ground_y + terrain.height_at(x_left),
+                      ground_y, viewport_w, viewport_h);
 
         // All vertices strictly inside the visible range (left to right, no step-back)
-        auto it = std::lower_bound(verts.begin(), verts.end(), x_left,
-                                   [](const Vec2& v, double val){ return v.x < val; });
+        std::vector<Vec2>::const_iterator it = std::lower_bound(
+            verts.begin(), verts.end(), x_left, pointXLessThan);
         for (; it != verts.end() && it->x < x_right; ++it)
-            addWorld(it->x, ground_y + it->y);
+            addWorldPoint(pts, camera, it->x, ground_y + it->y,
+                          ground_y, viewport_w, viewport_h);
 
         // Virtual right edge
-        addWorld(x_right, ground_y + terrain.height_at(x_right));
+        addWorldPoint(pts, camera, x_right, ground_y + terrain.height_at(x_right),
+                      ground_y, viewport_w, viewport_h);
     }
 
     // ── Fill: multi-pass scanline gradient (no SDL_RenderGeometry artifacts) ─
@@ -151,7 +166,7 @@ void SceneRenderer::drawGround(SDL_Renderer* renderer,
             {0.02f, 10},
         };
 
-        for (const auto& band : kBands) {
+        for (const Band& band : kBands) {
             SDL_SetRenderDrawColor(renderer, 90, 90, 90, band.a);
             for (int sx = 0; sx < viewport_w; ++sx) {
                 const float tsy    = tsys[static_cast<std::size_t>(sx)];
