@@ -3,7 +3,6 @@
 #include <SDL2/SDL.h>
 #include <cstdint>
 #include <deque>
-#include <memory>
 #include <optional>
 #include <vector>
 
@@ -34,12 +33,16 @@
  * Elle orchestre le flux complet : événements SDL → `InputController` →
  * `SimulationCore` → renderers → ImGui → présentation.
  *
- * L'objet `SimulationCore` est créé dynamiquement dans `init()` après le
- * chargement de la configuration, car il prend une référence sur `m_config`.
+ * `SimulationCore` est un membre direct de `Application` : il prend une
+ * référence sur `m_config`, puis son terrain est régénéré après chargement du
+ * fichier de configuration.
  */
 class Application
 {
 public:
+    /** @brief Construit les sous-objets dépendants de la configuration. */
+    Application();
+
     /** @brief Initialise SDL, ImGui, la configuration et le noyau de simulation. */
     bool init();
     /** @brief Lance la boucle principale jusqu'à fermeture de l'application. */
@@ -64,16 +67,16 @@ private:
     SDL_Renderer* m_renderer = nullptr;
     bool          m_running  = false;
 
-    AppConfig                       m_config;
-    std::unique_ptr<SimulationCore> m_core;    // created in init() after config load
-    SimulationLoop                  m_simLoop;
-    Camera2D                        m_camera;
-    SceneRenderer                   m_sceneRenderer;
-    CharacterRenderer               m_characterRenderer;
-    DebugOverlayRenderer            m_debugOverlay;
-    DebugUI                         m_debugUI;
-    AudioSystem                     m_audioSystem;
-    EffectsSystem                   m_effectsSystem;
+    AppConfig            m_config;
+    SimulationCore       m_core;
+    SimulationLoop       m_simLoop;
+    Camera2D             m_camera;
+    SceneRenderer        m_sceneRenderer;
+    CharacterRenderer    m_characterRenderer;
+    DebugOverlayRenderer m_debugOverlay;
+    DebugUI              m_debugUI;
+    AudioSystem          m_audioSystem;
+    EffectsSystem        m_effectsSystem;
 
     std::uint64_t m_prev_counter  = 0;
     float         m_current_fps   = 0.f;

@@ -18,6 +18,11 @@ static constexpr const char* FOOTSTEP_WAV_PATH = "data/audio/footstep.wav";
 static constexpr double      GROUND_Y    = World::GROUND_Y;
 static constexpr double ACCEL_DISPLAY_SCALE = 1.0 / 9.81;
 
+Application::Application()
+    : m_core(m_config)
+{
+}
+
 bool Application::init()
 {
     if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_TIMER | SDL_INIT_AUDIO) != 0) {
@@ -50,7 +55,7 @@ bool Application::init()
     SDL_SetWindowMinimumSize(m_window, 640, 360);
 
     ConfigIO::load(CONFIG_PATH, m_config);
-    m_core = std::make_unique<SimulationCore>(m_config);
+    m_core.regenerateTerrain();
 
     SimulationLoop::Config slCfg;
     slCfg.fixed_dt_s = m_config.sim_loop.fixed_dt_s;
@@ -110,7 +115,7 @@ int Application::run()
             SDL_GetRendererOutputSize(m_renderer, &cvw, &cvh);
             const double ppm = m_camera.getPixelsPerMeter();
             const double gm  = m_camera.getGroundMarginPx();
-            const Vec2&  cm_pos       = m_core->state().cm.position;
+            const Vec2&  cm_pos       = m_core.state().cm.position;
             const double cam_target_y = (cm_pos.y - GROUND_Y)
                                       - (cvh * 0.5 - gm) / ppm;
             m_camera.update(
@@ -134,7 +139,7 @@ void Application::stepBack()
 {
     if (m_history.empty()) return;
     const StepSnapshot& snap = m_history.back();
-    m_core->loadState(snap.state);
+    m_core.loadState(snap.state);
     m_simLoop.setTotalStepCount(snap.step_count);
     m_history.pop_back();
     m_trail.clear();
@@ -146,13 +151,13 @@ void Application::stepSimulation(double dt)
 {
     // Snapshot state before this step (enables step-back).
     if (m_history.size() >= MAX_HISTORY) m_history.pop_front();
-    m_history.push_back({ m_core->state(), m_simLoop.getTotalStepCount() });
+    m_history.push_back({ m_core.state(), m_simLoop.getTotalStepCount() });
 
     InputFrame input = m_inputController.consumeInputFrame();
-    m_core->step(dt, input);
+    m_core.step(dt, input);
 
     // Trail — record CM position, prune old entries.
-    const SimState& s = m_core->state();
+    const SimState& s = m_core.state();
     const double sim_time = m_simLoop.getSimulationTime();
     const bool presentation_mode = m_inputController.isGameView();
     const bool record_trail = m_config.cm.show_trail
@@ -189,7 +194,7 @@ void Application::handleEvent(const SDL_Event& event)
     const bool ui_captures_mouse = !m_inputController.isGameView() && io.WantCaptureMouse;
     const InputController::EventResult result =
         m_inputController.handleEvent(event, m_camera, m_config.camera,
-                                      *m_core, m_renderer, GROUND_Y, ui_captures_mouse);
+                                      m_core, m_renderer, GROUND_Y, ui_captures_mouse);
     if (result.quit_requested)
         m_running = false;
 }
@@ -199,8 +204,8 @@ void Application::render()
     int vw = 0, vh = 0;
     SDL_GetRendererOutputSize(m_renderer, &vw, &vh);
 
-    const SimState& s = m_core->state();
-    const Terrain& terrain = m_core->terrain();
+    const SimState& s = m_core.state();
+    const Terrain& terrain = m_core.terrain();
     if (!m_inputController.isGameView()) {
         ImGui_ImplSDLRenderer2_NewFrame();
         ImGui_ImplSDL2_NewFrame();
@@ -232,11 +237,11 @@ void Application::render()
         m_audioSystem.applyConfig(m_config.audio);
 
         if (req.step_back)          stepBack();
-        if (req.regenerate_terrain) m_core->regenerateTerrain();
+        if (req.regenerate_terrain) m_core.regenerateTerrain();
         if (req.clear_trail)        m_trail.clear();
 
         if (req.ip_test_launch) {
-            m_core->teleportCM(req.ip_test_cm_x, req.ip_test_cm_vx);
+            m_core.teleportCM(req.ip_test_cm_x, req.ip_test_cm_vx);
             SDL_Log("[IPTest] CM teleported to x=%.4f  vx=%.4f",
                     req.ip_test_cm_x, req.ip_test_cm_vx);
         }
