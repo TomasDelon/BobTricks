@@ -94,7 +94,6 @@ audio, marche, course et saut.
 Les assets se trouvent dans :
 
 - `data/audio/` pour les sons et musiques ;
-- `data/gif/` pour les captures de démonstration ;
 - `doc/presentation/data/` pour les vidéos et images de la soutenance.
 
 ## Utiliser le mode headless

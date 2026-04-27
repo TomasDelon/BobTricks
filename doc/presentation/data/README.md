@@ -6,5 +6,3 @@ Ce dossier contient uniquement les assets utilises par `doc/presentation/present
 - `videos/` : demonstrations integrees aux slides (`.mp4`).
 - `diagrams/` : sources et exports de diagrammes (`.mmd`, `.svg`).
 - `notes/` : notes orales exportees pour la presentation (`notes.js`, `notes.json`).
-
-Les GIF de demonstration generaux restent dans `data/gif/`, car ils sont partages avec la documentation hors presentation.
