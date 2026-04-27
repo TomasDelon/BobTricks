@@ -62,7 +62,7 @@ float scaled(float value, float debug_scale)
 }
 
 SDL_FPoint worldToScreenPoint(const Camera2D& camera,
-                              Vec2 p,
+                              const Vec2& p,
                               double ground_y,
                               int viewport_w,
                               int viewport_h)

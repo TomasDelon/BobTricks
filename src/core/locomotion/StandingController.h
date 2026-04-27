@@ -41,7 +41,7 @@ struct StandingDiag {
     double d       = 0.0;   ///< Largeur du polygone de support (m).
 
     /** @brief Vrai si les cinq critères sont satisfaits. */
-    bool valid() const { return c1 && c2 && c3 && c4 && c5; }
+    bool valid() const;
 };
 
 /**

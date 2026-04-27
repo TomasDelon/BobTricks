@@ -30,5 +30,5 @@ public:
     void renderPolyline(SDL_Renderer* renderer,
                         const std::vector<SDL_FPoint>& points,
                         float width_px,
-                        SDL_Color color) const;
+                        const SDL_Color& color) const;
 };

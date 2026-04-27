@@ -37,7 +37,22 @@ void SimulationCore::teleportCM(double x, double vx)
     resetHeadState(m_state.character);
 }
 
-void SimulationCore::setCMVelocity(Vec2 vel) { m_state.cm.velocity = vel; }
+void SimulationCore::setCMVelocity(const Vec2& vel) { m_state.cm.velocity = vel; }
+
+const SimState& SimulationCore::state() const
+{
+    return m_state;
+}
+
+double SimulationCore::time() const
+{
+    return m_state.sim_time;
+}
+
+const Terrain& SimulationCore::terrain() const
+{
+    return m_terrain;
+}
 
 void SimulationCore::toggleFootPin(bool left)
 {

@@ -36,11 +36,11 @@ struct ArmPose {
  * @param pose            Résultat de la pose IK (sortie).
  * @return Vrai si la cible est atteignable.
  */
-bool solveTwoBoneArm(Vec2 target,
+bool solveTwoBoneArm(const Vec2& target,
                      double upper_len,
                      double fore_len,
-                     Vec2 shoulder,
-                     Vec2 bend_preference,
+                     const Vec2& shoulder,
+                     const Vec2& bend_preference,
                      const std::optional<Vec2>& previous_elbow,
                      ArmPose& pose);
 

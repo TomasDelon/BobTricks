@@ -6,7 +6,11 @@
 
 namespace {
 
-Vec2 armCirclePoint(Vec2 center, Vec2 body_right, Vec2 body_up, double radius, double angle_deg)
+Vec2 armCirclePoint(const Vec2& center,
+                    const Vec2& body_right,
+                    const Vec2& body_up,
+                    double radius,
+                    double angle_deg)
 {
     const double a = angle_deg * kDegToRad;
     return center + body_right * (std::cos(a) * radius)
@@ -34,11 +38,11 @@ double scaleArcAngle(double start_deg, double end_deg, double t, double amp_scal
 
 } // namespace
 
-bool solveTwoBoneArm(Vec2 target,
+bool solveTwoBoneArm(const Vec2& target,
                      double upper_len,
                      double fore_len,
-                     Vec2 shoulder,
-                     Vec2 bend_preference,
+                     const Vec2& shoulder,
+                     const Vec2& bend_preference,
                      const std::optional<Vec2>& previous_elbow,
                      ArmPose& pose)
 {
@@ -98,9 +102,9 @@ bool solveTwoBoneArm(Vec2 target,
     return reached;
 }
 
-static void updateOneArm(Vec2 target,
-                         Vec2 shoulder,
-                         Vec2 bend_pref,
+static void updateOneArm(const Vec2& target,
+                         const Vec2& shoulder,
+                         const Vec2& bend_pref,
                          const std::optional<Vec2>& dragged_target,
                          const std::optional<Vec2>& previous_elbow,
                          double upper_len,
@@ -108,12 +112,10 @@ static void updateOneArm(Vec2 target,
                          Vec2& elbow_out,
                          Vec2& hand_out)
 {
-    if (dragged_target.has_value()) {
-        target = *dragged_target;
-    }
+    const Vec2& effective_target = dragged_target.has_value() ? *dragged_target : target;
 
     ArmPose pose;
-    solveTwoBoneArm(target, upper_len, fore_len, shoulder, bend_pref, previous_elbow, pose);
+    solveTwoBoneArm(effective_target, upper_len, fore_len, shoulder, bend_pref, previous_elbow, pose);
     elbow_out = pose.elbow;
     hand_out  = pose.hand;
 }

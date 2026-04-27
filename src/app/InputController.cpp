@@ -20,6 +20,31 @@ float distancePx(const SDL_FPoint& point, float mx, float my)
 
 } // namespace
 
+bool InputController::isGameView() const
+{
+    return m_game_view;
+}
+
+const std::optional<Vec2>& InputController::gazeTargetWorld() const
+{
+    return m_gaze_target_world;
+}
+
+bool InputController::isVelocityDragActive() const
+{
+    return m_drag_vel_active;
+}
+
+float InputController::dragMouseX() const
+{
+    return m_drag_mouse_x;
+}
+
+float InputController::dragMouseY() const
+{
+    return m_drag_mouse_y;
+}
+
 InputController::EventResult InputController::handleEvent(const SDL_Event& event,
                                                           Camera2D& camera,
                                                           CameraConfig& cameraConfig,

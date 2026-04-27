@@ -47,16 +47,16 @@ public:
     /** @brief Téléporte le centre de masse, utilisé notamment par le panel IP. */
     void teleportCM(double x, double vx);
     /** @brief Force la vitesse du centre de masse. */
-    void setCMVelocity(Vec2 vel);
+    void setCMVelocity(const Vec2& vel);
     /** @brief Épingle ou désépingle un pied. */
     void toggleFootPin(bool left);
     /** @brief Épingle ou désépingle une main. */
     void toggleHandPin(bool left);
 
     /** @brief Retourne l'état courant en lecture seule. */
-    const SimState& state()   const { return m_state; }
-    double          time()    const { return m_state.sim_time; }
-    const Terrain&  terrain() const { return m_terrain; }
+    const SimState& state() const;
+    double          time() const;
+    const Terrain&  terrain() const;
 
 private:
     AppConfig& m_config;   // non-owning — Application's m_config

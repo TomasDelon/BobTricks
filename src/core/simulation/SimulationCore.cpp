@@ -34,7 +34,7 @@ Vec2 reconstructPelvis(const CMState& cm,
 }
 
 // Clamp pos to within radius r of center.
-Vec2 clampToCircle(Vec2 pos, Vec2 center, double r)
+Vec2 clampToCircle(const Vec2& pos, const Vec2& center, double r)
 {
     const double dx   = pos.x - center.x;
     const double dy   = pos.y - center.y;
@@ -212,8 +212,8 @@ void updateJumpFeetInFlight(CharacterState& ch,
 }
 
 void updateJumpFootInFlight(FootState& foot,
-                            Vec2 start,
-                            Vec2 target,
+                            const Vec2& start,
+                            const Vec2& target,
                             const Vec2& pelvis,
                             double smooth_progress,
                             double tuck,
@@ -539,7 +539,7 @@ void plantFootOnTerrain(FootState& foot, const Terrain& terrain, double x)
     plantFootAtTarget(foot, { x, terrain.height_at(x) });
 }
 
-void plantFootAtTarget(FootState& foot, Vec2 target)
+void plantFootAtTarget(FootState& foot, const Vec2& target)
 {
     foot.pos        = target;
     foot.pinned     = true;

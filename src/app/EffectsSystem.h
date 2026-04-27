@@ -39,7 +39,7 @@ public:
     void clear();
 
     /** @brief Retourne le pool de particules actives (pour rendu par `SceneRenderer`). */
-    const std::deque<DustParticle>& dustParticles() const { return m_dust_particles; }
+    const std::deque<DustParticle>& dustParticles() const;
 
 private:
     void emitFootDust(const FootState& foot,

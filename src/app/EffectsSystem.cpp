@@ -62,6 +62,11 @@ void EffectsSystem::clear()
     m_dust_particles.clear();
 }
 
+const std::deque<DustParticle>& EffectsSystem::dustParticles() const
+{
+    return m_dust_particles;
+}
+
 void EffectsSystem::emitFootDust(const FootState& foot,
                                  const CharacterConfig& char_cfg,
                                  const ParticlesConfig& config,

@@ -75,8 +75,8 @@ void updateJumpFeetInFlight(CharacterState& ch,
                             double progress);
 
 void updateJumpFootInFlight(FootState& foot,
-                            Vec2 start,
-                            Vec2 target,
+                            const Vec2& start,
+                            const Vec2& target,
                             const Vec2& pelvis,
                             double smooth_progress,
                             double tuck,
@@ -159,7 +159,7 @@ void beginSwingStep(FootState& step_foot,
 void releaseFeetAirborne(CharacterState& ch);
 void releaseFootAirborne(FootState& foot);
 void plantFootOnTerrain(FootState& foot, const Terrain& terrain, double x);
-void plantFootAtTarget(FootState& foot, Vec2 target);
+void plantFootAtTarget(FootState& foot, const Vec2& target);
 
 void bootstrapFeetOnLanding(CharacterState& ch,
                             const StandingConfig& stand_cfg,

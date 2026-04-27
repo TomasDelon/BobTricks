@@ -35,7 +35,7 @@ SDL_FPoint normalizeOrZero(const SDL_FPoint& v)
     return {v.x / len, v.y / len};
 }
 
-SDL_Vertex makeVertex(const SDL_FPoint& p, SDL_Color color)
+SDL_Vertex makeVertex(const SDL_FPoint& p, const SDL_Color& color)
 {
     SDL_Vertex v{};
     v.position = p;
@@ -53,7 +53,7 @@ void appendRoundDot(std::vector<SDL_Vertex>& vertices,
                     std::vector<int>& indices,
                     const SDL_FPoint& center,
                     float radius,
-                    SDL_Color color)
+                    const SDL_Color& color)
 {
     const int center_index = static_cast<int>(vertices.size());
     vertices.push_back(makeVertex(center, color));
@@ -78,7 +78,7 @@ void appendRoundDot(std::vector<SDL_Vertex>& vertices,
 void StrokeRenderer::renderPolyline(SDL_Renderer* renderer,
                                     const std::vector<SDL_FPoint>& points,
                                     float width_px,
-                                    SDL_Color color) const
+                                    const SDL_Color& color) const
 {
     if (!renderer || points.size() < 2 || width_px <= 0.0f) return;
 

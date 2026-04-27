@@ -2,8 +2,9 @@
 
 #include <cmath>
 
-LegIKResult computeKnee(Vec2 P, Vec2 F, double L, double facing)
+LegIKResult computeKnee(const Vec2& P, const Vec2& F_target, double L, double facing)
 {
+    Vec2 F = F_target;
     // Distance pelvis → foot.
     const double dx    = F.x - P.x;
     const double dy    = F.y - P.y;

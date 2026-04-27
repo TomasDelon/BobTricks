@@ -5,7 +5,7 @@ LIBS     := $(shell sdl2-config --libs) $(shell pkg-config --libs SDL2_mixer) -l
 
 SRC_DIRS := src src/app src/config \
             src/core/math src/core/character src/core/locomotion \
-            src/core/runtime src/core/simulation src/core/telemetry src/core/terrain \
+            src/core/physics src/core/runtime src/core/simulation src/core/telemetry src/core/terrain \
             src/render src/debug
 
 SRCS     := $(wildcard $(addsuffix /*.cpp, $(SRC_DIRS)))
@@ -24,7 +24,7 @@ TARGET   := build/bobtricks_v4
 # ── Headless binary ───────────────────────────────────────────────────────────
 # No SDL, no ImGui, no Camera2D.  Links only core + config + headless.
 HEADLESS_DIRS := src/config \
-                 src/core/character src/core/locomotion \
+                 src/core/math src/core/character src/core/locomotion src/core/physics \
                  src/core/simulation src/core/telemetry src/core/terrain \
                  src/headless
 HEADLESS_SRCS := $(wildcard $(addsuffix /*.cpp, $(HEADLESS_DIRS)))
@@ -33,9 +33,13 @@ HEADLESS_BIN  := build/bobtricks_headless
 TEST_CORE_SRCS := src/core/character/CharacterState.cpp \
                   src/core/character/ArmController.cpp \
                   src/core/character/HeadController.cpp \
+                  src/core/character/SupportState.cpp \
+                  src/core/character/UpperBodyKinematics.cpp \
                   src/core/locomotion/BalanceComputer.cpp \
                   src/core/locomotion/LegIK.cpp \
                   src/core/locomotion/StandingController.cpp \
+                  src/core/math/Vec2.cpp \
+                  src/core/physics/Geometry.cpp \
                   src/core/simulation/GroundReference.cpp \
                   src/core/simulation/SimVerbosity.cpp \
                   src/core/simulation/SimulationCore.cpp \
@@ -116,24 +120,30 @@ $(HEADLESS_BIN): $(HEADLESS_SRCS)
 $(UNIT_TEST_BIN): tests/unit/test_core_math.cpp tests/TestSupport.h \
                   src/core/math/Bezier.cpp \
                   src/core/math/StrokePath.cpp \
+                  src/core/math/Vec2.cpp \
                   src/core/character/ArmController.cpp \
                   src/core/character/CharacterState.cpp \
                   src/core/character/HeadController.cpp \
+                  src/core/character/SupportState.cpp \
                   src/core/locomotion/BalanceComputer.cpp \
                   src/core/locomotion/LegIK.cpp \
                   src/core/locomotion/StandingController.cpp \
+                  src/core/physics/Geometry.cpp \
                   src/core/terrain/Terrain.cpp
 	@mkdir -p $(@D)
 	$(CXX) -std=c++20 -Wall -Wextra -O2 -Isrc -I. \
 	    tests/unit/test_core_math.cpp \
 	    src/core/math/Bezier.cpp \
 	    src/core/math/StrokePath.cpp \
+	    src/core/math/Vec2.cpp \
 	    src/core/character/ArmController.cpp \
 	    src/core/character/CharacterState.cpp \
 	    src/core/character/HeadController.cpp \
+	    src/core/character/SupportState.cpp \
 	    src/core/locomotion/BalanceComputer.cpp \
 	    src/core/locomotion/LegIK.cpp \
 	    src/core/locomotion/StandingController.cpp \
+	    src/core/physics/Geometry.cpp \
 	    src/core/terrain/Terrain.cpp -lm -o $@
 
 $(REGRESSION_TEST_BIN): tests/regression/test_headless_scenarios.cpp \

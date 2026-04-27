@@ -9,7 +9,11 @@ namespace {
 
 constexpr double MAX_CM_DRAG_SPEED_MPS = 10.0;
 
-Vec2 armCirclePoint(Vec2 center, Vec2 body_right, Vec2 body_up, double radius, double angle_deg)
+Vec2 armCirclePoint(const Vec2& center,
+                    const Vec2& body_right,
+                    const Vec2& body_up,
+                    double radius,
+                    double angle_deg)
 {
     const double a = angle_deg * kDegToRad;
     return center + body_right * (std::cos(a) * radius)
@@ -22,7 +26,7 @@ float scaled(float value, float debug_scale)
 }
 
 SDL_FPoint worldToScreenPoint(const Camera2D& camera,
-                              Vec2 p,
+                              const Vec2& p,
                               double ground_y,
                               int viewport_w,
                               int viewport_h)
@@ -55,9 +59,9 @@ void drawDebugLine(SDL_Renderer* renderer,
 
 void drawArmSwingArc(SDL_Renderer* renderer,
                      const Camera2D& camera,
-                     Vec2 center,
-                     Vec2 body_right,
-                     Vec2 body_up,
+                     const Vec2& center,
+                     const Vec2& body_right,
+                     const Vec2& body_up,
                      double inner_radius,
                      double start_deg,
                      double end_deg,

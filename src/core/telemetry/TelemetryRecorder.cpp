@@ -82,6 +82,11 @@ void TelemetryRecorder::clear()
     m_asserts.clear();
 }
 
+const std::vector<TelemetryRow>& TelemetryRecorder::rows() const
+{
+    return m_rows;
+}
+
 void TelemetryRecorder::addAssertion(
     const std::string& name,
     std::function<bool(const std::vector<TelemetryRow>&)> fn)

@@ -36,7 +36,7 @@ public:
     void writeCsv(std::ostream& out) const;
 
     /** @brief Accès en lecture seule à toutes les lignes enregistrées. */
-    const std::vector<TelemetryRow>& rows() const { return m_rows; }
+    const std::vector<TelemetryRow>& rows() const;
 
     /** @brief Efface les lignes et les assertions enregistrées. */
     void clear();

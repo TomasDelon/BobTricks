@@ -3,11 +3,16 @@
 #include <cmath>
 #include <algorithm>
 
-static double distance2D(Vec2 a, Vec2 b)
+static double distance2D(const Vec2& a, const Vec2& b)
 {
     const double dx = b.x - a.x;
     const double dy = b.y - a.y;
     return std::sqrt(dx * dx + dy * dy);
+}
+
+bool StandingDiag::valid() const
+{
+    return c1 && c2 && c3 && c4 && c5;
 }
 
 std::optional<double> computeStandingCMTarget(const SupportState&   support,

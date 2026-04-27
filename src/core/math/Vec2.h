@@ -5,7 +5,6 @@
  * @brief Vecteur 2D léger utilisé dans tout le noyau de simulation.
  */
 
-#include <cmath>
 #include "core/math/MathConstants.h"
 
 /**
@@ -19,31 +18,28 @@ struct Vec2 {
     double y = 0.0; ///< Composante verticale.
 
     /** @brief Addition composante par composante. */
-    Vec2 operator+(const Vec2& o) const { return {x + o.x, y + o.y}; }
+    Vec2 operator+(const Vec2& o) const;
     /** @brief Soustraction composante par composante. */
-    Vec2 operator-(const Vec2& o) const { return {x - o.x, y - o.y}; }
+    Vec2 operator-(const Vec2& o) const;
     /** @brief Multiplication par un scalaire. */
-    Vec2 operator*(double s)      const { return {x * s,   y * s};   }
+    Vec2 operator*(double s) const;
     /** @brief Division par un scalaire (non nul). */
-    Vec2 operator/(double s)      const { return {x / s,   y / s};   }
+    Vec2 operator/(double s) const;
 
     /** @brief Addition en place. */
-    Vec2& operator+=(const Vec2& o) { x += o.x; y += o.y; return *this; }
+    Vec2& operator+=(const Vec2& o);
     /** @brief Soustraction en place. */
-    Vec2& operator-=(const Vec2& o) { x -= o.x; y -= o.y; return *this; }
+    Vec2& operator-=(const Vec2& o);
 
     /** @brief Norme euclidienne du vecteur. */
-    double length() const { return std::sqrt(x * x + y * y); }
+    double length() const;
 };
 
 /**
  * @brief Produit scalaire de deux vecteurs.
  * @return `a.x*b.x + a.y*b.y`
  */
-inline double dot(Vec2 a, Vec2 b)
-{
-    return a.x * b.x + a.y * b.y;
-}
+double dot(const Vec2& a, const Vec2& b);
 
 /**
  * @brief Normalise `v` ou retourne `fallback` si `v` est quasi-nul.
@@ -55,9 +51,4 @@ inline double dot(Vec2 a, Vec2 b)
  * @param fallback Vecteur retourné si `||v|| <= kEpsLength`.
  * @return `v / ||v||` ou `fallback`.
  */
-inline Vec2 normalizeOr(Vec2 v, Vec2 fallback)
-{
-    const double len = v.length();
-    if (len <= kEpsLength) return fallback;
-    return v / len;
-}
+Vec2 normalizeOr(const Vec2& v, const Vec2& fallback);

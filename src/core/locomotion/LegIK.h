@@ -28,4 +28,4 @@ struct LegIKResult {
  * @param facing Direction du personnage (`+1` = droite, `-1` = gauche).
  * @return Résultat contenant la position du genou et le pied effectif.
  */
-LegIKResult computeKnee(Vec2 P, Vec2 F, double L, double facing);
+LegIKResult computeKnee(const Vec2& P, const Vec2& F, double L, double facing);

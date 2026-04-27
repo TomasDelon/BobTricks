@@ -11,8 +11,6 @@
  * `x_heel_left`/`x_toe_right` (extrémités du polygone de support).
  */
 
-#include <cmath>
-
 /**
  * @brief Intervalle de support 1D (sagittal) dérivé des pieds posés au sol.
  *
@@ -30,11 +28,11 @@ struct SupportState {
     bool right_planted = false; ///< Vrai si le pied droit est planté au sol.
 
     /** @brief Centre horizontal de l'intervalle de support (m). */
-    double center()        const { return 0.5 * (x_left + x_right); }
+    double center() const;
     /** @brief Largeur de l'intervalle de support (m). */
-    double width()         const { return std::abs(x_right - x_left); }
+    double width() const;
     /** @brief Hauteur de terrain moyenne entre les deux appuis (m). */
-    double ground_center() const { return 0.5 * (y_left + y_right); }
+    double ground_center() const;
     /** @brief Vrai si les deux pieds sont simultanément au sol. */
-    bool   both_planted()  const { return left_planted && right_planted; }
+    bool both_planted() const;
 };

@@ -36,7 +36,7 @@ TerrainSegment findSegment(const std::vector<Vec2>& verts, double x)
     return {*std::prev(it), *it};
 }
 
-Vec2 normalizeOrFallback(Vec2 v, Vec2 fallback)
+Vec2 normalizeOrFallback(const Vec2& v, const Vec2& fallback)
 {
     const double len = v.length();
     return (len > 1e-9) ? (v / len) : fallback;
@@ -123,4 +123,9 @@ Vec2 Terrain::normal_at(double x) const
 {
     const Vec2 t = tangent_at(x);
     return {-t.y, t.x};
+}
+
+const std::vector<Vec2>& Terrain::vertices() const
+{
+    return m_verts;
 }

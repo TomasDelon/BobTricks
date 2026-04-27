@@ -59,15 +59,15 @@ public:
     InputFrame consumeInputFrame();
 
     /** @brief Vrai si le mode vue jeu est actif (pas de curseur ImGui). */
-    bool isGameView() const { return m_game_view; }
+    bool isGameView() const;
     /** @brief Cible de regard courante en monde, si active. */
-    const std::optional<Vec2>& gazeTargetWorld() const { return m_gaze_target_world; }
+    const std::optional<Vec2>& gazeTargetWorld() const;
     /** @brief Vrai si le glisser de vitesse (clic droit) est actif. */
-    bool isVelocityDragActive() const { return m_drag_vel_active; }
+    bool isVelocityDragActive() const;
     /** @brief Position X souris du glisser de vitesse (px écran). */
-    float dragMouseX() const { return m_drag_mouse_x; }
+    float dragMouseX() const;
     /** @brief Position Y souris du glisser de vitesse (px écran). */
-    float dragMouseY() const { return m_drag_mouse_y; }
+    float dragMouseY() const;
 
 private:
     bool m_is_panning = false;

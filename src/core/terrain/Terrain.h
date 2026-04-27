@@ -64,7 +64,7 @@ public:
     Vec2   normal_at(double x) const;
 
     /** @brief Retourne la polyligne brute utilisée par `SceneRenderer`. */
-    const std::vector<Vec2>& vertices() const { return m_verts; }
+    const std::vector<Vec2>& vertices() const;
 
 private:
     const TerrainConfig& m_config;
