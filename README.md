@@ -12,19 +12,90 @@ headless via des scénarios déterministes.
 
 Lien direct : https://www.youtube.com/watch?v=3eavnAWpd80
 
-## Commandes disponibles aujourd'hui
+## Prérequis
+
+Le build graphique utilise :
+
+- un compilateur C++20 (`g++`) ;
+- SDL2 pour la fenêtre, les événements clavier/souris et le rendu 2D ;
+- SDL2_mixer pour les sons de pas, de glissade et d'atterrissage ;
+- OpenGL pour le linkage graphique ;
+- Dear ImGui, fourni dans `vendor/imgui`, pour l'interface de debug.
+
+Sous Debian/Ubuntu, les paquets utiles sont généralement :
 
 ```sh
-make build           # compile l'application SDL
-make run             # compile puis lance l'application SDL
-make build_headless  # compile le binaire headless (sans SDL)
-make test            # exécute unitaires + régression + scénarios headless
-make test_unit
-make test_regression
-make test_headless
-make check_architecture
-make clean
+sudo apt-get install g++ make libsdl2-dev libsdl2-mixer-dev doxygen valgrind
 ```
+
+`doxygen` et `valgrind` ne sont nécessaires que pour `make docs` et
+`make test_mem`.
+
+## Compilation et exécution
+
+```sh
+make build              # compile l'application graphique SDL2
+make run                # compile puis lance l'application graphique
+make build_headless     # compile le binaire headless sans SDL/ImGui/rendu
+make test               # unitaires + régressions + scénarios headless
+make test_unit          # tests unitaires bas niveau
+make test_regression    # tests de régression sur les scénarios
+make test_headless      # tous les scénarios headless
+make build_asan         # binaire headless avec AddressSanitizer + UBSan
+make test_asan          # scénarios headless avec sanitizers
+make test_mem           # Valgrind sur le binaire headless
+make check_architecture # vérifie les invariants d'architecture
+make docs               # génère la documentation Doxygen
+make clean              # supprime build/
+```
+
+Le Makefile sépare volontairement deux chemins :
+
+- `make build` compile l'application complète : `src/app`, `src/render`,
+  `src/debug`, SDL2, SDL2_mixer et ImGui ;
+- `make build_headless` compile seulement `src/core`, `src/config` et
+  `src/headless`, sans SDL ni interface graphique.
+
+Cette séparation prouve que le noyau de simulation est testable sans fenêtre.
+
+## Utilisation de l'application graphique
+
+```sh
+make run
+```
+
+Contrôles principaux :
+
+- `Q` / `D` : aller à gauche / droite ;
+- `Shift` : courir ;
+- `Espace` : sauter ;
+- `P` : basculer le mode présentation ;
+- `Echap` : quitter ;
+- molette : zoom caméra ;
+- glisser dans le vide : déplacer la caméra quand le suivi est désactivé ;
+- glisser sur un pied ou une main : déplacer cette cible ;
+- clic droit sur un pied ou une main : épingler ou désépingler.
+
+L'interface ImGui permet de modifier les paramètres de simulation, de rendu, de
+terrain, d'audio et d'overlays pendant l'exécution. Les boutons "Sauver la
+config ..." écrivent les valeurs dans `data/config.ini`.
+
+## Configuration et données
+
+Le fichier principal de données est :
+
+- `data/config.ini`
+
+Il est chargé au démarrage par `ConfigIO` et regroupe les paramètres par
+sections : boucle de simulation, caméra, personnage, reconstruction, bras,
+rendu spline, mode présentation, centre de masse, physique, terrain, particules,
+audio, marche, course et saut.
+
+Les assets se trouvent dans :
+
+- `data/audio/` pour les sons et musiques ;
+- `data/gif/` pour les captures de démonstration ;
+- `doc/presentation/data/` pour les vidéos et images de la soutenance.
 
 ## Utiliser le mode headless
 
@@ -168,19 +239,6 @@ Pour ajouter un nouveau scénario headless :
 3. L'enregistrer dans la bibliothèque retournée par `scenarioLibrary()`
 4. Valider avec `make test_headless` puis `make test`
 
-## Commandes prévues par le plan directeur
-
-Les commandes suivantes sont documentées comme objectifs d'architecture, mais
-elles ne sont pas encore toutes disponibles dans le dépôt actif :
-
-```sh
-make build_asan      # compilation avec -fsanitize=address,undefined
-make test_mem        # Valgrind sur bobtricks_headless --all
-make docs            # génération de la documentation Doxygen
-```
-
-Le README sera mis à jour dès que ces cibles Makefile existeront réellement.
-
 ## Règles d'architecture
 
 - `src/core/` est sans SDL et sans ImGui. Aucune exception.
@@ -198,18 +256,26 @@ Le README sera mis à jour dès que ces cibles Makefile existeront réellement.
 2. Implémenter le changement.
 3. Exécuter `make test` — il doit passer.
 4. Exécuter `make check_architecture` — il doit passer.
-5. Pour les changements qui affectent SDL / render / UI : valider aussi
+5. Pour les changements numériques sensibles : exécuter `make test_asan`.
+6. Pour les changements de durée de vie mémoire : exécuter `make test_mem`.
+7. Pour les changements qui affectent SDL / render / UI : valider aussi
    manuellement dans l'application SDL.
-6. Si le comportement observé contredit l'attendu, investiguer avant de clôturer.
+8. Si le comportement observé contredit l'attendu, investiguer avant de clôturer.
 
 ## Documents clés
 
-- `doc/ARCHITECTURE.md` — arbre des modules, règles de dépendance, modes d'exécution
-- `doc/VISION.md` — scope, régimes locomoteurs, critères de complétude
-- `doc/STATE_MODEL.md` — état autoritatif, invariants, reset
-- `doc/LOCOMOTION_SPEC.md` — spécification technique par régime
-- `doc/WALKING_REDESIGN_PLAN.md` — plan détaillé de refonte du walking
-- `doc/TESTING_AND_VALIDATION.md` — types de tests, commandes, format des scénarios
-- `doc/ROADMAP_locomotion.md` — état d'avancement des phases de locomotion
-- `doc/CONTRIBUTING.md` — workflow minimal avant commit/push
-- `experiments/` — prototypes isolés, hors base de production
+- `doc/class_diagram.md` — diagramme des modules et relations principales ;
+- `doc/mathematiques.md` — modèle physique et formules utilisées ;
+- `doc/decisions_architecture.md` — choix de conception ;
+- `doc/guide_tuning.md` — guide de réglage des paramètres ;
+- `doc/historique_taches.md` — tâches réalisées ;
+- `doc/gantt_bobtricks.xlsx` — planning ;
+- `doc/presentation/` — présentation orale, scripts et assets.
+
+La documentation Doxygen des headers se génère avec :
+
+```sh
+make docs
+```
+
+La sortie HTML est produite dans `doc/doxygen/html/index.html`.

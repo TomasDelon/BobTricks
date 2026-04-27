@@ -136,7 +136,67 @@
       <img src="./data/images/bob_diagramflow_cropped.png" alt="Pipeline de simulation centré sur le centre de masse" style="display:block;width:100%;height:auto;">
     </bt-left>
     <bt-right stretch>
-      <bt-code file="SimulationCore.cpp" variant="fill">
+      <bt-code file="SimulationCore.h + SimulationCoreLifecycle.cpp + SimulationCore.cpp" variant="fill">
+struct StepCtx {
+    // Phase 1 : constantes derivees
+    double L            = 0.0;
+    double g            = 0.0;
+    double h_nominal    = 0.0;
+    double reach_radius = 0.0;
+
+    // Phase 3 : reference de sol
+    double ref_ground   = 0.0;
+    double ref_slope    = 0.0;
+    Vec2   ground_back  = {0.0, 0.0};
+    Vec2   ground_fwd   = {0.0, 0.0};
+    double sin_t        = 0.0;
+    double cos_t        = 0.0;
+    bool   airborne_ref = false;
+
+    // Phase 4 : entrees
+    double input_dir    = 0.0;
+    bool   prev_contact_left  = false;
+    bool   prev_contact_right = false;
+    bool   prev_jump_flight_active = false;
+
+    // Phases 5-6 : mode course + parametres interpolés
+    double           rb  = 0.0;
+    RunTimingTargets run_timing;
+    WalkConfig       eff_walk;
+    StepConfig       eff_step;
+    PhysicsConfig    eff_physics;
+    double           speed_abs = 0.0;
+    double           max_spd   = 0.0;
+
+    // Phase 7 : integration physique
+    Vec2   accel      = {0.0, 0.0};
+    double y_tgt      = 0.0;
+    double h_ip       = 0.0;
+    double speed_drop = 0.0;
+    double slope_drop = 0.0;
+    bool   jump_vertical_override = false;
+    double pre_vertical_velocity  = 0.0;
+    double landing_recovery_gain   = 0.0;
+    bool   landing_recovery_active = false;
+
+    // Phase 8 : geometrie apres integration
+    Vec2   pelvis         = {0.0, 0.0};
+    bool   airborne_final = false;
+
+    // Phase 10 : etat des declencheurs
+    double omega0  = 0.0;
+    double xi      = 0.0;
+    double eff_lx  = 0.0;
+    double eff_rx  = 0.0;
+
+    // Phase 11 : resultat airborne/saut
+    bool any_swinging   = false;
+
+    // Phase 13 : instantane avant contraintes
+    bool was_grounded_L = false;
+    bool was_grounded_R = false;
+};
+
 void SimulationCore::step(double dt, const InputFrame& input)
 {
     m_state.sim_time += dt;
@@ -162,18 +222,41 @@ void SimulationCore::stepIntegratePhysics(StepCtx& ctx, double dt)
     CMState&        cm = m_state.cm;
     CharacterState& ch = m_state.character;
 
+    // Horizontal
     integrateHorizontalMotion(cm, ch, ctx.eff_physics, ctx.input_dir,
                               ctx.sin_t, ctx.cos_t, ctx.g, ctx.airborne_ref,
                               ctx.max_spd, dt, ctx.accel);
+    if (std::abs(cm.velocity.x) > m_config.physics.stop_speed)
+        ch.facing = std::copysign(1.0, cm.velocity.x);
 
+    // Flexion en descente
+    updateDownhillCrouch(ch, ctx.eff_walk, ctx.eff_physics, ctx.ref_slope,
+                         cm.velocity.x, ctx.max_spd, dt);
+
+    // Cible de hauteur
     const HeightTargetState height_state =
         computeHeightTargetState(ch, cm, ctx.eff_walk, ctx.eff_physics,
                                  ctx.ref_ground, ctx.ref_slope, ctx.h_nominal,
                                  m_config.character.cm_pelvis_ratio, ctx.L);
+    ctx.h_ip       = height_state.h_ip;
+    ctx.speed_drop = height_state.speed_drop;
+    ctx.slope_drop = height_state.slope_drop;
+    ctx.y_tgt      = height_state.y_tgt;
 
-    integrateVerticalMotion(cm, ctx.accel, m_terrain, m_config.character,
-                            m_config.reconstruction, ctx.eff_physics,
-                            ctx.y_tgt, ctx.ref_ground, ctx.L, ctx.g, dt);
+    // Extrait : la suite applique aussi preload de saut, récupération
+    // d'atterrissage, ressort vertical de course et intégration verticale.
+    // Cible de hauteur en course : oscillation de phase liée aux appuis.
+    if (ctx.rb > 0.0 && !ctx.jump_vertical_override) {
+        const double run_compression = std::lerp(0.09 * ctx.L, 0.14 * ctx.L,
+                                                 ctx.run_timing.speed_ratio);
+        const double run_bob = -ctx.eff_walk.bob_amp * ctx.L
+                             * std::cos(4.0 * kPi * ch.run_phase);
+        const double y_tgt_run = ctx.ref_ground + ctx.h_nominal
+                               - run_compression + run_bob
+                               + ctx.eff_walk.cm_height_offset
+                               - ctx.speed_drop - ctx.slope_drop;
+        ctx.y_tgt = std::lerp(ctx.y_tgt, y_tgt_run, ctx.rb);
+    }
 }
 
 void SimulationCore::stepReconstructGeometry(StepCtx& ctx, const InputFrame& input)
@@ -245,12 +328,30 @@ Vec2 reconstructPelvis(const CMState& cm,
       </bt-bullets>
     </bt-left>
     <bt-right>
-      <bt-code file="LegIK.cpp">
-LegIKResult computeKnee(Vec2 P, Vec2 F, double L, double facing)
+      <bt-code file="LegIK.cpp" variant="fill">
+LegIKResult computeKnee(const Vec2& P, const Vec2& F_target,
+                        double L, double facing)
 {
+    Vec2 F = F_target;
+    // Distance bassin → pied.
     const double dx    = F.x - P.x;
     const double dy    = F.y - P.y;
-    const double d_leg = std::sqrt(dx * dx + dy * dy);
+    double       d_leg = std::sqrt(dx * dx + dy * dy);
+
+    // Saturation : éviter la singularité en extension complète.
+    static constexpr double EPS = 1e-4;
+    const double max_reach = 2.0 * L - EPS;
+    if (d_leg > max_reach) {
+        // Ramener la position du pied sur la sphère atteignable.
+        const double scale = max_reach / d_leg;
+        F.x   = P.x + dx * scale;
+        F.y   = P.y + dy * scale;
+        d_leg = max_reach;
+    }
+    if (d_leg < EPS) {
+        // Cas dégénéré : bassin au-dessus du pied.
+        return { { P.x + facing * L, P.y }, F };
+    }
 
     // L² = (d/2)² + h²  →  h = sqrt(L² - (d/2)²)
     const double h_k = std::sqrt(
@@ -327,22 +428,213 @@ return { omega0, xi, mos };
       </bt-bullets>
     </bt-left>
     <bt-right>
-      <bt-code file="SimulationCore.cpp">
-eval.xcom_trigger = std::abs(velocity_x) > eps_step
-                 && (xi - eval.front_x) * facing > 0.0;
+      <bt-code file="SimulationCore.cpp + SimulationCoreLocomotion.cpp" variant="fill">
+StepTriggerEval evaluateStepTriggers(const CharacterState& ch,
+                                     double eff_lx, double eff_rx,
+                                     double xi, double velocity_x,
+                                     double eps_step,
+                                     const Vec2& pelvis,
+                                     double L, double d_rear_max)
+{
+    StepTriggerEval eval;
+    const double facing = ch.facing;
+    eval.front_x = (facing >= 0.0) ? std::max(eff_lx, eff_rx)
+                                   : std::min(eff_lx, eff_rx);
+    eval.rear_x = (facing >= 0.0) ? std::min(eff_lx, eff_rx)
+                                  : std::max(eff_lx, eff_rx);
+    eval.step_left_xcom = (facing >= 0.0) ? (eff_lx < eff_rx)
+                                          : (eff_lx > eff_rx);
 
-eval.d_rear = (pelvis.x - eval.rear_x) * facing;
-eval.rear_trigger = eval.d_rear > d_rear_max * L;
+    eval.xcom_trigger = std::abs(velocity_x) > eps_step
+                     && (xi - eval.front_x) * facing > 0.0;
 
-if (!trigger_eval.xcom_trigger
-    && !trigger_eval.rear_trigger) return;
+    eval.d_rear = (pelvis.x - eval.rear_x) * facing;
+    eval.rear_trigger = eval.d_rear > d_rear_max * L;
+    return eval;
+}
 
-stepLaunchSwing(trigger_eval.step_left_xcom,
-                corrective, ctx);
+void SimulationCore::stepFireWalkTrigger(StepCtx& ctx)
+{
+    CMState&        cm = m_state.cm;
+    CharacterState& ch = m_state.character;
+    const StepTriggerEval trigger_eval =
+        evaluateStepTriggers(ch, ctx.eff_lx, ctx.eff_rx, ctx.xi,
+                             cm.velocity.x, ctx.eff_walk.eps_step,
+                             ctx.pelvis, ctx.L, ctx.eff_walk.d_rear_max);
+
+    if (!trigger_eval.xcom_trigger && !trigger_eval.rear_trigger) return;
+
+    const bool no_forward_input = std::abs(ctx.input_dir) <= 0.01;
+    const bool corrective       = no_forward_input
+                               && trigger_eval.rear_trigger
+                               && !trigger_eval.xcom_trigger;
+    stepLaunchSwing(trigger_eval.step_left_xcom, corrective, ctx);
+}
+
+double computeStepLandingX(const WalkConfig& walk_cfg,
+                           const CharacterState& ch,
+                           const FootState& stance_foot,
+                           const Vec2& pelvis, double xi,
+                           double L, double reach_radius,
+                           double ref_slope)
+{
+    const double downhill_trim = 0.5 * walk_cfg.downhill_step_bonus
+                               * ch.downhill_crouch;
+    const double margin = std::max(0.0,
+        walk_cfg.stability_margin - downhill_trim);
+    const double raw_tx = xi + ch.facing * margin * L;
+
+    const double slope_factor = std::sqrt(1.0 + ref_slope * ref_slope);
+    const double max_reach    = 0.95 * reach_radius / slope_factor;
+    const double max_step     = walk_cfg.max_step_L * L;
+    const double base_lo = std::max(pelvis.x - max_reach,
+                                    stance_foot.pos.x - max_step);
+    const double base_hi = std::min(pelvis.x + max_reach,
+                                    stance_foot.pos.x + max_step);
+
+    const double support_margin = 0.05 * L;
+    double lo = base_lo;
+    double hi = base_hi;
+    if (stance_foot.pos.x <= xi) lo = std::max(lo, xi + support_margin);
+    else                         hi = std::min(hi, xi - support_margin);
+
+    return (lo <= hi) ? std::clamp(raw_tx, lo, hi)
+                      : std::clamp(raw_tx, base_lo, base_hi);
+}
       </bt-code>
       <bt-math>
         $$\xi_{\mathrm{step}} = x_{\mathrm{cm}} + s_{\mathrm{xcom}}\frac{v_x}{\omega_0}$$
       </bt-math>
+    </bt-right>
+  </bt-slide>
+
+  <!-- ── SLIDE 09 : Hauteur verticale du CM ──────────────────────────────── -->
+  <bt-slide title="Hauteur du CM : pendule inversé + corrections" padding-top="2.2%"
+    notes="- Cette fonction est centrale : elle calcule y_tgt, la hauteur verticale poursuivie par le CM.
+- R_bob vient de la géométrie jambe-bassin-CM : on veut une jambe proche de 2L, mais pas verrouillée.
+- En double appui, min() choisit l'arc le plus bas : cela crée naturellement le creux entre deux pas.
+- speed_drop, slope_drop et downhill_crouch_drop rendent la marche plus stable et lisible.">
+    <bt-left>
+      <bt-video src="./data/videos/bob_slide_CM.mp4" label="Hauteur verticale du CM pendant la locomotion"></bt-video>
+      <bt-math label="Cible verticale">
+        $$R_{\mathrm{bob}}=(2-\lambda+\rho)L$$
+        $$y_{\mathrm{tgt}}=y_{\mathrm{ip}}+h_{\mathrm{offset}}-\Delta_v-\Delta_s-\Delta_{\mathrm{downhill}}$$
+      </bt-math>
+    </bt-left>
+    <bt-right stretch>
+      <bt-code file="SimulationCore.cpp" variant="fill">
+HeightTargetState computeHeightTargetState(const CharacterState& ch,
+                                           const CMState& cm,
+                                           const WalkConfig& walk_cfg,
+                                           const PhysicsConfig& physics_cfg,
+                                           double ref_ground,
+                                           double ref_slope,
+                                           double h_nominal,
+                                           double cm_pelvis_ratio,
+                                           double L)
+{
+    HeightTargetState state;
+
+    // Rayon de l'arc du pendule inversé.
+    // R_bob = (2 − leg_flex_coeff + cm_pelvis_ratio) · L
+    const double R_bob   = (2.0 - walk_cfg.leg_flex_coeff
+                         + cm_pelvis_ratio) * L;
+    const double bob_max = walk_cfg.bob_amp * L;
+
+    const bool grounded_L = ch.foot_left.on_ground;
+    const bool grounded_R = ch.foot_right.on_ground;
+
+    double y_ip;
+    if (grounded_L && grounded_R) {
+        y_ip = std::min(
+            invertedPendulumFootY(ch.foot_left,  cm, walk_cfg, R_bob, bob_max),
+            invertedPendulumFootY(ch.foot_right, cm, walk_cfg, R_bob, bob_max));
+    } else if (grounded_L) {
+        y_ip = invertedPendulumFootY(ch.foot_left, cm, walk_cfg, R_bob, bob_max);
+    } else if (grounded_R) {
+        y_ip = invertedPendulumFootY(ch.foot_right, cm, walk_cfg, R_bob, bob_max);
+    } else {
+        y_ip = ref_ground + h_nominal;
+    }
+
+    state.h_ip = y_ip - ref_ground;
+
+    state.speed_drop = walk_cfg.max_speed_drop * L
+                     * std::clamp(std::abs(cm.velocity.x)
+                                  / physics_cfg.walk_max_speed, 0.0, 1.0);
+    state.slope_drop = walk_cfg.max_slope_drop * L
+                     * std::clamp(std::abs(ref_slope) / 0.5, 0.0, 1.0);
+    const double downhill_crouch_drop = walk_cfg.downhill_crouch_max
+                                      * L * ch.downhill_crouch;
+
+    state.y_tgt = y_ip + walk_cfg.cm_height_offset
+                - state.speed_drop - state.slope_drop - downhill_crouch_drop;
+    return state;
+}
+      </bt-code>
+    </bt-right>
+  </bt-slide>
+
+  <!-- ── SLIDE 10 : Arc du pied en swing ─────────────────────────────────── -->
+  <bt-slide title="Swing du pied : vitesse et dégagement" padding-top="2.2%"
+    notes="- Le pied ne se déplace pas seulement en x : en pente, la distance réelle de l'arc augmente.
+- swing_speed_scale ralentit automatiquement les pas très verticaux.
+- On échantillonne le terrain sous l'arc pour éviter que le pied traverse une bosse.
+- C'est un exemple de robustesse géométrique simple, sans solveur.">
+    <bt-left>
+      <bt-video src="./data/videos/bob_xcom_trigger_walking.mp4" label="Swing du pied avec dégagement du terrain"></bt-video>
+      <bt-bullets>
+        <li>Le temps du pas tient compte du déplacement vertical.</li>
+        <li>Le dégagement combine paramètres, pente, vitesse et bosses locales.</li>
+        <li>Le terrain est sondé à trois points intermédiaires.</li>
+      </bt-bullets>
+    </bt-left>
+    <bt-right stretch>
+      <bt-code file="SimulationCore.cpp" variant="fill">
+void refreshSwingArcProfile(FootState& foot,
+                            const Terrain& terrain,
+                            double L,
+                            const StepConfig& step_cfg,
+                            const WalkConfig& walk_cfg,
+                            double speed_abs,
+                            double walk_max_speed)
+{
+    const double dx    = foot.swing_target.x - foot.swing_start.x;
+    const double dy    = foot.swing_target.y - foot.swing_start.y;
+    const double hdist = std::abs(dx);
+
+    {
+        const double arc_len = std::sqrt(dx * dx + dy * dy);
+        foot.swing_speed_scale = (arc_len > 1.0e-9)
+            ? std::max(0.30, hdist / arc_len)
+            : 1.0;
+    }
+
+    {
+        const double step_slope = (hdist > 1.0e-9) ? (dy / hdist) : 0.0;
+        const double h_base     = step_cfg.h_clear_ratio * L;
+        const double h_slope    = walk_cfg.h_clear_slope_factor * L * step_slope;
+        const double h_speed    = walk_cfg.h_clear_speed_factor * L
+                                * std::clamp(speed_abs / std::max(walk_max_speed, 1.0e-4),
+                                             0.0, 1.0);
+
+        double max_terrain_bulge = 0.0;
+        for (int s = 1; s <= 3; ++s) {
+            const double ts       = s * 0.25;
+            const double x_samp   = foot.swing_start.x + ts * dx;
+            const double y_linear = foot.swing_start.y + ts * dy;
+            const double bulge    = terrain.height_at(x_samp) - y_linear;
+            max_terrain_bulge     = std::max(max_terrain_bulge, bulge);
+        }
+
+        const double h_terrain = max_terrain_bulge
+                               + walk_cfg.h_clear_min_ratio * L;
+        foot.swing_h_clear = std::max(h_terrain,
+            std::max(walk_cfg.h_clear_min_ratio * L,
+                     h_base + h_slope + h_speed));
+    }
+}
+      </bt-code>
     </bt-right>
   </bt-slide>
 
@@ -356,7 +648,37 @@ stepLaunchSwing(trigger_eval.step_left_xcom,
       <bt-video src="./data/videos/bob_slide_ground_reference.mp4" label="Référence de sol stable sur terrain irrégulier"></bt-video>
     </bt-left>
     <bt-right>
-      <bt-code file="GroundReference.cpp">
+      <bt-code file="GroundReference.cpp" variant="fill">
+double clampTerrainEndpointX(const Terrain& terrain,
+                             const Vec2& pelvis,
+                             double radius,
+                             double x_start,
+                             double x_target)
+{
+    const double r_sq = radius * radius;
+
+    if (!isInsideInterval(terrain, pelvis, r_sq, x_start)) return x_start;
+    if (isInsideInterval(terrain, pelvis, r_sq, x_target)) return x_target;
+
+    double x_valid = x_start;
+    constexpr int coarse_steps = 32;
+    for (int i = 1; i <= coarse_steps; ++i) {
+        const double t = static_cast<double>(i) / static_cast<double>(coarse_steps);
+        const double x = x_start + (x_target - x_start) * t;
+        if (!isInsideInterval(terrain, pelvis, r_sq, x)) {
+            double x_invalid = x;
+            for (int j = 0; j < 28; ++j) {
+                const double xm = 0.5 * (x_valid + x_invalid);
+                if (isInsideInterval(terrain, pelvis, r_sq, xm)) x_valid = xm;
+                else                                            x_invalid = xm;
+            }
+            return x_valid;
+        }
+        x_valid = x;
+    }
+    return x_valid;
+}
+
 const double x_back_target = cm_x - facing * (ts.w_back * L);
 const double x_fwd_target  = cm_x + facing * (ts.w_fwd * L
                            + std::abs(speed_x) * ts.t_look);
@@ -434,7 +756,7 @@ void CharacterRenderer::renderSplineLeg(
 <span class="pass">PASS</span> jump_from_stand
 <span class="pass">PASS</span> walk_then_stop
 
-Results: <span class="pass">11 PASS</span>  <span class="dim">0 FAIL</span>
+Results: <span class="pass">10 PASS</span>  <span class="dim">0 FAIL</span>
       </bt-terminal>
       <bt-bullets>
         <li>Même noyau de simulation, sans SDL.</li>
@@ -443,7 +765,43 @@ Results: <span class="pass">11 PASS</span>  <span class="dim">0 FAIL</span>
       </bt-bullets>
     </bt-left>
     <bt-right>
-      <bt-code file="ScenarioRunner.cpp">
+      <bt-code file="ScenarioLibrary.cpp + ScenarioRunner.cpp" variant="fill">
+static ScenarioDef makeWalk3s(const AppConfig& cfg)
+{
+    ScenarioDef def;
+    def.name          = "walk_3s";
+    def.duration_s    = 3.0;
+    def.init.cm_pos   = { 0.0, nominalCMHeight(cfg) };
+    def.init.cm_vel   = { 2.0, 0.0 };
+    def.init.terrain_seed = 42;
+
+    def.input_fn = [](double t) -> InputFrame {
+        InputFrame f;
+        f.key_right = (t < 1.5);
+        return f;
+    };
+
+    def.setup_asserts = [](TelemetryRecorder& rec) {
+        rec.addAssertion("cm_x > 1.5 at end",
+            [](const std::vector&lt;TelemetryRow&gt;&amp; rows) {
+                return !rows.empty() && rows.back().cm_x > 1.5;
+            });
+        rec.addAssertion("loco_state Walking at some point",
+            [](const std::vector&lt;TelemetryRow&gt;&amp; rows) {
+                return std::any_of(rows.begin(), rows.end(),
+                    [](const TelemetryRow&amp; r) {
+                        return r.loco_state == LocomotionState::Walking;
+                    });
+            });
+        rec.addAssertion("no NaN in cm_x",
+            [](const std::vector&lt;TelemetryRow&gt;&amp; rows) {
+                return std::none_of(rows.begin(), rows.end(),
+                    [](const TelemetryRow&amp; r) { return r.cm_x != r.cm_x; });
+            });
+    };
+    return def;
+}
+
 while (core.time() < def.duration_s) {
     const InputFrame input = def.input_fn
                            ? def.input_fn(core.time())

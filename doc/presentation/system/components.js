@@ -676,7 +676,7 @@ class BtPresentationShell extends HTMLElement {
         <div class="bt-science-slide__text">
           <h1 class="bt-science-slide__title">Structured Slide
 System</h1>
-          <p class="bt-science-slide__subtitle">Use the mouse wheel to move across slides with a proper transition.</p>
+          <p class="bt-science-slide__subtitle">Use the keyboard to move across slides with a proper transition.</p>
           <p class="bt-science-slide__meta">Theme and speaker notes remain available while the frame stays stable.</p>
         </div>
         <div class="bt-science-slide__visual" aria-hidden="true"></div>
@@ -720,15 +720,6 @@ System</h1>
     this.resizeObserver = new ResizeObserver(() => this.updateSlideScale());
     this.resizeObserver.observe(this.stage);
     this.resizeObserver.observe(this);
-    this.onWheel = (event) => {
-      if (document.querySelector(".bt-mermaid-overlay.is-open")) {
-        event.preventDefault();
-        return;
-      }
-      if (Math.abs(event.deltaY) < 10) return;
-      event.preventDefault();
-      this.navigateSlides(event.deltaY > 0 ? 1 : -1);
-    };
     this.onKeyDown = (event) => {
       if (event.altKey && (event.key === "m" || event.key === "M")) {
         event.preventDefault();
@@ -747,7 +738,6 @@ System</h1>
         this.navigateSlides(event.key === "ArrowDown" ? 1 : -1);
       }
     };
-    this.stage.addEventListener("wheel", this.onWheel, { passive: false });
     window.addEventListener("keydown", this.onKeyDown);
     this.setupNotesResize();
     this.classList.toggle("is-notes-open", this.isNotesOpen);
@@ -759,7 +749,6 @@ System</h1>
   }
 
   disconnectedCallback() {
-    this.stage?.removeEventListener("wheel", this.onWheel);
     window.removeEventListener("keydown", this.onKeyDown);
     this.resizeObserver?.disconnect();
     window.removeEventListener("pointermove", this._onResizeMove);
