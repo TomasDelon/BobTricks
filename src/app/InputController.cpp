@@ -18,16 +18,11 @@ float distancePx(const SDL_FPoint& point, float mx, float my)
     return std::sqrt(dx * dx + dy * dy);
 }
 
-} // namespace
+} // fin namespace
 
 bool InputController::isGameView() const
 {
     return m_game_view;
-}
-
-const std::optional<Vec2>& InputController::gazeTargetWorld() const
-{
-    return m_gaze_target_world;
 }
 
 bool InputController::isVelocityDragActive() const
@@ -88,11 +83,6 @@ InputController::EventResult InputController::handleEvent(const SDL_Event& event
     {
         int vw = 0, vh = 0;
         SDL_GetRendererOutputSize(renderer, &vw, &vh);
-        m_gaze_target_world = camera.screenToWorld(
-            static_cast<float>(event.button.x),
-            static_cast<float>(event.button.y),
-            ground_y, vw, vh);
-
         const SimState& s = core.state();
         bool grabbed_body_part = false;
         if (s.character.feet_initialized) {
@@ -169,10 +159,6 @@ InputController::EventResult InputController::handleEvent(const SDL_Event& event
     if (event.type == SDL_MOUSEMOTION && !ui_captures_mouse) {
         int vw = 0, vh = 0;
         SDL_GetRendererOutputSize(renderer, &vw, &vh);
-        m_gaze_target_world = camera.screenToWorld(
-            static_cast<float>(event.motion.x),
-            static_cast<float>(event.motion.y),
-            ground_y, vw, vh);
         if (m_dragging_foot_left || m_dragging_foot_right) {
             m_foot_drag_world = camera.screenToWorld(
                 static_cast<float>(event.motion.x),
@@ -295,7 +281,6 @@ InputFrame InputController::consumeInputFrame()
     input.key_run = m_key_run && (m_key_left || m_key_right);
     input.jump = m_jump_requested;
     input.set_velocity = m_pending_set_velocity;
-    input.gaze_target_world = m_gaze_target_world;
     m_jump_requested = false;
     m_pending_set_velocity.reset();
 

@@ -77,7 +77,7 @@ bool Application::init()
 
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
-    // This app does not persist ImGui window layout between runs.
+    // Cette application ne conserve pas la disposition des fenêtres ImGui entre deux exécutions.
     ImGui::GetIO().IniFilename = nullptr;
     ImGui::StyleColorsDark();
     ImGui_ImplSDL2_InitForSDLRenderer(m_window, m_renderer);
@@ -106,9 +106,10 @@ int Application::run()
         m_simLoop.runFrame(static_cast<double>(m_frame_dt_s),
                            [this](double dt) { stepSimulation(dt); });
 
-        // Compute the camera target_y so that the CM appears at vertical screen center.
-        // From worldToScreen: screen_y = vh - gm - ((wy - gy) - cy) * ppm
-        // Solving for cy with screen_y = vh/2:
+        // Calculer target_y de la caméra pour que le CM apparaisse au centre vertical de l'écran.
+        // À partir de worldToScreen :
+        //   screen_y = vh - gm - ((wy - gy) - cy) * ppm
+        // En résolvant pour cy avec screen_y = vh/2 :
         //   cy = (cm_y - ground_y) - (vh/2 - ground_margin) / ppm
         {
             int cvw, cvh;
@@ -149,14 +150,14 @@ void Application::stepBack()
 
 void Application::stepSimulation(double dt)
 {
-    // Snapshot state before this step (enables step-back).
+    // Instantané de l'état avant ce pas (permet le retour en arrière).
     if (m_history.size() >= MAX_HISTORY) m_history.pop_front();
     m_history.push_back({ m_core.state(), m_simLoop.getTotalStepCount() });
 
     InputFrame input = m_inputController.consumeInputFrame();
     m_core.step(dt, input);
 
-    // Trail — record CM position, prune old entries.
+    // Trace temporelle : enregistrer la position du CM et supprimer les anciennes entrées.
     const SimState& s = m_core.state();
     const double sim_time = m_simLoop.getSimulationTime();
     const bool presentation_mode = m_inputController.isGameView();
@@ -262,14 +263,13 @@ void Application::render()
 
     const double ref_h = terrain.height_at(s.cm.position.x);
     CharacterConfig render_char_config = m_config.character;
-    HeadConfig render_head_config = m_config.head;
     ArmConfig render_arm_config = m_config.arms;
     CMConfig render_cm_config = m_config.cm;
     SplineRenderConfig render_spline_config = m_config.spline_render;
 
     const bool presentation_mode = m_inputController.isGameView();
     if (presentation_mode)
-        applyPresentationModeOverrides(render_char_config, render_head_config, render_arm_config,
+        applyPresentationModeOverrides(render_char_config, render_arm_config,
                                        render_cm_config, render_spline_config);
     const float debug_scale = presentation_mode ? m_config.presentation.debug_thickness_scale : 1.0f;
 
@@ -304,9 +304,9 @@ void Application::render()
     if (draw_foreground_overlay) {
         m_debugOverlay.renderForeground(m_renderer, m_camera, s.cm,
                                         s.character,
-                                        render_char_config, render_head_config, render_arm_config,
+                                        render_char_config, render_arm_config,
                                         m_config.standing, render_cm_config,
-                                        terrain, m_inputController.gazeTargetWorld(), ref_h, ACCEL_DISPLAY_SCALE,
+                                        terrain, ref_h, ACCEL_DISPLAY_SCALE,
                                         m_inputController.isVelocityDragActive(),
                                         m_inputController.dragMouseX(),
                                         m_inputController.dragMouseY(),
@@ -333,12 +333,10 @@ bool Application::presentationForegroundOverlayEnabled() const
         || p.velocity_components > 0
         || p.accel_components > 0
         || p.show_xcom_overlay
-        || p.show_head_overlay
         || p.show_arm_overlay;
 }
 
 void Application::applyPresentationModeOverrides(CharacterConfig& charConfig,
-                                                 HeadConfig& headConfig,
                                                  ArmConfig& armConfig,
                                                  CMConfig& cmConfig,
                                                  SplineRenderConfig& splineConfig) const
@@ -346,10 +344,6 @@ void Application::applyPresentationModeOverrides(CharacterConfig& charConfig,
     const PresentationConfig& p = m_config.presentation;
 
     charConfig.show_pelvis_reach_disk = p.show_pelvis_reach_disk;
-
-    headConfig.show_eye_marker  = p.show_head_overlay;
-    headConfig.show_gaze_ray    = p.show_head_overlay;
-    headConfig.show_gaze_target = p.show_head_overlay;
 
     armConfig.show_debug_reach_circles = p.show_arm_overlay;
     armConfig.show_debug_swing_points  = p.show_arm_overlay;

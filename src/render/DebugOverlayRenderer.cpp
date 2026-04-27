@@ -86,7 +86,7 @@ void drawArmSwingArc(SDL_Renderer* renderer,
         prev = cur;
     }
 }
-} // namespace
+} // fin namespace
 
 void DebugOverlayRenderer::drawFilledCircle(SDL_Renderer* renderer, float cx, float cy, float radius)
 {
@@ -150,7 +150,7 @@ void DebugOverlayRenderer::renderXCoM(SDL_Renderer*   renderer,
                                        int             viewport_h,
                                        float           debug_scale) const
 {
-    // ── ξ — vertical line upward from terrain, 30 px ─────────────────────────
+    // ── ξ : ligne verticale vers le haut depuis le terrain, 30 px ───────────
     {
         const double     gy   = terrain.height_at(xi);
         const SDL_FPoint base = camera.worldToScreen(xi, gy, ground_y, viewport_w, viewport_h);
@@ -163,7 +163,7 @@ void DebugOverlayRenderer::renderXCoM(SDL_Renderer*   renderer,
         drawDebugLine(renderer, base.x, base.y, base.x, base.y - scaled(30.f, debug_scale), debug_scale);
     }
 
-    // ── Target palito — perpendicular to terrain normal, 8 px each side ──────
+    // ── Cible : petit segment perpendiculaire à la normale du terrain, 8 px de chaque côté ─
     if (show_target) {
         const double     ty  = terrain.height_at(target_x);
         const Vec2       n   = terrain.normal_at(target_x);
@@ -215,12 +215,10 @@ void DebugOverlayRenderer::renderForeground(SDL_Renderer*          renderer,
                                              const CMState&         cm,
                                              const CharacterState&  character,
                                              const CharacterConfig& charConfig,
-                                             const HeadConfig&      headConfig,
                                              const ArmConfig&       armConfig,
                                              const StandingConfig&  standConfig,
                                              const CMConfig&        cmConfig,
                                              const Terrain&,
-                                             const std::optional<Vec2>& gaze_target_world,
                                              double                 ref_h,
                                              double                 accel_display_scale,
                                              bool                   drag_active,
@@ -234,7 +232,7 @@ void DebugOverlayRenderer::renderForeground(SDL_Renderer*          renderer,
     const SDL_FPoint cm_s     = camera.worldToScreen(cm.position.x, cm.position.y, ground_y, viewport_w, viewport_h);
     const SDL_FPoint ground_s = camera.worldToScreen(cm.position.x, ref_h,         ground_y, viewport_w, viewport_h);
 
-    // Ground reference line: use endpoints already clamped by physics (exact pelvis + disk).
+    // Ligne de référence au sol : utiliser les extrémités déjà saturées par la physique (bassin exact + disque).
     if (cmConfig.show_ground_reference) {
         const Vec2& back = character.debug_ground_back;
         const Vec2& fwd  = character.debug_ground_fwd;
@@ -248,7 +246,7 @@ void DebugOverlayRenderer::renderForeground(SDL_Renderer*          renderer,
 
     SDL_SetRenderDrawColor(renderer, 0, 170, 255, 220);
 
-    // Dashed projection line
+    // Ligne de projection en pointillés.
     if (cmConfig.show_projection_line) {
         constexpr float DASH = 8.f;
         const float y_top = std::min(cm_s.y, ground_s.y);
@@ -260,11 +258,11 @@ void DebugOverlayRenderer::renderForeground(SDL_Renderer*          renderer,
         }
     }
 
-    // Projection dot
+    // Point de projection.
     if (cmConfig.show_projection_dot)
         drawFilledCircle(renderer, ground_s.x, ground_s.y, scaled(4.f, debug_scale));
 
-    // Target-height tick
+    // Repère de hauteur cible.
     if (cmConfig.show_target_height_tick) {
         const double     L         = charConfig.body_height_m / 5.0;
         const double     cm_offset = computeNominalY(L, standConfig.d_pref, charConfig.cm_pelvis_ratio);
@@ -276,7 +274,7 @@ void DebugOverlayRenderer::renderForeground(SDL_Renderer*          renderer,
                       tick_s.x + scaled(12.f, debug_scale), tick_s.y, debug_scale);
     }
 
-    // Acceleration vector (red)
+    // Vecteur d'accélération (rouge).
     {
         const int mode = cmConfig.accel_components;
         if (mode > 0) {
@@ -290,7 +288,7 @@ void DebugOverlayRenderer::renderForeground(SDL_Renderer*          renderer,
         }
     }
 
-    // Velocity vector (green)
+    // Vecteur de vitesse (vert).
     {
         const int mode = cmConfig.velocity_components;
         if (mode > 0) {
@@ -304,7 +302,7 @@ void DebugOverlayRenderer::renderForeground(SDL_Renderer*          renderer,
         }
     }
 
-    // Drag preview (right-click set velocity)
+    // Aperçu du glisser-déplacer (clic droit pour définir la vitesse).
     if (drag_active) {
         const Vec2 drag_world = camera.screenToWorld(
             drag_mouse_x, drag_mouse_y, ground_y, viewport_w, viewport_h);
@@ -320,27 +318,6 @@ void DebugOverlayRenderer::renderForeground(SDL_Renderer*          renderer,
         SDL_SetRenderDrawColor(renderer, 50, 220, 50, 180);
         drawDebugLine(renderer, cm_s.x, cm_s.y, clamped_drag_s.x, clamped_drag_s.y, debug_scale);
         drawArrowHead(renderer, cm_s.x, cm_s.y, clamped_drag_s.x, clamped_drag_s.y, 10.f, debug_scale);
-    }
-
-    if (gaze_target_world.has_value()
-        && (headConfig.show_eye_marker || headConfig.show_gaze_ray || headConfig.show_gaze_target)) {
-        const SDL_FPoint gaze_s = camera.worldToScreen(
-            gaze_target_world->x, gaze_target_world->y,
-            ground_y, viewport_w, viewport_h);
-        const SDL_FPoint eye_s = camera.worldToScreen(
-            character.eye_left.x, character.eye_left.y,
-            ground_y, viewport_w, viewport_h);
-
-        SDL_SetRenderDrawColor(renderer, 255, 120, 120, 210);
-        if (headConfig.show_gaze_ray)
-            drawDebugLine(renderer, eye_s.x, eye_s.y, gaze_s.x, gaze_s.y, debug_scale);
-        if (headConfig.show_eye_marker)
-            drawFilledCircle(renderer, eye_s.x, eye_s.y, scaled(3.f, debug_scale));
-        if (headConfig.show_gaze_target) {
-            drawFilledCircle(renderer, gaze_s.x, gaze_s.y, scaled(4.f, debug_scale));
-            SDL_SetRenderDrawColor(renderer, 255, 120, 120, 255);
-            drawCircleOutline(renderer, gaze_s.x, gaze_s.y, 7.f);
-        }
     }
 
     const double L = charConfig.body_height_m / 5.0;

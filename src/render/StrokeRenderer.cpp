@@ -73,7 +73,7 @@ void appendRoundDot(std::vector<SDL_Vertex>& vertices,
     }
 }
 
-} // namespace
+} // fin namespace
 
 void StrokeRenderer::renderPolyline(SDL_Renderer* renderer,
                                     const std::vector<SDL_FPoint>& points,

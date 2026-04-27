@@ -11,7 +11,7 @@ BalanceState computeBalanceState(const CMState&        cm,
                                  const PhysicsConfig&   phys_cfg)
 {
     const std::optional<double> opt_target = computeStandingCMTarget(support, char_cfg);
-    if (!opt_target) return {};  // standing geometry impossible — zero-state balance
+    if (!opt_target) return {};  // géométrie debout impossible — équilibre à l'état nul
 
     const double h_ref = *opt_target - support.ground_center();
     if (h_ref <= 0.0) return {};

@@ -9,24 +9,24 @@
  * locomotion sans créer de dépendances cycliques.
  */
 
-// Height of the CM above terrain when standing at preferred foot separation.
+// Hauteur du CM au-dessus du terrain en posture debout avec l'ecartement prefere.
 //
-//   h_pelvis = sqrt((2L)² − (d_pref·L / 2)²)   [Pythagoras, isoceles stance]
-//   result   = h_pelvis + cm_pelvis_ratio · L
+//   h_pelvis = sqrt((2L)² − (d_pref·L / 2)²)   [Pythagore, posture isocele]
+//   resultat = h_pelvis + cm_pelvis_ratio · L
 //
-// Uses the full leg reach r = 2L.  At d_pref = 0.90·L this gives ~2.70L,
-// close to the theoretical maximum 2.75L (leg fully vertical, d = 0).
-// At midstance during walking the support leg is nearly fully extended — this
-// is correct and matches human biomechanics.
+// Utilise la portee complete de la jambe r = 2L. Pour d_pref = 0.90·L, on obtient
+// environ 2.70L, proche du maximum theorique 2.75L (jambe verticale, d = 0).
+// En milieu d'appui pendant la marche, la jambe de support est presque etendue :
+// c'est voulu et coherent avec la biomecanique humaine.
 //
-// NOT (2 + ratio)·L — that form places the pelvis at exactly 2L (full vertical
-// extension only valid when d_pref = 0) and silently breaks the C4 reach
-// criterion for any non-zero stance width.
+// PAS (2 + ratio)·L : cette forme place le bassin exactement a 2L (extension
+// verticale complete seulement valide quand d_pref = 0) et casse silencieusement
+// le critere de portee C4 pour tout ecartement non nul.
 //
-// Parameters:
-//   L               — limb segment length = body_height / 5
-//   d_pref          — preferred foot separation as a fraction of L  (e.g. 0.90)
-//   cm_pelvis_ratio  — CM-to-pelvis offset as a fraction of L        (e.g. 0.75)
+// Parametres :
+//   L                — longueur d'un segment de membre = body_height / 5
+//   d_pref           — ecartement prefere des pieds en fraction de L (ex. 0.90)
+//   cm_pelvis_ratio  — decalage CM-bassin en fraction de L           (ex. 0.75)
 /**
  * @brief Calcule la hauteur nominale du centre de masse au-dessus du terrain.
  *

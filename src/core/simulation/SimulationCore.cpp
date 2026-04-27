@@ -33,7 +33,7 @@ Vec2 reconstructPelvis(const CMState& cm,
              cm.position.y - d * std::cos(theta) };
 }
 
-// Clamp pos to within radius r of center.
+// Saturer pos à l'intérieur d'un rayon r autour du centre.
 Vec2 clampToCircle(const Vec2& pos, const Vec2& center, double r)
 {
     const double dx   = pos.x - center.x;
@@ -82,7 +82,7 @@ double predictLandingTime(const CMState&                           cm,
     const double pelvis_drop = d * std::cos(theta);
 
     constexpr double dt_probe = 1.0 / 120.0;
-    constexpr int max_steps = 240; // 2 seconds
+    constexpr int max_steps = 240; // 2 secondes
     for (int i = 1; i <= max_steps; ++i) {
         const double t = dt_probe * static_cast<double>(i);
         const double x = cm.position.x + cm.velocity.x * t;
@@ -316,9 +316,9 @@ double computeStepLandingX(const WalkConfig&   walk_cfg,
     const double margin    = std::max(0.0, walk_cfg.stability_margin - downhill_trim);
     const double raw_tx    = xi + ch.facing * margin * L;
 
-    // On a slope the foot must travel both horizontally and vertically.
-    // Maximum horizontal reach = physical_reach / sqrt(1 + slope²).
-    // This prevents the planner from requesting a landing that the IK cannot reach.
+    // Sur une pente, le pied doit parcourir à la fois l'horizontale et la verticale.
+    // Portée horizontale maximale = portée physique / sqrt(1 + pente²).
+    // Cela empêche le planificateur de demander un atterrissage hors de portée de l'IK.
     const double slope_factor = std::sqrt(1.0 + ref_slope * ref_slope);
     const double max_reach    = 0.95 * reach_radius / slope_factor;
     const double max_step  = walk_cfg.max_step_L * L;
@@ -328,9 +328,9 @@ double computeStepLandingX(const WalkConfig&   walk_cfg,
     double lo = base_lo;
     double hi = base_hi;
 
-    // The landing foot must create a support interval that contains xi with
-    // a small margin. This prevents swapping the foot order while leaving
-    // the body outside the new support.
+    // Le pied d'atterrissage doit créer un intervalle de support contenant xi
+    // avec une petite marge. Cela évite d'inverser l'ordre des pieds en laissant
+    // le corps hors du nouveau support.
     const double support_margin = 0.05 * L;
     if (stance_foot.pos.x <= xi)
         lo = std::max(lo, xi + support_margin);
@@ -340,8 +340,8 @@ double computeStepLandingX(const WalkConfig&   walk_cfg,
     if (lo <= hi)
         return std::clamp(raw_tx, lo, hi);
 
-    // If the geometry cannot satisfy the support condition, fall back
-    // to the reach/step limits instead of refusing the step outright.
+    // Si la géométrie ne peut pas satisfaire la condition de support, revenir
+    // aux limites de portée / de pas au lieu de refuser purement et simplement le pas.
     return std::clamp(raw_tx, base_lo, base_hi);
 }
 
@@ -358,9 +358,10 @@ void refreshSwingArcProfile(FootState&         foot,
     const double dy       = foot.swing_target.y - foot.swing_start.y;
     const double hdist    = std::abs(dx);
 
-    // A step with large vertical drop/rise covers more total arc distance than
-    // its horizontal extent alone. Scale down the parameter advance rate so the
-    // foot takes proportionally longer — downhill steps slow the swing naturally.
+    // Un pas avec une forte descente / montée verticale parcourt plus de distance
+    // totale que sa seule extension horizontale. Réduire la vitesse d'avancement
+    // du paramètre pour que le pied mette proportionnellement plus de temps :
+    // les pas en descente ralentissent naturellement l'oscillation.
     {
         const double arc_len = std::sqrt(dx * dx + dy * dy);
         foot.swing_speed_scale = (arc_len > 1.0e-9)
@@ -368,9 +369,10 @@ void refreshSwingArcProfile(FootState&         foot,
             : 1.0;
     }
 
-    // Base lift from StepConfig. Uphill adds lift (foot must clear rising terrain);
-    // downhill reduces it (terrain drops away, less clearance needed).
-    // Speed adds a small bonus for larger, faster arcs.
+    // Relevage de base depuis StepConfig. La montée ajoute du relevage
+    // (le pied doit franchir un terrain qui s'élève) ; la descente le réduit
+    // (le terrain s'éloigne, moins de dégagement est nécessaire).
+    // La vitesse ajoute un petit bonus pour des arcs plus grands et plus rapides.
     {
         const double step_slope = (hdist > 1.0e-9) ? (dy / hdist) : 0.0;
         const double h_base     = step_cfg.h_clear_ratio * L;
@@ -477,8 +479,8 @@ void beginSwingStep(FootState&       step_foot,
 {
     step_foot.pinned       = false;
     step_foot.swinging     = true;
-    step_foot.on_ground    = false;   // foot is leaving ground — clear immediately so the
-                                      // height formula stops using this foot for ipY min()
+    step_foot.on_ground    = false;   // le pied quitte le sol : l'effacer immédiatement pour que
+                                      // la formule de hauteur cesse d'utiliser ce pied dans min(ipY)
     step_foot.swing_start  = step_foot.pos;
     step_foot.swing_target = { tx, terrain.height_at(tx) };
     step_foot.swing_t      = 0.0;
@@ -589,11 +591,11 @@ void advanceSwingFoot(FootState&        foot,
 {
     if (!foot.swinging) return;
 
-    // swing_speed_scale < 1 on steep steps (more vertical travel → slower param advance).
+    // swing_speed_scale < 1 sur les pas raides (plus de déplacement vertical → progression paramétrique plus lente).
     foot.swing_t += walk_cfg.step_speed * foot.swing_speed_scale * dt;
     if (foot.swing_t >= 1.0) {
-        // Land: snap to terrain, pin.
-        // Clamp landing x to current pelvis reach in case pelvis moved during swing.
+        // Atterrissage : aligner sur le terrain, puis fixer.
+        // Saturer l'abscisse d'atterrissage à la portée actuelle du bassin au cas où le bassin ait bougé pendant l'oscillation.
         const double land_raw = foot.swing_target.x;
         const double land_x   = std::clamp(land_raw,
                                            pelvis.x - reach_radius,
@@ -612,11 +614,11 @@ void advanceSwingFoot(FootState&        foot,
     const double tx = foot.swing_target.x;
     const double sy = foot.swing_start.y;
     const double ty = terrain.height_at(tx);
-    // Horizontal: linear interpolation
+    // Horizontal : interpolation linéaire.
     const double px = sx + t * (tx - sx);
-    // Vertical: linear blend + parabolic lift (h_clear stored per-foot, set at step initiation)
+    // Vertical : mélange linéaire + relevage parabolique (h_clear stocké par pied, fixé au début du pas).
     const double py = sy + t * (ty - sy) + foot.swing_h_clear * 4.0 * t * (1.0 - t);
-    // Early landing: if arc dips below terrain, land immediately
+    // Atterrissage anticipé : si l'arc passe sous le terrain, atterrir immédiatement.
     const double terrain_y = terrain.height_at(px);
     if (py < terrain_y) {
         foot.swing_t       = 1.0;
@@ -636,11 +638,11 @@ void applyFootConstraints(CharacterState& ch,
                           const Vec2&     pelvis,
                           double          reach_radius)
 {
-    // Constraint 1: terrain — non-swinging feet only.
+    // Contrainte 1 : terrain — uniquement les pieds qui ne sont pas en oscillation.
     if (!ch.foot_left.swinging && !ch.foot_left.airborne)  applyGroundConstraint(ch.foot_left,  terrain);
     if (!ch.foot_right.swinging && !ch.foot_right.airborne) applyGroundConstraint(ch.foot_right, terrain);
 
-    // Constraint 2: 2L reach circle — global, always enforced.
+    // Contrainte 2 : cercle de portée 2L — globale, toujours appliquée.
     ch.foot_left.pos  = clampToCircle(ch.foot_left.pos,  pelvis, reach_radius);
     ch.foot_right.pos = clampToCircle(ch.foot_right.pos, pelvis, reach_radius);
 
@@ -751,28 +753,28 @@ HeightTargetState computeHeightTargetState(const CharacterState& ch,
 {
     HeightTargetState state;
 
-    // Inverted pendulum arc radius.
+    // Rayon de l'arc du pendule inversé.
     //
-    // At mid-stance (CM directly over stance foot, dx = 0):
+    // À mi-appui (CM directement au-dessus du pied d'appui, dx = 0) :
     //   y_cm   = y_foot + R_bob
     //   y_pelvis = y_cm − cm_pelvis_ratio·L  →  pelvis-to-foot = (2 − leg_flex_coeff)·L
     //
     // R_bob = (2 − leg_flex_coeff + cm_pelvis_ratio) · L
-    //   leg_flex_coeff = 0  → fully extended leg (2L pelvis-to-foot)
-    //   leg_flex_coeff = 0.1 → 10% knee bend (1.9L)
+    //   leg_flex_coeff = 0  → jambe complètement tendue (2L bassin-pied)
+    //   leg_flex_coeff = 0.1 → flexion du genou de 10 % (1.9L)
     //
-    // bob_scale amplifies the descent away from the peak (values >1 = more expressive).
-    // bob_amp caps the maximum drop so a distant foot doesn't crash the CM target.
+    // bob_scale amplifie la descente à partir du sommet (valeurs > 1 = oscillation plus expressive).
+    // bob_amp borne la chute maximale pour qu'un pied lointain ne fasse pas s'effondrer la cible du CM.
     const double R_bob   = (2.0 - walk_cfg.leg_flex_coeff + cm_pelvis_ratio) * L;
     const double bob_max = walk_cfg.bob_amp * L;
 
-    // Combine grounded feet with min(): gives the valley at double support.
+    // Combiner les pieds au sol avec min() : cela donne le creux en double appui.
     //
-    // Single support: only one foot contributes → its arc rises to peak at
-    //   mid-stance then falls.
-    // Double support: min picks the lower arc (trailing foot, already past
-    //   mid-stance) → natural valley at the heel-strike / toe-off transition.
-    // Airborne: fall back to smoothed terrain reference.
+    // Appui simple : un seul pied contribue → son arc monte au maximum à mi-appui
+    // puis redescend.
+    // Double appui : min choisit l'arc le plus bas (pied arrière, déjà passé
+    // mi-appui) → creux naturel à la transition attaque du talon / décollage des orteils.
+    // En l'air : revenir à une référence de terrain lissée.
     const bool grounded_L = ch.foot_left.on_ground;
     const bool grounded_R = ch.foot_right.on_ground;
 
@@ -788,7 +790,7 @@ HeightTargetState computeHeightTargetState(const CharacterState& ch,
         y_ip = ref_ground + h_nominal;
     }
 
-    state.h_ip = y_ip - ref_ground;  // keep debug field: effective height above terrain ref
+    state.h_ip = y_ip - ref_ground;  // conserver le champ de debug : hauteur effective au-dessus de la référence terrain
 
     state.speed_drop = walk_cfg.max_speed_drop * L
                      * std::clamp(std::abs(cm.velocity.x)
@@ -912,8 +914,8 @@ bool integrateVerticalMotion(CMState&                             cm,
     cm.velocity.y  += accel.y * dt;
     cm.position.y  += cm.velocity.y * dt;
 
-    // Skipped when airborne: ref_ground is meaningless far above terrain and
-    // would freeze the CM at the launch height as the character descends.
+    // Ignoré en l'air : ref_ground n'a plus de sens loin au-dessus du terrain et
+    // figerait le CM à la hauteur de lancement pendant la descente du personnage.
     if (!airborne) {
         const double min_cm_y   = ref_ground + L + char_cfg.cm_pelvis_ratio * L;
         const double guard_band = std::max(0.25 * L, 0.5 * physics_cfg.d_soft);
@@ -938,15 +940,15 @@ bool integrateVerticalMotion(CMState&                             cm,
     return airborne;
 }
 
-// Collision constraint: push foot out of terrain if penetrating.
-// on_ground = true iff foot center is on or very near the terrain surface.
-// A small tolerance avoids false lift-off flicker after reach clamping on slopes.
+// Contrainte de collision : repousser le pied hors du terrain s'il pénètre dedans.
+// on_ground = true ssi le centre du pied est sur la surface du terrain ou très proche.
+// Une petite tolérance évite un faux scintillement de décollage après saturation de portée sur les pentes.
 void refreshGroundContact(FootState& foot, const Terrain& terrain)
 {
     const double ty    = terrain.height_at(foot.pos.x);
-    const Vec2   n     = terrain.normal_at(foot.pos.x);   // outward (upward-ish) unit normal
+    const Vec2   n     = terrain.normal_at(foot.pos.x);   // normale unitaire sortante (plutôt vers le haut)
 
-    // Signed distance along normal from surface to foot (positive = above surface)
+    // Distance signée le long de la normale depuis la surface jusqu'au pied (positive = au-dessus de la surface)
     const double gap_n = (foot.pos.y - ty) * n.y;
 
     foot.on_ground     = (gap_n <= kGroundContactSnapEps);
@@ -956,9 +958,9 @@ void refreshGroundContact(FootState& foot, const Terrain& terrain)
 void applyGroundConstraint(FootState& foot, const Terrain& terrain)
 {
     const double ty    = terrain.height_at(foot.pos.x);
-    const Vec2   n     = terrain.normal_at(foot.pos.x);   // outward (upward-ish) unit normal
+    const Vec2   n     = terrain.normal_at(foot.pos.x);   // normale unitaire sortante (plutôt vers le haut)
 
-    // Signed distance along normal from surface to foot (positive = above surface)
+    // Distance signée le long de la normale depuis la surface jusqu'au pied (positive = au-dessus de la surface)
     const double gap_n = (foot.pos.y - ty) * n.y;
 
     if (gap_n <= kGroundContactSnapEps) {
@@ -990,11 +992,11 @@ void blendWalkRunConfig(WalkConfig&      eff_walk,
     eff_physics.walk_max_speed   = std::lerp(cfg.physics.walk_max_speed,  cfg.run.max_speed,         rb);
 }
 
-} // namespace simcore_detail
+} // fin namespace simcore_detail
 
 using namespace simcore_detail;
 
-// ── Step sub-phases ───────────────────────────────────────────────────────────
+// ── Sous-phases du pas ────────────────────────────────────────────────────────
 
 void SimulationCore::stepComputeConstants(StepCtx& ctx)
 {
@@ -1082,7 +1084,7 @@ void SimulationCore::stepBlendRunMode(StepCtx& ctx, const InputFrame& input, dou
         ch.run_mode   = (ch.run_blend > 0.5);
     }
 
-    // Tie run_phase to swinging foot so vertical oscillation stays in sync with contacts.
+    // Lier run_phase au pied en oscillation pour que l'oscillation verticale reste synchronisée avec les contacts.
     if (ch.run_blend > 0.0) {
         if (ch.foot_right.swinging && !ch.foot_left.swinging) {
             ch.run_phase = 0.5 * std::clamp(ch.foot_right.swing_t, 0.0, 1.0);
@@ -1123,11 +1125,11 @@ void SimulationCore::stepIntegratePhysics(StepCtx& ctx, double dt)
     if (std::abs(cm.velocity.x) > m_config.physics.stop_speed)
         ch.facing = std::copysign(1.0, cm.velocity.x);
 
-    // Downhill crouch
+    // Flexion en descente
     updateDownhillCrouch(ch, ctx.eff_walk, ctx.eff_physics, ctx.ref_slope,
                          cm.velocity.x, ctx.max_spd, dt);
 
-    // Height target
+    // Cible de hauteur
     const HeightTargetState height_state =
         computeHeightTargetState(ch, cm, ctx.eff_walk, ctx.eff_physics,
                                  ctx.ref_ground, ctx.ref_slope, ctx.h_nominal,
@@ -1137,7 +1139,7 @@ void SimulationCore::stepIntegratePhysics(StepCtx& ctx, double dt)
     ctx.slope_drop = height_state.slope_drop;
     ctx.y_tgt      = height_state.y_tgt;
 
-    // Jump preload crouch adjustment
+    // Ajustement de flexion avant saut
     if (ch.jump_preload_active) {
         ch.jump_preload_t += dt;
         const double preload_progress = smooth01(
@@ -1150,8 +1152,8 @@ void SimulationCore::stepIntegratePhysics(StepCtx& ctx, double dt)
     ctx.jump_vertical_override = ch.jump_preload_active || ch.jump_flight_active
                                || jump_takeoff_now;
 
-    // Running height target: phase oscillation tied to footfalls.
-    // run_phase 0/0.5 = alternating touchdowns → oscillate at step frequency (4π*phase).
+    // Cible de hauteur en course : oscillation de phase liée aux appuis.
+    // run_phase 0/0.5 = contacts alternés → oscillation à la fréquence des pas (4π*phase).
     if (ctx.rb > 0.0 && !ctx.jump_vertical_override) {
         const double run_compression = std::lerp(0.09 * ctx.L, 0.14 * ctx.L,
                                                  ctx.run_timing.speed_ratio);
@@ -1164,7 +1166,7 @@ void SimulationCore::stepIntegratePhysics(StepCtx& ctx, double dt)
         ctx.y_tgt = std::lerp(ctx.y_tgt, y_tgt_run, ctx.rb);
     }
 
-    // Landing recovery: boost step speed and tighten support window
+    // Récupération à l'atterrissage : augmenter la vitesse du pas et resserrer la fenêtre de support.
     if (ch.landing_recovery_timer > 0.0)
         ch.landing_recovery_timer = std::max(0.0, ch.landing_recovery_timer - dt);
 
@@ -1179,7 +1181,7 @@ void SimulationCore::stepIntegratePhysics(StepCtx& ctx, double dt)
         ctx.eff_walk.double_support_time *= std::max(0.0,  1.0 - 0.80 * ctx.landing_recovery_gain);
     }
 
-    // Running downward spring: symmetric correction when CM is above target
+    // Ressort vertical en course : correction symétrique lorsque le CM est au-dessus de la cible.
     if (ctx.rb > 0.0 && !ctx.jump_vertical_override) {
         const double delta = ctx.y_tgt - cm.position.y;
         if (delta < 0.0) {
@@ -1189,7 +1191,7 @@ void SimulationCore::stepIntegratePhysics(StepCtx& ctx, double dt)
         }
     }
 
-    // Jump preload takeoff: apply impulse before vertical integration
+    // Départ du saut avec précharge : appliquer l'impulsion avant l'intégration verticale.
     if (ch.jump_preload_active && ch.jump_preload_t >= ch.jump_preload_duration) {
         cm.velocity.y = std::max(cm.velocity.y, m_config.physics.jump_impulse);
         ctx.eff_physics.spring_enabled = false;
@@ -1209,8 +1211,9 @@ void SimulationCore::stepReconstructGeometry(StepCtx& ctx, const InputFrame& inp
     CharacterState& ch = m_state.character;
 
     ctx.pelvis       = reconstructPelvis(cm, m_config.character, m_config.reconstruction);
-    // Recompute airborne from final integrated position so a velocity impulse
-    // (e.g. right-click drag) is detected in the same frame it shoots the CM up.
+    // Recalculer l'état aérien à partir de la position intégrée finale pour qu'une
+    // impulsion de vitesse (par ex. glisser au clic droit) soit détectée dans la
+    // même image où elle propulse le CM vers le haut.
     ctx.airborne_final = (ctx.pelvis.y - m_terrain.height_at(ctx.pelvis.x) > 2.0 * ctx.L);
 
     if (!ch.feet_initialized)
@@ -1243,7 +1246,7 @@ void SimulationCore::stepAdvanceSwing(StepCtx& ctx, double dt)
     if (ctx.heel_strike_L) ch.run_last_touchdown_left = true;
     if (ctx.heel_strike_R) ch.run_last_touchdown_left = false;
 
-    // Double-support: force minimum cooldown on heel-strike (blends to 0 in run mode).
+    // Double appui : forcer un temps mort minimal à l'attaque du talon (ramené à 0 en mode course).
     if ((ctx.heel_strike_L || ctx.heel_strike_R) && ctx.eff_walk.double_support_time > 0.0)
         ch.step_cooldown = std::max(ch.step_cooldown, ctx.eff_walk.double_support_time);
 
@@ -1258,7 +1261,7 @@ void SimulationCore::stepComputeTriggerState(StepCtx& ctx)
     ctx.omega0 = std::sqrt(ctx.g / ctx.h_nominal);
     ctx.xi     = cm.position.x + ctx.eff_walk.xcom_scale * cm.velocity.x / ctx.omega0;
 
-    // Use swing target while mid-arc: trigger sees where foot *will* land, not current arc pos.
+    // Utiliser la cible de swing en milieu d'arc : le déclencheur voit où le pied *atterrira*, pas sa position courante sur l'arc.
     ctx.eff_lx = ch.foot_left.swinging  ? ch.foot_left.swing_target.x  : ch.foot_left.pos.x;
     ctx.eff_rx = ch.foot_right.swinging ? ch.foot_right.swing_target.x : ch.foot_right.pos.x;
 }
@@ -1268,7 +1271,7 @@ void SimulationCore::stepAirborneJump(StepCtx& ctx)
     CMState&        cm = m_state.cm;
     CharacterState& ch = m_state.character;
 
-    // When airborne without jump protocol: start landing prediction so feet track target.
+    // En l'air sans protocole de saut : démarrer la prédiction d'atterrissage pour que les pieds suivent la cible.
     if (ctx.airborne_final && !ch.jump_flight_active) {
         beginAirborneLandingProtocol(ch, m_config, m_terrain, m_config.reconstruction,
                                      cm, ctx.g, ctx.L);
@@ -1369,7 +1372,6 @@ void SimulationCore::stepWriteOutput(StepCtx& ctx, const InputFrame& input, doub
         upper_body.targets.right_hand_target = input.hand_right_pos;
         if (ch.hand_right_pinned) ch.hand_right_target = input.hand_right_pos;
     }
-    upper_body.targets.gaze_target_world = input.gaze_target_world;
     updateUpperBodyState(ch, cm, m_config.character, m_config.physics,
                          m_config.walk, m_config.arms, m_config.head,
                          upper_body, dt);

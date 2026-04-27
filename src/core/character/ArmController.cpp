@@ -36,7 +36,7 @@ double scaleArcAngle(double start_deg, double end_deg, double t, double amp_scal
     return mid + (raw - mid) * amp_scale;
 }
 
-} // namespace
+} // fin namespace
 
 bool solveTwoBoneArm(const Vec2& target,
                      double upper_len,

@@ -20,7 +20,7 @@
  * l'état des touches et des gestes souris entre les frames, puis les expose
  * via `consumeInputFrame()` qui retourne (et réinitialise) l'`InputFrame`
  * courant. Elle gère également le panoramique caméra, l'ancrage des pieds et
- * des mains par glisser-déposer, et la direction du regard par clic droit.
+ * des mains par glisser-déposer.
  */
 class InputController
 {
@@ -60,8 +60,6 @@ public:
 
     /** @brief Vrai si le mode vue jeu est actif (pas de curseur ImGui). */
     bool isGameView() const;
-    /** @brief Cible de regard courante en monde, si active. */
-    const std::optional<Vec2>& gazeTargetWorld() const;
     /** @brief Vrai si le glisser de vitesse (clic droit) est actif. */
     bool isVelocityDragActive() const;
     /** @brief Position X souris du glisser de vitesse (px écran). */
@@ -76,7 +74,6 @@ private:
     float m_drag_mouse_x = 0.f;
     float m_drag_mouse_y = 0.f;
     std::optional<Vec2> m_pending_set_velocity;
-    std::optional<Vec2> m_gaze_target_world;
 
     bool m_dragging_foot_left  = false;
     bool m_dragging_foot_right = false;

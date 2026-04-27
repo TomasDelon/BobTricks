@@ -122,7 +122,7 @@ void sliderJumpDepth(const char* label, double& val, bool& saveRequested)
         saveRequested = true;
 }
 
-} // namespace
+} // fin namespace
 
 AppRequests DebugUI::render(const FrameStats&      stats,
                              SimulationLoop&        simLoop,   SimLoopConfig&   simConfig,
@@ -267,7 +267,7 @@ void DebugUI::renderSimLoopPanel(const FrameStats& stats, SimulationLoop& simLoo
         saveRequested = true;
 }
 
-// ─── Camera ──────────────────────────────────────────────────────────────────
+// ─── Caméra ──────────────────────────────────────────────────────────────────
 
 void DebugUI::renderCameraPanel(Camera2D& camera, CameraConfig& config, bool& saveRequested)
 {
@@ -375,7 +375,6 @@ void DebugUI::renderPresentationPanel(PresentationConfig& config, bool& saveRequ
 
     ImGui::Separator();
     ImGui::TextDisabled("Overlays tete / bras / spline");
-    ImGui::Checkbox("Afficher debug tete", &config.show_head_overlay);
     ImGui::Checkbox("Afficher debug bras", &config.show_arm_overlay);
     ImGui::Checkbox("Afficher debug spline", &config.show_spline_debug_overlay);
 

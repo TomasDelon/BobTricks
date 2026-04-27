@@ -11,7 +11,7 @@ double hash01(int seed)
     return x - std::floor(x);
 }
 
-} // namespace
+} // fin namespace
 
 void EffectsSystem::update(const SimState& state,
                            const CharacterConfig& char_cfg,

@@ -34,12 +34,12 @@ enum class LocomotionState {
 struct CharacterState {
     LocomotionState locomotion_state = LocomotionState::Standing;
 
-    double facing = 1.0;   // +1 = right, -1 = left
-    double theta  = 0.0;   // filtered lean angle (rad) — used for spine reconstruction
-    double filtered_slope = 0.0;  // low-pass terrain slope used by lean target
-    double airborne_lean_blend = 0.0; // [0,1] blends velocity lean from forward-on-ground to backward-in-air
+    double facing = 1.0;   // +1 = droite, -1 = gauche
+    double theta  = 0.0;   // angle d'inclinaison filtre (rad), utilise pour reconstruire la colonne
+    double filtered_slope = 0.0;  // pente du terrain filtree, utilisee par la cible d'inclinaison
+    double airborne_lean_blend = 0.0; // [0,1] melange lean avant au sol et lean arriere en l'air
 
-    // Derived pose — reconstructed each frame from CM
+    // Pose derivee : reconstruite a chaque frame depuis le CM
     Vec2 pelvis       = {0.0, 0.0};
     Vec2 torso_center = {0.0, 0.0};
     Vec2 torso_top    = {0.0, 0.0};
@@ -54,17 +54,14 @@ struct CharacterState {
     bool hand_right_pinned = false;
     Vec2 hand_left_target  = {0.0, 0.0};
     Vec2 hand_right_target = {0.0, 0.0};
-    Vec2 eye_left     = {0.0, 0.0};
-    Vec2 eye_right    = {0.0, 0.0};
     double head_radius = 0.0;
-    double head_tilt   = 0.0;
     double arm_phase   = 0.0;
     double arm_phase_velocity = 0.0;
     double arm_run_blend = 0.0;
     bool   arm_pose_initialized = false;
     double arm_pose_facing      = 1.0;
 
-    // Feet and legs
+    // Pieds et jambes
     bool      feet_initialized = false;
     Vec2      knee_left        = {0.0, 0.0};
     Vec2      knee_right       = {0.0, 0.0};
@@ -72,12 +69,12 @@ struct CharacterState {
     FootState foot_right;
 
     // Auto-stepping
-    double step_cooldown = 0.0;  // [s] prevents immediate re-trigger after a step
+    double step_cooldown = 0.0;  // [s] evite un nouveau declenchement immediat apres un pas
     bool   recovery_followthrough_active = false;
-    double recovery_followthrough_dir    = 0.0;  // +1 / -1 while a corrective swing should carry CM along
-    double downhill_crouch               = 0.0;  // [0,1] filtered downhill crouch / reach state
-    double landing_recovery_timer        = 0.0;  // [s] short post-touchdown window for faster recovery steps
-    double landing_recovery_boost        = 0.0;  // [-] impact-scaled step-speed boost during landing recovery
+    double recovery_followthrough_dir    = 0.0;  // +1 / -1 quand un swing correctif doit accompagner le CM
+    double downhill_crouch               = 0.0;  // [0,1] accroupissement filtre en descente / etat de portee
+    double landing_recovery_timer        = 0.0;  // [s] courte fenetre post-contact pour recuperer plus vite
+    double landing_recovery_boost        = 0.0;  // [-] boost de vitesse de pas proportionnel a l'impact
     double left_slide_emit_timer         = 0.0;  // [s] cadence timer for repeated slide events
     double right_slide_emit_timer        = 0.0;  // [s] cadence timer for repeated slide events
 
@@ -101,12 +98,12 @@ struct CharacterState {
 
     // Run mode
     double run_blend = 0.0;   // [0,1] 0=walk, 1=run — blends parameters smoothly
-    bool   run_mode  = false; // true when run_blend > 0.5
-    double run_phase = 0.0;   // [0,1) continuous stride phase, advances with CM speed
+    bool   run_mode  = false; // vrai quand run_blend > 0.5
+    double run_phase = 0.0;   // [0,1) phase continue de foulee, avance avec la vitesse du CM
     bool   run_last_touchdown_left = false;
 
-    // Persistent terrain-reference samples. These are stored in left/right world
-    // order so the reference can slide continuously even when facing changes.
+    // Echantillons persistants de reference terrain. Ils sont stockes dans
+    // l'ordre gauche/droite monde pour glisser continument meme si facing change.
     bool   ground_reference_initialized = false;
     double ground_left_x                = 0.0;
     double ground_right_x               = 0.0;
@@ -114,14 +111,14 @@ struct CharacterState {
     // Debug / telemetry
     bool   debug_on_floor    = false;
     double debug_cm_target_y = 0.0;
-    double debug_ref_ground  = 0.0;  // smoothed ground reference (±L average)
+    double debug_ref_ground  = 0.0;  // reference de sol lissee (moyenne autour de +/-L)
     double debug_ref_slope   = 0.0;
     double debug_h_ip        = 0.0;
     double debug_speed_drop  = 0.0;
     double debug_slope_drop  = 0.0;
     double debug_cm_offset   = 0.0;
-    // Ground-reference terrain sample endpoints after clamping each sample range
-    // against the pelvis-centered reach disk.
+    // Extremites d'echantillonnage de la reference de sol apres clamp de chaque
+    // intervalle contre le disque de portee centre sur le bassin.
     Vec2   debug_ground_back = {0.0, 0.0};
     Vec2   debug_ground_fwd  = {0.0, 0.0};
 };

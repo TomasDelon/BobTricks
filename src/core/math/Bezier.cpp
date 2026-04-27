@@ -9,7 +9,7 @@ double clampUnit(double t)
     return t;
 }
 
-} // namespace
+} // fin namespace
 
 Vec2 BezierQuadratic::eval(double t) const
 {

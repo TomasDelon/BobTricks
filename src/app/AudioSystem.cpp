@@ -106,7 +106,7 @@ void normalizeChunkPeak(Mix_Chunk* chunk)
         samples[i] *= scale;
 }
 
-} // namespace
+} // fin namespace
 
 int AudioSystem::musicTrackCount()
 {

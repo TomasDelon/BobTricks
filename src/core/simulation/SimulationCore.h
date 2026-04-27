@@ -59,19 +59,19 @@ public:
     const Terrain&  terrain() const;
 
 private:
-    AppConfig& m_config;   // non-owning — Application's m_config
-    Terrain    m_terrain;  // declared after m_config (stores ref to m_config.terrain)
+    AppConfig& m_config;   // reference non possedee vers m_config d'Application
+    Terrain    m_terrain;  // declare apres m_config (stocke une ref vers m_config.terrain)
     SimState   m_state;
 
     /** @brief Per-frame context threading intermediate values between step sub-phases. */
     struct StepCtx {
-        // Phase 1: derived constants
+        // Phase 1 : constantes derivees
         double L            = 0.0;
         double g            = 0.0;
         double h_nominal    = 0.0;
         double reach_radius = 0.0;
 
-        // Phase 3: ground reference
+        // Phase 3 : reference de sol
         double ref_ground   = 0.0;
         double ref_slope    = 0.0;
         Vec2   ground_back  = {0.0, 0.0};
@@ -80,13 +80,13 @@ private:
         double cos_t        = 0.0;
         bool   airborne_ref = false;
 
-        // Phase 4: input
+        // Phase 4 : entrees
         double input_dir    = 0.0;
         bool   prev_contact_left  = false;
         bool   prev_contact_right = false;
         bool   prev_jump_flight_active = false;
 
-        // Phase 5-6: run mode + blended params
+        // Phases 5-6 : mode course + parametres interpolés
         double           rb  = 0.0;
         RunTimingTargets run_timing;
         WalkConfig       eff_walk;
@@ -95,7 +95,7 @@ private:
         double           speed_abs = 0.0;
         double           max_spd   = 0.0;
 
-        // Phase 7: physics integration
+        // Phase 7 : integration physique
         Vec2   accel      = {0.0, 0.0};
         double y_tgt      = 0.0;
         double h_ip       = 0.0;
@@ -106,26 +106,26 @@ private:
         double landing_recovery_gain   = 0.0;
         bool   landing_recovery_active = false;
 
-        // Phase 8: post-integration geometry
+        // Phase 8 : geometrie apres integration
         Vec2   pelvis         = {0.0, 0.0};
         bool   airborne_final = false;
 
-        // Phase 9: swing advance
+        // Phase 9 : avancement des pieds en swing
         bool was_swinging_L = false;
         bool was_swinging_R = false;
         bool heel_strike_L  = false;
         bool heel_strike_R  = false;
 
-        // Phase 10: trigger state
+        // Phase 10 : etat des declencheurs
         double omega0  = 0.0;
         double xi      = 0.0;
         double eff_lx  = 0.0;
         double eff_rx  = 0.0;
 
-        // Phase 11: airborne/jump outcome
+        // Phase 11 : resultat airborne/saut
         bool any_swinging   = false;
 
-        // Phase 13: constraint snapshot
+        // Phase 13 : instantane avant contraintes
         bool was_grounded_L = false;
         bool was_grounded_R = false;
     };

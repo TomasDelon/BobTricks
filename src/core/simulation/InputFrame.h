@@ -22,7 +22,6 @@ struct InputFrame {
     bool jump      = false; ///< Espace pressé ce tick (impulsion de saut).
 
     std::optional<Vec2> set_velocity;       ///< Glisser clic-droit : téléporte la vitesse du CM au début du pas.
-    std::optional<Vec2> gaze_target_world;  ///< Cible de regard optionnelle en coordonnées monde (m).
 
     bool foot_left_drag  = false;          ///< Clic-gauche actif sur le pied gauche.
     Vec2 foot_left_pos   = {0.0, 0.0};     ///< Cible monde du pied gauche (m) quand `foot_left_drag`.

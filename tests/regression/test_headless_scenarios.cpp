@@ -153,21 +153,6 @@ int main()
 
     {
         AppConfig run_cfg = base_cfg;
-        const ScenarioDef def = lib.at("upper_body_walk_gaze")(run_cfg);
-        std::ostringstream csv;
-        std::ostringstream report;
-        const bool ok = runScenario(def, run_cfg, csv, report);
-        const std::vector<ParsedRow> rows = parseRows(csv.str(), suite);
-
-        TEST_EXPECT_MSG(suite, ok, report.str());
-        TEST_EXPECT(suite, !rows.empty());
-        TEST_EXPECT(suite, rows.back().cm_x > 1.0);
-        TEST_EXPECT(suite, std::any_of(rows.begin(), rows.end(),
-            [](const ParsedRow& row) { return row.loco_state == "Marche"; }));
-    }
-
-    {
-        AppConfig run_cfg = base_cfg;
         const ScenarioDef def = lib.at("walk_max_from_start")(run_cfg);
         std::ostringstream csv;
         std::ostringstream report;
@@ -290,34 +275,29 @@ int main()
         };
         core.reset(init);
 
-        bool moved_head = false;
+        bool head_ready = false;
         bool moved_arms = false;
         for (int frame = 0; frame < 120; ++frame) {
             InputFrame input;
             input.key_right = (frame < 90);
-            input.gaze_target_world = Vec2{2.0, 2.6};
-
             core.step(run_cfg.sim_loop.fixed_dt_s, input);
             const SimState&       s  = core.state();
             const CharacterState& ch = s.character;
 
             TEST_EXPECT(suite, isFinite(ch.head_center));
-            TEST_EXPECT(suite, isFinite(ch.eye_left));
-            TEST_EXPECT(suite, isFinite(ch.eye_right));
             TEST_EXPECT(suite, isFinite(ch.elbow_left));
             TEST_EXPECT(suite, isFinite(ch.elbow_right));
             TEST_EXPECT(suite, isFinite(ch.hand_left));
             TEST_EXPECT(suite, isFinite(ch.hand_right));
-            TEST_EXPECT(suite, std::isfinite(ch.head_tilt));
 
-            if (std::abs(ch.head_tilt) > 1e-4)
-                moved_head = true;
+            if (ch.head_radius > 0.0 && ch.head_center.y > ch.torso_top.y)
+                head_ready = true;
             if ((ch.hand_left - ch.torso_top).length() > 0.25 * L
                 && (ch.hand_right - ch.torso_top).length() > 0.25 * L)
                 moved_arms = true;
         }
 
-        TEST_EXPECT(suite, moved_head);
+        TEST_EXPECT(suite, head_ready);
         TEST_EXPECT(suite, moved_arms);
     }
 

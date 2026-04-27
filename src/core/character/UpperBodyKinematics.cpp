@@ -15,5 +15,5 @@ void updateUpperBodyState(CharacterState&         character,
                    control.targets.left_hand_target,
                    control.targets.right_hand_target,
                    dt);
-    updateHeadState(character, char_config, head_config, control.targets.gaze_target_world, dt);
+    updateHeadState(character, char_config, head_config);
 }

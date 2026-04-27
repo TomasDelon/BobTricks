@@ -115,67 +115,23 @@ int main()
         ch.torso_center = {0.0, 1.0};
         ch.torso_top = {0.0, 2.0};
 
-        updateHeadState(ch, char_cfg, head_cfg, std::nullopt, 1.0 / 60.0);
+        updateHeadState(ch, char_cfg, head_cfg);
 
         TEST_EXPECT(suite, ch.head_center.y > ch.torso_top.y);
         TEST_EXPECT_NEAR(suite, ch.head_radius, 0.5 * (char_cfg.body_height_m / 5.0), 1e-9);
         TEST_EXPECT_NEAR(suite, ch.head_center.y - ch.torso_top.y, ch.head_radius, 1e-9);
-        TEST_EXPECT_NEAR(suite, ch.head_tilt, 0.0, 1e-6);
-        TEST_EXPECT_NEAR(suite, ch.eye_left.x, ch.eye_right.x, 1e-12);
-        TEST_EXPECT_NEAR(suite, ch.eye_left.y, ch.eye_right.y, 1e-12);
-        TEST_EXPECT_NEAR(suite, ch.eye_left.x - ch.head_center.x, 0.5 * ch.head_radius, 1e-9);
-        TEST_EXPECT_NEAR(suite, ch.eye_left.y - ch.head_center.y, 0.25 * ch.head_radius, 1e-9);
-    }
-
-    {
-        CharacterState ch;
-        CharacterConfig char_cfg;
-        HeadConfig head_cfg;
-        ch.facing = 1.0;
-        ch.torso_center = {0.0, 1.0};
-        ch.torso_top = {0.0, 2.0};
-
-        updateHeadState(ch, char_cfg, head_cfg, Vec2{0.0, 10.0}, 1.0);
-
-        TEST_EXPECT(suite, ch.head_tilt > 0.0);
-        TEST_EXPECT(suite, std::abs(ch.head_tilt)
-                           <= head_cfg.max_tilt_deg * 3.14159265358979323846 / 180.0 + 1e-6);
-    }
-
-    {
-        CharacterState ch;
-        CharacterConfig char_cfg;
-        HeadConfig head_cfg;
-        ch.facing = 1.0;
-        ch.torso_center = {0.0, 1.0};
-        ch.torso_top = {0.0, 2.0};
-
-        for (int i = 0; i < 300; ++i)
-            updateHeadState(ch, char_cfg, head_cfg, Vec2{0.0, 10.0}, 1.0 / 60.0);
-
-        const double max_tilt = head_cfg.max_tilt_deg * 3.14159265358979323846 / 180.0;
-        TEST_EXPECT(suite, ch.head_tilt > 0.0);
-        TEST_EXPECT_NEAR(suite, ch.head_tilt, max_tilt, 0.03);
     }
 
     {
         CharacterState ch;
         ch.head_center = {1.0, 2.0};
-        ch.eye_left = {0.9, 2.1};
-        ch.eye_right = {1.1, 2.1};
         ch.head_radius = 0.4;
-        ch.head_tilt = 0.3;
 
         resetHeadState(ch);
 
         TEST_EXPECT_NEAR(suite, ch.head_center.x, 0.0, 1e-12);
         TEST_EXPECT_NEAR(suite, ch.head_center.y, 0.0, 1e-12);
-        TEST_EXPECT_NEAR(suite, ch.eye_left.x, 0.0, 1e-12);
-        TEST_EXPECT_NEAR(suite, ch.eye_left.y, 0.0, 1e-12);
-        TEST_EXPECT_NEAR(suite, ch.eye_right.x, 0.0, 1e-12);
-        TEST_EXPECT_NEAR(suite, ch.eye_right.y, 0.0, 1e-12);
         TEST_EXPECT_NEAR(suite, ch.head_radius, 0.0, 1e-12);
-        TEST_EXPECT_NEAR(suite, ch.head_tilt, 0.0, 1e-12);
     }
 
     {
@@ -418,7 +374,7 @@ int main()
     }
 
     {
-        // Normal is always unit length regardless of slope
+        // La normale reste toujours unitaire, quelle que soit la pente.
         TerrainConfig cfg;
         cfg.enabled = true;
         cfg.seed    = 42;

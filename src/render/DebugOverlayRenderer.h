@@ -2,7 +2,6 @@
 
 #include <SDL2/SDL.h>
 #include <deque>
-#include <optional>
 #include "render/Camera2D.h"
 #include "core/character/CMState.h"
 #include "core/character/CharacterState.h"
@@ -21,7 +20,7 @@
  *
  * Les méthodes sont séparées en trois couches de rendu pour respecter l'ordre
  * de profondeur : `renderBackground` (traînée), `renderXCoM`, puis
- * `renderForeground` (projections, vecteurs cinématiques, regard).
+ * `renderForeground` (projections, vecteurs cinématiques, bras).
  */
 class DebugOverlayRenderer
 {
@@ -50,18 +49,16 @@ public:
                     int             viewport_h,
                     float           debug_scale = 1.0f) const;
 
-    /** @brief Dessine les overlays de premier plan: projections, vecteurs, regard, bras. */
+    /** @brief Dessine les overlays de premier plan: projections, vecteurs, bras. */
     void renderForeground(SDL_Renderer*          renderer,
                           const Camera2D&        camera,
                           const CMState&         cm,
                           const CharacterState&  character,
                           const CharacterConfig& charConfig,
-                          const HeadConfig&      headConfig,
                           const ArmConfig&       armConfig,
                           const StandingConfig&  standConfig,
                           const CMConfig&        cmConfig,
                           const Terrain&,
-                          const std::optional<Vec2>& gaze_target_world,
                           double                 ref_h,
                           double                 accel_display_scale,
                           bool                   drag_active,

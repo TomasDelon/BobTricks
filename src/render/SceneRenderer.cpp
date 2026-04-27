@@ -49,7 +49,7 @@ bool pointXLessThan(const Vec2& point, double x)
     return point.x < x;
 }
 
-} // namespace
+} // fin namespace
 
 void SceneRenderer::drawGrid(SDL_Renderer* renderer,
                              const Camera2D& camera,
@@ -63,7 +63,7 @@ void SceneRenderer::drawGrid(SDL_Renderer* renderer,
     const double world_below      = ground_margin / ppm;
     const double world_above      = (viewport_h - ground_margin) / ppm;
 
-    const double cy = ground_y + center.y;  // world-Y at camera vertical center
+    const double cy = ground_y + center.y;  // coordonnée Y monde au centre vertical de la caméra
 
     const int x_min = static_cast<int>(std::floor(center.x - half_w_m)) - 1;
     const int x_max = static_cast<int>(std::ceil(center.x  + half_w_m)) + 1;
@@ -100,43 +100,43 @@ void SceneRenderer::drawGround(SDL_Renderer* renderer,
     const double x_left  = center.x - half_w - 2.0;
     const double x_right = center.x + half_w + 2.0;
 
-    // ── Collect visible screen points ────────────────────────────────────────
-    // Use terrain vertices directly (O(log n) to find start, O(K) to iterate).
-    // Add virtual endpoints at the viewport edges for a clean fill.
+    // ── Collecter les points visibles à l'écran ─────────────────────────────
+    // Utiliser directement les sommets du terrain (O(log n) pour trouver le départ, O(K) pour itérer).
+    // Ajouter des extrémités virtuelles aux bords du viewport pour obtenir un remplissage propre.
     std::vector<SDL_FPoint> pts;
 
     const std::vector<Vec2>& verts = terrain.vertices();
 
     if (verts.size() < 2) {
-        // Terrain disabled or not generated — flat ground
+        // Terrain désactivé ou non généré : sol plat.
         addWorldPoint(pts, camera, x_left,  ground_y, ground_y, viewport_w, viewport_h);
         addWorldPoint(pts, camera, x_right, ground_y, ground_y, viewport_w, viewport_h);
     } else {
-        // Virtual left edge (always first, x strictly increasing from here)
+        // Bord gauche virtuel (toujours premier, x strictement croissant à partir d'ici).
         addWorldPoint(pts, camera, x_left, ground_y + terrain.height_at(x_left),
                       ground_y, viewport_w, viewport_h);
 
-        // All vertices strictly inside the visible range (left to right, no step-back)
+        // Tous les sommets strictement à l'intérieur de la plage visible (de gauche à droite, sans retour en arrière).
         std::vector<Vec2>::const_iterator it = std::lower_bound(
             verts.begin(), verts.end(), x_left, pointXLessThan);
         for (; it != verts.end() && it->x < x_right; ++it)
             addWorldPoint(pts, camera, it->x, ground_y + it->y,
                           ground_y, viewport_w, viewport_h);
 
-        // Virtual right edge
+        // Bord droit virtuel.
         addWorldPoint(pts, camera, x_right, ground_y + terrain.height_at(x_right),
                       ground_y, viewport_w, viewport_h);
     }
 
-    // ── Fill: multi-pass scanline gradient (no SDL_RenderGeometry artifacts) ─
-    // Each pass covers a fraction of the fill height with its own alpha.
-    // Passes accumulate: full opacity near surface, fades toward bottom.
+    // ── Remplissage : dégradé par balayage multi-passe (sans artefacts SDL_RenderGeometry) ─
+    // Chaque passe couvre une fraction de la hauteur de remplissage avec son propre alpha.
+    // Les passes s'accumulent : opacité maximale près de la surface, atténuation vers le bas.
     SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
     {
         const double gm    = camera.getGroundMarginPx();
         const float  bot_y = static_cast<float>(viewport_h);
 
-        // Precompute terrain screen-y per column (one height_at call each)
+        // Pré-calculer le y écran du terrain par colonne (un appel à height_at par colonne).
         std::vector<float> tsys(static_cast<std::size_t>(viewport_w));
         for (int sx = 0; sx < viewport_w; ++sx) {
             const double wx = center.x + (sx - viewport_w * 0.5) / ppm;
@@ -144,8 +144,8 @@ void SceneRenderer::drawGround(SDL_Renderer* renderer,
                 viewport_h - gm - (terrain.height_at(wx) - center.y) * ppm);
         }
 
-        // Each band covers fill_frac of the column; bands accumulate (additive alpha).
-        // 16 bands, equal alpha → smooth gradient: ~160 alpha at surface, 10 at bottom.
+        // Chaque bande couvre fill_frac de la colonne ; les bandes s'accumulent (alpha additif).
+        // 16 bandes, alpha égal → dégradé lisse : ~160 d'alpha à la surface, 10 en bas.
         struct Band { float frac; Uint8 a; };
         static constexpr Band kBands[] = {
             {1.00f, 10},
@@ -179,7 +179,7 @@ void SceneRenderer::drawGround(SDL_Renderer* renderer,
         }
     }
 
-    // ── Terrain surface outline — drawn over the fill ────────────────────────
+    // ── Contour de la surface du terrain — dessiné par-dessus le remplissage ─
     SDL_SetRenderDrawColor(renderer, 90, 90, 90, 255);
     const int half = static_cast<int>(GROUND_THICKNESS_PX * 0.5f);
     for (int off = -half; off <= half; ++off)

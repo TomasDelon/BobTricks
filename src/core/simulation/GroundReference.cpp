@@ -56,7 +56,7 @@ double slideTerrainEndpointX(const Terrain& terrain,
     return clampTerrainEndpointX(terrain, pelvis, radius, x_start, x_step);
 }
 
-} // namespace
+} // fin namespace
 
 double clampTerrainEndpointX(const Terrain& terrain,
                              const Vec2& pelvis,

@@ -57,7 +57,6 @@ private:
     void stepBack();
     void stepSimulation(double dt);
     void applyPresentationModeOverrides(CharacterConfig& charConfig,
-                                        HeadConfig& headConfig,
                                         ArmConfig& armConfig,
                                         CMConfig& cmConfig,
                                         SplineRenderConfig& splineConfig) const;
@@ -84,13 +83,13 @@ private:
 
     bool m_is_panning     = false;
 
-    // Right-click drag → set CM velocity (queued for next step via InputFrame)
+    // Glisser clic droit -> impose la vitesse du CM (filee pour le prochain pas via InputFrame)
     InputController m_inputController;
 
     // CM trajectory trail
     std::deque<TrailPoint> m_trail;
 
-    // Step-back history — snapshot before each fixed step
+    // Historique de retour arriere : instantane avant chaque pas fixe
     /** @brief Instantané stocké avant chaque pas fixe pour le step-back. */
     struct StepSnapshot {
         SimState      state;

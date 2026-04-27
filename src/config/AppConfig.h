@@ -41,54 +41,47 @@ struct CharacterConfig {
 
 /** @brief Paramètres de reconstruction du buste à partir de l'état du CM. */
 struct CharacterReconstructionConfig {
-    double facing_eps        = 0.10;  // m/s  — deadzone to freeze facing flip
-    double walk_eps          = 0.10;  // m/s  — threshold Standing ↔ Walking
-    double theta_max_deg     =  6.0;  // °    — max lean angle at high speed
-    double v_ref             = 1.50;  // m/s  — tanh half-saturation speed for lean
-    double tau_lean          = 0.15;  // s    — lean angle filter time constant
-    double tau_slope         = 0.10;  // s    — terrain slope low-pass filter
-    double slope_lean_factor = 0.25;  // [-]  fraction of slope that transfers to body tilt
-    double hunch_min_deg     = 0.0;   // °    — lower clamp for forward hunch amount
-    double hunch_max_deg     = 8.0;   // °    — upper clamp for forward hunch amount
-    double hunch_current_deg = 3.0;   // °    — current static hunch amount, clamped to [min,max]
+    double facing_eps        = 0.10;  // m/s  — zone morte pour figer le changement de direction
+    double walk_eps          = 0.10;  // m/s  — seuil Standing ↔ Walking
+    double theta_max_deg     =  6.0;  // °    — angle d'inclinaison max a haute vitesse
+    double v_ref             = 1.50;  // m/s  — vitesse de demi-saturation du tanh pour le lean
+    double tau_lean          = 0.15;  // s    — constante de temps du filtre d'inclinaison
+    double tau_slope         = 0.10;  // s    — filtre passe-bas de la pente du terrain
+    double slope_lean_factor = 0.25;  // [-]  fraction de pente transferee a l'inclinaison du corps
+    double hunch_min_deg     = 0.0;   // °    — borne basse de la courbure avant du buste
+    double hunch_max_deg     = 8.0;   // °    — borne haute de la courbure avant du buste
+    double hunch_current_deg = 3.0;   // °    — courbure statique courante, bornee dans [min,max]
 };
 
-/** @brief Paramètres cinématiques et debug de la tête. */
+/** @brief Paramètres cinématiques de la tête. */
 struct HeadConfig {
-    double center_offset_L  = 0.50;  // [×L] torso_top -> head center distance
-    double radius_L         = 0.50;  // [×L] head radius
-    double eye_height_ratio = 0.72;  // [0-1] eye line from bottom of head
-    double eye_spacing      = 0.35;  // [×radius] half-spacing between eyes
-    double max_tilt_deg     = 25.0;  // [deg] max head tilt toward gaze
-    double tau_tilt         = 0.12;  // [s] low-pass time constant
-    bool   show_eye_marker  = true;
-    bool   show_gaze_ray    = true;
-    bool   show_gaze_target = true;
+    double center_offset_L  = 0.50;  // [×L] distance sommet du torse -> centre de la tete
+    double radius_L         = 0.50;  // [×L] rayon de la tete
 };
 
 /** @brief Paramètres cinématiques et debug des bras. */
 struct ArmConfig {
-    double upper_arm_L                    = 1.00;   // [×L] torso_top to elbow length
-    double fore_arm_L                     = 1.00;   // [×L] elbow to hand length
-    double walk_hand_reach_reduction_L    = 0.40;   // [×L] retract hand target from the 2L circle while walking
-    double walk_front_hand_start_deg      = -20.0;  // [deg] front-hand arc start angle in torso local frame
-    double walk_front_hand_end_deg        = -65.0;  // [deg] front-hand arc end angle in torso local frame
-    double walk_back_hand_start_deg       = -115.0; // [deg] back-hand arc start angle in torso local frame
-    double walk_back_hand_end_deg         = -165.0; // [deg] back-hand arc end angle in torso local frame
-    double walk_hand_phase_speed_scale    = 0.50;   // [-] fraction of step_speed used as hand cycle Hz
-    double walk_hand_speed_arc_gain       = 0.35;   // [-] how much low speed shrinks hand arc amplitude
-    double walk_hand_phase_response       = 10.0;   // [s^-1] how quickly swing angular velocity follows walking intent
-    double walk_hand_phase_friction       = 3.5;    // [s^-1] angular damping applied after releasing walking input
-    double run_hand_reach_reduction_L     = 0.59;   // [×L] retract hand target from the 2L circle while running
-    double run_front_hand_start_deg       = -93.0;  // [deg] front-hand arc start angle in torso local frame while running
-    double run_front_hand_end_deg         = -30.7;  // [deg] front-hand arc end angle in torso local frame while running
-    double run_back_hand_start_deg        = -34.9;  // [deg] back-hand arc start angle in torso local frame while running
-    double run_back_hand_end_deg          = -109.8; // [deg] back-hand arc end angle in torso local frame while running
-    double run_hand_phase_speed_scale     = 0.50;   // [-] fraction of step_speed used as hand cycle Hz while running
-    double run_hand_speed_arc_gain        = 0.22;   // [-] how much low speed shrinks hand arc amplitude while running
-    double run_hand_phase_response        = 10.0;   // [s^-1] how quickly swing angular velocity follows run intent
-    double run_hand_phase_friction        = 3.5;    // [s^-1] angular damping applied after releasing run input
-    double run_blend_tau                  = 0.18;   // [s] low-pass on walk->run arm blending
+    double upper_arm_L                    = 1.00;   // [×L] longueur sommet du torse -> coude
+    double fore_arm_L                     = 1.00;   // [×L] longueur coude -> main
+    double walk_hand_reach_reduction_L    = 0.40;   // [×L] retracte la cible de main du cercle 2L en marche
+    double walk_front_hand_start_deg      = -20.0;  // [deg] debut de l'arc de la main avant dans le repere du torse
+    double walk_front_hand_end_deg        = -65.0;  // [deg] fin de l'arc de la main avant dans le repere du torse
+    double walk_back_hand_start_deg       = -115.0; // [deg] debut de l'arc de la main arriere dans le repere du torse
+    double walk_back_hand_end_deg         = -165.0; // [deg] fin de l'arc de la main arriere dans le repere du torse
+    double walk_hand_phase_speed_scale    = 0.50;   // [-] fraction de step_speed utilisee comme frequence du cycle des mains
+    double walk_hand_speed_arc_gain       = 0.35;   // [-] reduction d'amplitude de l'arc a basse vitesse
+    double walk_hand_phase_response       = 10.0;   // [s^-1] vitesse de suivi de l'intention de marche par la phase angulaire
+    double walk_hand_phase_friction       = 3.5;    // [s^-1] amortissement angulaire apres relachement de l'input marche
+    double run_hand_reach_reduction_L     = 0.59;   // [×L] retracte la cible de main du cercle 2L en course
+    double run_front_hand_start_deg       = -93.0;  // [deg] debut de l'arc main avant en course dans le repere du torse
+    double run_front_hand_end_deg         = -30.7;  // [deg] fin de l'arc main avant en course dans le repere du torse
+    double run_back_hand_start_deg        = -34.9;  // [deg] debut de l'arc main arriere en course dans le repere du torse
+    double run_back_hand_end_deg          = -109.8; // [deg] fin de l'arc main arriere en course dans le repere du torse
+    double run_hand_phase_speed_scale     = 0.50;   // [-] fraction de step_speed utilisee comme frequence du cycle en course
+    double run_hand_speed_arc_gain        = 0.22;   // [-] reduction d'amplitude de l'arc a basse vitesse en course
+    double run_hand_phase_response        = 10.0;   // [s^-1] vitesse de suivi de l'intention de course par la phase angulaire
+    double run_hand_phase_friction        = 3.5;    // [s^-1] amortissement angulaire apres relachement de l'input course
+    double run_blend_tau                  = 0.18;   // [s] filtre passe-bas du melange bras marche -> course
 
     bool   show_debug_reach_circles       = false;
     bool   show_debug_swing_points        = false;
@@ -120,12 +113,11 @@ struct PresentationConfig {
     bool show_trail_overlay          = false;
     bool show_ground_reference       = false;
     bool show_cm_projection          = false;
-    int  velocity_components         = 0;     ///< 0: off, 1: X, 2: Y, 3: XY.
-    int  accel_components            = 0;     ///< 0: off, 1: X, 2: Y, 3: XY.
+    int  velocity_components         = 0;     ///< 0 : desactive, 1 : X, 2 : Y, 3 : XY.
+    int  accel_components            = 0;     ///< 0 : desactive, 1 : X, 2 : Y, 3 : XY.
     float debug_thickness_scale      = 1.0f;
     bool show_xcom_overlay           = false;
     bool show_support_line           = false;
-    bool show_head_overlay           = false;
     bool show_arm_overlay            = false;
     bool show_spline_debug_overlay   = false;
 };
@@ -136,7 +128,7 @@ struct CMConfig {
     bool show_projection_line    = true;
     bool show_projection_dot     = true;
     bool show_target_height_tick = true;
-    // 0 = off, 1 = horizontal only, 2 = vertical only, 3 = both components
+    // 0 = desactive, 1 = horizontal seul, 2 = vertical seul, 3 = deux composantes
     int  velocity_components  = 3;
     int  accel_components     = 3;
     // Traînée
@@ -149,10 +141,10 @@ struct CMConfig {
 
 /** @brief Fenêtre d'échantillonnage du terrain utilisée pour la référence de sol. */
 struct TerrainSamplingConfig {
-    double w_back    = 0.5;   // [×L]  fixed backward sample distance
-    double w_fwd     = 0.5;   // [×L]  base forward sample distance
-    double t_look    = 0.20;  // [s]   velocity lookahead added to forward window
-    double tau_slide = 0.12;  // [s]   time constant for endpoint sliding (exp lag)
+    double w_back    = 0.5;   // [×L]  distance fixe d'echantillonnage vers l'arriere
+    double w_fwd     = 0.5;   // [×L]  distance de base d'echantillonnage vers l'avant
+    double t_look    = 0.20;  // [s]   anticipation selon la vitesse ajoutee a la fenetre avant
+    double tau_slide = 0.12;  // [s]   constante de temps du glissement des extremites
 };
 
 /** @brief Paramètres physiques du noyau de locomotion. */
@@ -226,7 +218,7 @@ struct StandingConfig {
 
 /** @brief Paramètres du profil de levée du pied en swing. */
 struct StepConfig {
-    double h_clear_ratio = 0.40;  // [×L] peak height of swing arc above takeoff-landing midline
+    double h_clear_ratio = 0.40;  // [×L] hauteur max de l'arc de swing au-dessus de la ligne depart-arrivee
 };
 
 /** @brief Paramètres de la marche et du déclenchement des pas. */

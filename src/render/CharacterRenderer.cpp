@@ -191,7 +191,7 @@ void drawFootMarker(SDL_Renderer* renderer,
     }
 }
 
-} // namespace
+} // fin namespace
 
 CharacterRenderer::ScreenSpacePose CharacterRenderer::computeScreenSpacePose(const Camera2D& camera,
                                                                              const CMState& cm,

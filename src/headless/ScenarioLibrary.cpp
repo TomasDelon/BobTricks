@@ -5,7 +5,7 @@
 #include "core/physics/Geometry.h"
 #include "core/telemetry/TelemetryRow.h"
 
-// ── helpers ──────────────────────────────────────────────────────────────────
+// ── Aides ────────────────────────────────────────────────────────────────────
 
 static double nominalCMHeight(const AppConfig& cfg)
 {
@@ -13,9 +13,9 @@ static double nominalCMHeight(const AppConfig& cfg)
     return computeNominalY(L, cfg.standing.d_pref, cfg.character.cm_pelvis_ratio);
 }
 
-// ── scenario factories ────────────────────────────────────────────────────────
+// ── Fabriques de scénarios ───────────────────────────────────────────────────
 
-// walk_3s — key_right held for 1.5 s then released; expect forward locomotion.
+// walk_3s — key_right maintenue pendant 1,5 s puis relâchée ; locomotion vers l'avant attendue.
 static ScenarioDef makeWalk3s(const AppConfig& cfg)
 {
     ScenarioDef def;
@@ -48,7 +48,7 @@ static ScenarioDef makeWalk3s(const AppConfig& cfg)
     return def;
 }
 
-// stand_still — no input; CM must stay near origin with no steps.
+// stand_still — aucune entrée ; le CM doit rester près de l'origine sans pas.
 static ScenarioDef makeStandStill(const AppConfig& cfg)
 {
     ScenarioDef def;
@@ -58,7 +58,7 @@ static ScenarioDef makeStandStill(const AppConfig& cfg)
     def.init.cm_vel   = { 0.0, 0.0 };
     def.init.terrain_seed = 42;
 
-    // input_fn left null — no input
+    // input_fn laissée nulle — aucune entrée
 
     def.setup_asserts = [](TelemetryRecorder& rec) {
         rec.addAssertion("|cm_x| < 0.2 throughout", [](const std::vector<TelemetryRow>& rows) {
@@ -74,7 +74,7 @@ static ScenarioDef makeStandStill(const AppConfig& cfg)
     return def;
 }
 
-// walk_then_stop — walk right for 1.5 s then release; expect deceleration to Standing.
+// walk_then_stop — marcher à droite pendant 1,5 s puis relâcher ; décélération vers Standing attendue.
 static ScenarioDef makeWalkThenStop(const AppConfig& cfg)
 {
     ScenarioDef def;
@@ -107,7 +107,7 @@ static ScenarioDef makeWalkThenStop(const AppConfig& cfg)
     return def;
 }
 
-// fast_walk — high initial speed, key held throughout; tests burst of rapid steps.
+// fast_walk — vitesse initiale élevée, touche maintenue tout du long ; teste une rafale de pas rapides.
 static ScenarioDef makeFastWalk(const AppConfig& cfg)
 {
     ScenarioDef def;
@@ -140,8 +140,8 @@ static ScenarioDef makeFastWalk(const AppConfig& cfg)
     return def;
 }
 
-// walk_max_from_start — start immediately at walking max speed and verify the
-// first simulated frame is already in a saturated walking regime.
+// walk_max_from_start — démarrer immédiatement à la vitesse de marche maximale et vérifier que
+// la première image simulée est déjà dans un régime de marche saturé.
 static ScenarioDef makeWalkMaxFromStart(const AppConfig& cfg)
 {
     ScenarioDef def;
@@ -177,7 +177,7 @@ static ScenarioDef makeWalkMaxFromStart(const AppConfig& cfg)
     return def;
 }
 
-// run_3s — hold right + run for 3 seconds; expect explicit flight and sustained forward motion.
+// run_3s — maintenir droite + course pendant 3 secondes ; vol explicite et mouvement avant soutenu attendus.
 static ScenarioDef makeRun3s(const AppConfig& cfg)
 {
     ScenarioDef def;
@@ -211,7 +211,7 @@ static ScenarioDef makeRun3s(const AppConfig& cfg)
     return def;
 }
 
-// walk_left — negative facing and key_left; tests symmetric locomotion direction.
+// walk_left — orientation négative et key_left ; teste la symétrie de la direction de locomotion.
 static ScenarioDef makeWalkLeft(const AppConfig& cfg)
 {
     ScenarioDef def;
@@ -240,8 +240,8 @@ static ScenarioDef makeWalkLeft(const AppConfig& cfg)
     return def;
 }
 
-// perturbation_recovery — walk right, then inject a sudden backward velocity at t=0.5s.
-// Safety test: CM must not produce NaN and locomotion must not freeze.
+// perturbation_recovery — marcher à droite, puis injecter une vitesse arrière brutale à t=0,5 s.
+// Test de robustesse : le CM ne doit pas produire de NaN et la locomotion ne doit pas se bloquer.
 static ScenarioDef makePerturbationRecovery(const AppConfig& cfg)
 {
     ScenarioDef def;
@@ -251,8 +251,8 @@ static ScenarioDef makePerturbationRecovery(const AppConfig& cfg)
     def.init.cm_vel   = { 1.5, 0.0 };
     def.init.terrain_seed = 42;
 
-    // Walk right for 1.5 s.  At t ∈ [0.50, 0.52) inject a sharp backward kick
-    // via set_velocity, then continue holding key_right to drive recovery.
+    // Marcher à droite pendant 1,5 s. À t ∈ [0,50, 0,52), injecter un coup arrière brutal
+    // via set_velocity, puis continuer à maintenir key_right pour provoquer la récupération.
     def.input_fn = [](double t) -> InputFrame {
         InputFrame f;
         f.key_right = (t < 1.5);
@@ -279,46 +279,7 @@ static ScenarioDef makePerturbationRecovery(const AppConfig& cfg)
     return def;
 }
 
-// upper_body_walk_gaze — walk right with a fixed gaze target to exercise
-// head + arms without changing the underlying locomotion assertions model.
-static ScenarioDef makeUpperBodyWalkGaze(const AppConfig& cfg)
-{
-    ScenarioDef def;
-    def.name          = "upper_body_walk_gaze";
-    def.duration_s    = 2.5;
-    def.init.cm_pos   = { 0.0, nominalCMHeight(cfg) };
-    def.init.cm_vel   = { 1.2, 0.0 };
-    def.init.terrain_seed = 42;
-
-    def.input_fn = [](double t) -> InputFrame {
-        InputFrame f;
-        f.key_right = (t < 2.0);
-        f.gaze_target_world = Vec2{ 2.0, 2.6 };
-        return f;
-    };
-
-    def.setup_asserts = [](TelemetryRecorder& rec) {
-        rec.addAssertion("upper_body_walk_gaze no NaN in cm_x", [](const std::vector<TelemetryRow>& rows) {
-            return std::none_of(rows.begin(), rows.end(),
-                [](const TelemetryRow& r){ return r.cm_x != r.cm_x; });
-        });
-        rec.addAssertion("upper_body_walk_gaze no NaN in cm_y", [](const std::vector<TelemetryRow>& rows) {
-            return std::none_of(rows.begin(), rows.end(),
-                [](const TelemetryRow& r){ return r.cm_y != r.cm_y; });
-        });
-        rec.addAssertion("upper_body_walk_gaze walks forward", [](const std::vector<TelemetryRow>& rows) {
-            return !rows.empty() && rows.back().cm_x > 1.0;
-        });
-        rec.addAssertion("upper_body_walk_gaze reaches Walking", [](const std::vector<TelemetryRow>& rows) {
-            return std::any_of(rows.begin(), rows.end(),
-                [](const TelemetryRow& r){ return r.loco_state == LocomotionState::Walking; });
-        });
-    };
-
-    return def;
-}
-
-// jump_from_stand — press jump once from standing; verify arc and clean landing.
+// jump_from_stand — appuyer une fois sur saut depuis l'arrêt ; vérifier l'arc et un atterrissage propre.
 static ScenarioDef makeJumpFromStand(const AppConfig& cfg)
 {
     ScenarioDef def;
@@ -355,7 +316,7 @@ static ScenarioDef makeJumpFromStand(const AppConfig& cfg)
     return def;
 }
 
-// jump_from_walk — jump while walking; verify arc, landing, and no NaN.
+// jump_from_walk — sauter en marchant ; vérifier l'arc, l'atterrissage et l'absence de NaN.
 static ScenarioDef makeJumpFromWalk(const AppConfig& cfg)
 {
     ScenarioDef def;
@@ -393,7 +354,7 @@ static ScenarioDef makeJumpFromWalk(const AppConfig& cfg)
     return def;
 }
 
-// ── catalog ───────────────────────────────────────────────────────────────────
+// ── Catalogue ────────────────────────────────────────────────────────────────
 
 const std::map<std::string, ScenarioFactory>& scenarioLibrary()
 {
@@ -406,7 +367,6 @@ const std::map<std::string, ScenarioFactory>& scenarioLibrary()
         { "run_3s",                makeRun3s                },
         { "walk_left",             makeWalkLeft             },
         { "perturbation_recovery", makePerturbationRecovery },
-        { "upper_body_walk_gaze",  makeUpperBodyWalkGaze    },
         { "jump_from_stand",       makeJumpFromStand        },
         { "jump_from_walk",        makeJumpFromWalk         },
     };

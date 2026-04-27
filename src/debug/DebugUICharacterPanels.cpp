@@ -243,7 +243,7 @@ void renderArmOverlayControls(ArmConfig& config)
     ImGui::Checkbox("Afficher les arcs de swing", &config.show_debug_swing_arcs);
 }
 
-} // namespace
+} // fin namespace
 
 void DebugUI::renderCharacterPanel(CharacterConfig& config, const StandingConfig& standConfig, bool& saveRequested)
 {
@@ -289,7 +289,6 @@ void DebugUI::renderHeadPanel(const CharacterState& charState, HeadConfig& confi
     ImGui::TextDisabled("Geometrie");
     ImGui::Text("centre_tete = (%+.3f, %+.3f)", charState.head_center.x, charState.head_center.y);
     ImGui::Text("rayon_tete  = %.3f m", charState.head_radius);
-    ImGui::Text("incl_tete   = %+.2f deg", charState.head_tilt * 180.0 / 3.14159265358979323846);
 
     float offset = static_cast<float>(config.center_offset_L);
     ImGui::SetNextItemWidth(180.f);
@@ -300,22 +299,6 @@ void DebugUI::renderHeadPanel(const CharacterState& charState, HeadConfig& confi
     ImGui::SetNextItemWidth(180.f);
     if (ImGui::SliderFloat("radius_L", &radius, 0.1f, 1.0f, "%.2f"))
         config.radius_L = static_cast<double>(radius);
-
-    ImGui::Separator();
-    ImGui::TextDisabled("Regard / intention");
-    float tilt = static_cast<float>(config.max_tilt_deg);
-    ImGui::SetNextItemWidth(180.f);
-    if (ImGui::SliderFloat("max_tilt_deg", &tilt, 0.f, 60.f, "%.1f"))
-        config.max_tilt_deg = static_cast<double>(tilt);
-
-    float tau = static_cast<float>(config.tau_tilt);
-    ImGui::SetNextItemWidth(180.f);
-    if (ImGui::SliderFloat("tau_tilt", &tau, 0.01f, 1.0f, "%.2f"))
-        config.tau_tilt = static_cast<double>(tau);
-
-    ImGui::Checkbox("Afficher le repere de l'oeil", &config.show_eye_marker);
-    ImGui::Checkbox("Afficher le rayon du regard", &config.show_gaze_ray);
-    ImGui::Checkbox("Afficher la cible du regard", &config.show_gaze_target);
 
     ImGui::Separator();
     if (ImGui::Button("Sauver la config tete"))

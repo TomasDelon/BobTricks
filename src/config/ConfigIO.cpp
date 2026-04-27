@@ -15,7 +15,7 @@ std::string trim(const std::string& s)
     return s.substr(start, end - start + 1);
 }
 
-} // namespace
+} // fin namespace
 
 bool ConfigIO::load(const std::string& path, AppConfig& config)
 {
@@ -77,13 +77,6 @@ bool ConfigIO::load(const std::string& path, AppConfig& config)
         else if (section == "Head") {
             if      (key == "center_offset_L")  { config.head.center_offset_L  = std::stod(value); handled = true; }
             else if (key == "radius_L")         { config.head.radius_L         = std::stod(value); handled = true; }
-            else if (key == "eye_height_ratio") { config.head.eye_height_ratio = std::stod(value); handled = true; }
-            else if (key == "eye_spacing")      { config.head.eye_spacing      = std::stod(value); handled = true; }
-            else if (key == "max_tilt_deg")     { config.head.max_tilt_deg     = std::stod(value); handled = true; }
-            else if (key == "tau_tilt")         { config.head.tau_tilt         = std::stod(value); handled = true; }
-            else if (key == "show_eye_marker")  { config.head.show_eye_marker  = (value == "1" || value == "true"); handled = true; }
-            else if (key == "show_gaze_ray")    { config.head.show_gaze_ray    = (value == "1" || value == "true"); handled = true; }
-            else if (key == "show_gaze_target") { config.head.show_gaze_target = (value == "1" || value == "true"); handled = true; }
         }
         else if (section == "Arms") {
             if      (key == "upper_arm_L")                 { config.arms.upper_arm_L                 = std::stod(value); handled = true; }
@@ -140,11 +133,10 @@ bool ConfigIO::load(const std::string& path, AppConfig& config)
             else if (key == "show_cm_vectors")              { const bool show = (value == "1" || value == "true"); config.presentation.velocity_components = show ? 3 : 0; config.presentation.accel_components = show ? 3 : 0; handled = true; }
             else if (key == "show_xcom_overlay")            { config.presentation.show_xcom_overlay            = (value == "1" || value == "true"); handled = true; }
             else if (key == "show_support_line")            { config.presentation.show_support_line            = (value == "1" || value == "true"); handled = true; }
-            else if (key == "show_head_overlay")            { config.presentation.show_head_overlay            = (value == "1" || value == "true"); handled = true; }
             else if (key == "show_arm_overlay")             { config.presentation.show_arm_overlay             = (value == "1" || value == "true"); handled = true; }
             else if (key == "show_spline_debug_overlay")    { config.presentation.show_spline_debug_overlay    = (value == "1" || value == "true"); handled = true; }
-            // Backward-compatible keys from the former presentation preset.
-            else if (key == "hide_head_debug")       { config.presentation.show_head_overlay         = !(value == "1" || value == "true"); handled = true; }
+            // Clés rétrocompatibles issues de l'ancien préréglage de présentation.
+            else if (key == "hide_head_debug")       { handled = true; }
             else if (key == "hide_arm_debug")        { config.presentation.show_arm_overlay          = !(value == "1" || value == "true"); handled = true; }
             else if (key == "hide_cm_debug")         { const bool show = !(value == "1" || value == "true"); config.presentation.show_ground_reference = show; config.presentation.show_cm_projection = show; config.presentation.velocity_components = show ? 3 : 0; config.presentation.accel_components = show ? 3 : 0; config.presentation.show_trail_overlay = show; handled = true; }
             else if (key == "hide_balance_debug")    { config.presentation.show_xcom_overlay         = !(value == "1" || value == "true"); handled = true; }
@@ -330,14 +322,7 @@ bool ConfigIO::save(const std::string& path, const AppConfig& config)
 
     file << "[Head]\n";
     file << "center_offset_L="  << config.head.center_offset_L  << "\n";
-    file << "radius_L="         << config.head.radius_L         << "\n";
-    file << "eye_height_ratio=" << config.head.eye_height_ratio << "\n";
-    file << "eye_spacing="      << config.head.eye_spacing      << "\n";
-    file << "max_tilt_deg="     << config.head.max_tilt_deg     << "\n";
-    file << "tau_tilt="         << config.head.tau_tilt         << "\n";
-    file << "show_eye_marker="  << (config.head.show_eye_marker ? "1" : "0") << "\n";
-    file << "show_gaze_ray="    << (config.head.show_gaze_ray ? "1" : "0") << "\n";
-    file << "show_gaze_target=" << (config.head.show_gaze_target ? "1" : "0") << "\n\n";
+    file << "radius_L="         << config.head.radius_L         << "\n\n";
 
     file << "[Arms]\n";
     file << "upper_arm_L="                 << config.arms.upper_arm_L                 << "\n";
@@ -392,7 +377,6 @@ bool ConfigIO::save(const std::string& path, const AppConfig& config)
     file << "debug_thickness_scale="        << config.presentation.debug_thickness_scale << "\n";
     file << "show_xcom_overlay="            << (config.presentation.show_xcom_overlay ? "1" : "0") << "\n";
     file << "show_support_line="            << (config.presentation.show_support_line ? "1" : "0") << "\n";
-    file << "show_head_overlay="            << (config.presentation.show_head_overlay ? "1" : "0") << "\n";
     file << "show_arm_overlay="             << (config.presentation.show_arm_overlay ? "1" : "0") << "\n";
     file << "show_spline_debug_overlay="    << (config.presentation.show_spline_debug_overlay ? "1" : "0") << "\n\n";
 

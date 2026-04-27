@@ -27,7 +27,7 @@
  * @param walk_config    Paramètres de marche (vitesse de phase, arcs).
  * @param arm_config     Paramètres cinématiques des bras.
  * @param head_config    Paramètres cinématiques de la tête.
- * @param control        Entrées agrégées (direction, cibles de membres, regard).
+ * @param control        Entrées agrégées (direction et cibles de membres).
  * @param dt             Pas de temps de simulation (s).
  */
 void updateUpperBodyState(CharacterState&         character,

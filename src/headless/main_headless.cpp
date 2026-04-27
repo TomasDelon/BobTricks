@@ -46,22 +46,23 @@ int main(int argc, char** argv)
     if (quiet) g_sim_verbose = false;
 
     AppConfig config;
-    ConfigIO::load(CONFIG_PATH, config);  // silently uses defaults if file missing
+    ConfigIO::load(CONFIG_PATH, config);  // utilise silencieusement les valeurs par défaut si le fichier manque
 
     const std::map<std::string, ScenarioFactory>& lib = scenarioLibrary();
 
-    // ── --all: run every registered scenario ────────────────────────────────
+    // ── --all : exécuter tous les scénarios enregistrés ─────────────────────
     if (run_all) {
         int n_pass = 0, n_fail = 0;
         for (const std::pair<const std::string, ScenarioFactory>& entry : lib) {
-            // Fresh config copy per scenario: SimulationCore::reset() may mutate
-            // config.terrain.seed, so each run must start from a clean state.
+            // Nouvelle copie de la config pour chaque scénario : SimulationCore::reset()
+            // peut modifier config.terrain.seed, donc chaque exécution doit repartir
+            // d'un état propre.
             AppConfig   run_cfg = config;
             ScenarioDef def     = entry.second(run_cfg);
             fprintf(stderr, "[headless] scenario=%-20s  duration=%.1fs\n",
                     entry.first.c_str(), def.duration_s);
 
-            // Discard CSV to /dev/null equivalent (null stream) — only assertions matter.
+            // Ignorer le CSV vers l'équivalent de /dev/null (flux nul) : seules les assertions comptent.
             std::ostream null_out(nullptr);
             const bool passed = runScenario(def, run_cfg, null_out, std::cerr);
             fprintf(stderr, "%s  %s\n\n", passed ? "PASS" : "FAIL", entry.first.c_str());
@@ -71,9 +72,9 @@ int main(int argc, char** argv)
         return (n_fail == 0) ? 0 : 1;
     }
 
-    // ── --scenario: run one scenario, CSV to stdout ──────────────────────────
+    // ── --scenario : exécuter un seul scénario, CSV vers la sortie standard ─
     if (scenario_name.empty())
-        scenario_name = "walk_3s";   // default
+        scenario_name = "walk_3s";   // valeur par défaut
 
     const std::map<std::string, ScenarioFactory>::const_iterator it = lib.find(scenario_name);
     if (it == lib.end()) {

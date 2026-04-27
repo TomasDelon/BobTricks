@@ -42,7 +42,7 @@ Vec2 normalizeOrFallback(const Vec2& v, const Vec2& fallback)
     return (len > 1e-9) ? (v / len) : fallback;
 }
 
-}  // namespace
+}  // fin namespace
 
 Terrain::Terrain(const TerrainConfig& config)
     : m_config(config)
@@ -71,7 +71,7 @@ void Terrain::generate()
         const double delta = (prob_dist(rng) < m_config.large_prob)
                            ? large_dist(rng) : small_dist(rng);
 
-        // Soft height bounds — nudge angle back toward horizontal
+        // Bornes de hauteur souples : ramener légèrement l'angle vers l'horizontale.
         double bias = 0.0;
         if (y > m_config.height_max) bias = -20.0;
         if (y < m_config.height_min) bias =  20.0;
@@ -86,7 +86,7 @@ void Terrain::generate()
         m_verts.push_back({x, y});
     }
 
-    // Sentinel point just beyond the right edge
+    // Point sentinelle juste au-delà du bord droit.
     m_verts.push_back({WORLD_X_MAX + 10.0, m_verts.back().y});
 }
 
