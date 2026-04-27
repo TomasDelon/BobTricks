@@ -145,9 +145,9 @@ Scénarios actuellement enregistrés :
 - `perturbation_recovery`
 - `run_3s`
 - `stand_still`
-- `upper_body_walk_gaze`
 - `walk_3s`
 - `walk_left`
+- `walk_max_from_start`
 - `walk_then_stop`
 
 ### 4. Exécuter un scénario unique
@@ -265,10 +265,6 @@ Pour ajouter un nouveau scénario headless :
 ## Documents clés
 
 - `doc/class_diagram.md` — diagramme des modules et relations principales ;
-- `doc/mathematiques.md` — modèle physique et formules utilisées ;
-- `doc/decisions_architecture.md` — choix de conception ;
-- `doc/guide_tuning.md` — guide de réglage des paramètres ;
-- `doc/historique_taches.md` — tâches réalisées ;
 - `doc/gantt_bobtricks.xlsx` — planning ;
 - `doc/presentation/` — présentation orale, scripts et assets.
 
