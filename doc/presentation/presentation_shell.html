@@ -1,0 +1,553 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>BobTricks Presentation Shell</title>
+  <link rel="stylesheet" href="./system/components.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+</head>
+<body>
+<bt-presentation-shell>
+
+  <!-- ── SLIDE 01 : Titre ──────────────────────────────────────────────────── -->
+  <section class="bt-hero-slide" data-notes="- Présenter BobTricks comme une locomotion procédurale 2D.
+- Insister : la marche est calculée à chaque frame, pas rejouée depuis une animation fixe.
+- Transition : partir du résultat visible avant d'ouvrir le moteur.">
+    <div class="bt-hero-slide__content">
+      <h1 class="bt-hero-slide__title"><span style="color: var(--accent);">Bob</span>Tricks</h1>
+      <p class="bt-hero-slide__subtitle">Locomotion procédurale 2D en C++</p>
+      <div class="bt-hero-slide__authors">
+        <p><strong>Mehmet-Aziz Gedik</strong> : headless, tests, scénarios</p>
+        <p><strong>Meleik Dahoui</strong> : rendu spline, interface utilisateur, terrain</p>
+        <p><strong>Tomas Delon</strong> : physique, mathématiques, locomotion</p>
+      </div>
+      <div class="bt-hero-slide__meta">
+        <span class="bt-hero-slide__tag">C++</span>
+        <span class="bt-hero-slide__tag">SDL2</span>
+        <span class="bt-hero-slide__tag">Doxygen</span>
+        <span class="bt-hero-slide__tag">Headless</span>
+      </div>
+    </div>
+    <div class="bt-hero-slide__aside">
+      <svg class="bt-hero-slide__visual" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <linearGradient id="slide1GroundFill" x1="50" y1="50" x2="50" y2="100" gradientUnits="userSpaceOnUse">
+            <stop offset="0%" stop-color="var(--ground-fill-top)"/>
+            <stop offset="58%" stop-color="var(--ground-fill-mid)"/>
+            <stop offset="100%" stop-color="var(--ground-fill-bottom)"/>
+          </linearGradient>
+        </defs>
+        <path d="M 10 104 L 45 66 L 55 50 L 82 50 L 100 64 L 100 104" fill="url(#slide1GroundFill)"/>
+        <path d="M 10 104 L 45 66 L 55 50 L 82 50 L 100 64" fill="none" stroke="var(--ground-edge)" stroke-width="2.6" vector-effect="non-scaling-stroke" stroke-linejoin="round" stroke-linecap="round"/>
+      </svg>
+      <img class="bt-hero-slide__character" src="./data/images/bob_normal_pose_cropped.png" alt="" aria-hidden="true"/>
+    </div>
+  </section>
+
+  <!-- ── SLIDE 02 : Fonctionnalités ──────────────────────────────────────── -->
+  <section class="bt-science-slide" data-notes="- Montrer ce que l'utilisateur voit : marche, course, saut, terrain, overlays.
+- Les overlays relient directement le rendu aux grandeurs de simulation.
+- Transition : expliquer comment le projet est séparé pour garder ce comportement testable.">
+    <div class="bt-science-slide__content" style="padding-top: 3.6%;">
+      <div class="bt-science-slide__body">
+        <div class="bt-science-slide__text bt-science-slide__body-text">
+          <h1 class="bt-science-slide__title">Fonctionnalités</h1>
+          <div class="bt-left-stack__body">
+            <ul class="bt-feature-list">
+              <li class="bt-feature-list__item">
+                <div class="bt-feature-list__icon"><img src="./data/images/walk.png" alt=""></div>
+                <div class="bt-feature-list__text">
+                  <span class="bt-feature-list__title">Marche fluide</span>
+                  <span class="bt-feature-list__sub">et arrêt progressif</span>
+                </div>
+              </li>
+              <li class="bt-feature-list__item">
+                <div class="bt-feature-list__icon"><img src="./data/images/run.png" alt=""></div>
+                <div class="bt-feature-list__text">
+                  <span class="bt-feature-list__title">Transition naturelle</span>
+                  <span class="bt-feature-list__sub">de la marche vers la course</span>
+                </div>
+              </li>
+              <li class="bt-feature-list__item">
+                <div class="bt-feature-list__icon"><img src="./data/images/jump.png" alt=""></div>
+                <div class="bt-feature-list__text">
+                  <span class="bt-feature-list__title">Saut avec réception</span>
+                  <span class="bt-feature-list__sub">stabilisée</span>
+                </div>
+              </li>
+              <li class="bt-feature-list__item">
+                <div class="bt-feature-list__icon"><img src="./data/images/terrain.png" alt=""></div>
+                <div class="bt-feature-list__text">
+                  <span class="bt-feature-list__title">Adaptation dynamique</span>
+                  <span class="bt-feature-list__sub">au terrain</span>
+                </div>
+              </li>
+              <li class="bt-feature-list__item">
+                <div class="bt-feature-list__icon"><img src="./data/images/debug.png" alt=""></div>
+                <div class="bt-feature-list__text">
+                  <span class="bt-feature-list__title">Rendu spline</span>
+                  <span class="bt-feature-list__sub">avec effets visuels et debug overlay</span>
+                </div>
+              </li>
+            </ul>
+          </div>
+        </div>
+        <div style="grid-column: 3; display: flex; flex-direction: column; gap: 2cqh; align-self: center; justify-self: center;">
+          <div class="bt-video-window">
+            <div class="bt-video-window__dots"><span></span><span></span><span></span></div>
+            <video autoplay loop muted playsinline><source src="./data/videos/bob_natural.mp4" type="video/mp4"></video>
+          </div>
+          <div class="bt-video-window">
+            <div class="bt-video-window__dots"><span></span><span></span><span></span></div>
+            <video autoplay loop muted playsinline><source src="./data/videos/bob_debug.mp4" type="video/mp4"></video>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── SLIDE 03 : Architecture ──────────────────────────────────────────── -->
+  <section class="bt-science-slide" data-notes="- SimulationCore est au centre et ne dépend pas de SDL.
+- Distinguer application graphique et binaire headless.
+- Le Makefile prouve cette séparation : build graphique avec SDL/ImGui, build headless sans rendu.
+- data/config.ini regroupe les paramètres par domaine et évite les constantes dispersées.
+- Transition : zoomer sur le noyau qui calcule le centre de masse.">
+    <div class="bt-science-slide__content">
+      <div class="bt-science-slide__body" data-mermaid-slide-root style="position: relative; grid-template-columns: 1fr; grid-template-rows: auto minmax(0, 1fr); height: 100%;">
+        <div class="bt-science-slide__text bt-science-slide__body-text" style="align-self: start;">
+          <h1 class="bt-science-slide__title">Vue d'ensemble de l'architecture</h1>
+        </div>
+        <div style="display: flex; align-items: center; justify-content: center; min-height: 0; width: 100%; height: 100%; flex: 1 1 auto;">
+          <bt-mermaid-viewer src="./data/diagrams/architecture_overview.svg" ratio="16:9" debug="true" alt="Vue d'ensemble de l'architecture BobTricks"></bt-mermaid-viewer>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── SLIDE 04 : Le centre de masse comme état autoritatif ─────────────── -->
+  <bt-slide title="Le centre de masse comme état autoritatif" padding-top="2.2%"
+    notes="- Le CM est l'état physique autoritatif; tout le reste en dérive.
+- step() intègre le CM, calcule le terrain, déclenche les pas, reconstruit la pose.
+- La fonction stepReconstructGeometry appelle reconstructPelvis puis l'IK.
+- Transition : montrer comment on passe du CM au squelette visible.">
+    <bt-left>
+      <bt-video src="./data/videos/bob_slide_CM.mp4" label="Simulation centrée sur le centre de masse"></bt-video>
+      <img src="./data/images/bob_diagramflow_cropped.png" alt="Pipeline de simulation centré sur le centre de masse" style="display:block;width:100%;height:auto;">
+    </bt-left>
+    <bt-right stretch>
+      <bt-code file="SimulationCore.cpp" variant="fill">
+void SimulationCore::step(double dt, const InputFrame& input)
+{
+    m_state.sim_time += dt;
+    StepCtx ctx;
+    stepComputeConstants(ctx);
+    stepBootstrapCM(ctx, input);
+    stepGroundReference(ctx, dt);
+    stepProcessInput(ctx, input);
+    stepBlendRunMode(ctx, input, dt);
+    stepBlendParams(ctx);
+    stepIntegratePhysics(ctx, dt);
+    stepReconstructGeometry(ctx, input);
+    stepAdvanceSwing(ctx, dt);
+    stepComputeTriggerState(ctx);
+    stepAirborneJump(ctx);
+    stepFireTriggers(ctx);
+    stepApplyConstraints(ctx);
+    stepWriteOutput(ctx, input, dt);
+}
+
+void SimulationCore::stepIntegratePhysics(StepCtx& ctx, double dt)
+{
+    CMState&        cm = m_state.cm;
+    CharacterState& ch = m_state.character;
+
+    integrateHorizontalMotion(cm, ch, ctx.eff_physics, ctx.input_dir,
+                              ctx.sin_t, ctx.cos_t, ctx.g, ctx.airborne_ref,
+                              ctx.max_spd, dt, ctx.accel);
+
+    const HeightTargetState height_state =
+        computeHeightTargetState(ch, cm, ctx.eff_walk, ctx.eff_physics,
+                                 ctx.ref_ground, ctx.ref_slope, ctx.h_nominal,
+                                 m_config.character.cm_pelvis_ratio, ctx.L);
+
+    integrateVerticalMotion(cm, ctx.accel, m_terrain, m_config.character,
+                            m_config.reconstruction, ctx.eff_physics,
+                            ctx.y_tgt, ctx.ref_ground, ctx.L, ctx.g, dt);
+}
+
+void SimulationCore::stepReconstructGeometry(StepCtx& ctx, const InputFrame& input)
+{
+    CMState&        cm = m_state.cm;
+    CharacterState& ch = m_state.character;
+
+    ctx.pelvis = reconstructPelvis(cm, m_config.character, m_config.reconstruction);
+    ctx.airborne_final = (ctx.pelvis.y - m_terrain.height_at(ctx.pelvis.x) > 2.0 * ctx.L);
+
+    if (!ch.feet_initialized)
+        initializeFeetUnderPelvis(ch, m_terrain, ctx.pelvis, ctx.L, m_config.standing.d_pref);
+
+    applyPinnedFootPositions(ch);
+    applyDraggedFootPositions(ch, input);
+}
+      </bt-code>
+    </bt-right>
+  </bt-slide>
+
+  <!-- ── SLIDE 05 : Du CM au bassin ──────────────────────────────────────── -->
+  <bt-slide title="Du CM au bassin"
+    notes="- Le bassin n'est pas simulé directement ; il est calculé depuis le CM à chaque frame.
+- d = ratio × L positionne le bassin en dessous du CM (offset fixe).
+- theta = theta_max × tanh(vx / v_ref) ; le lean est borné, jamais infini.
+- Transition : on a le bassin, il reste à trouver le genou.">
+    <bt-left>
+      <bt-video src="./data/videos/bob_slide_torso.mp4" label="Bassin décalé et incliné selon la vitesse"></bt-video>
+      <bt-bullets>
+        <li>Le CM est l'état physique autoritatif ; le bassin est un point géométrique dérivé.</li>
+        <li>Décalage fixe vers le bas : <em>d = ratio × L</em>.</li>
+        <li>Inclinaison latérale pilotée par la vitesse, plafonnée par <em>tanh</em>.</li>
+      </bt-bullets>
+    </bt-left>
+    <bt-right>
+      <bt-code file="SimulationCore.cpp">
+Vec2 reconstructPelvis(const CMState& cm,
+                       const CharacterConfig& cfg,
+                       const CharacterReconstructionConfig& rcfg)
+{
+    const double L     = cfg.body_height_m / 5.0;
+    const double d     = cfg.cm_pelvis_ratio * L;
+    const double theta = rcfg.theta_max_deg * kDegToRad
+                       * std::tanh(cm.velocity.x / rcfg.v_ref);
+    return { cm.position.x - d * std::sin(theta),
+             cm.position.y - d * std::cos(theta) };
+}
+      </bt-code>
+      <bt-math label="CM → bassin">
+        $$d = \mathrm{ratio} \times L$$
+        $$\theta = \theta_{\max}\tanh\!\left(\frac{v_x}{v_{\mathrm{ref}}}\right)$$
+        $$\vec{p}_{\mathrm{bassin}} = \begin{pmatrix} x_{\mathrm{cm}} - d\sin\theta \\ y_{\mathrm{cm}} - d\cos\theta \end{pmatrix}$$
+      </bt-math>
+    </bt-right>
+  </bt-slide>
+
+  <!-- ── SLIDE 06 : Cinématique inverse des jambes ────────────────────────── -->
+  <bt-slide title="Cinématique inverse des jambes"
+    notes="- On connaît P (bassin) et F (pied) ; on cherche K (genou).
+- Deux segments égaux de longueur L : triangle isocèle, genou au-dessus du milieu PF.
+- h_k = sqrt(L² - (d/2)²) ; seule formule, solution directe sans itération.
+- Le signe de n_perp est choisi pour que le genou pointe toujours dans le sens du déplacement.">
+    <bt-left>
+      <bt-video src="./data/videos/bob_natural.mp4" label="Genou calculé analytiquement à chaque frame"></bt-video>
+      <bt-bullets>
+        <li>Deux segments égaux de longueur <em>L</em> : cuisse et tibia.</li>
+        <li>Triangle isocèle : le genou est au-dessus du milieu PF.</li>
+        <li>Solution analytique directe ; aucun solveur itératif.</li>
+      </bt-bullets>
+    </bt-left>
+    <bt-right>
+      <bt-code file="LegIK.cpp">
+LegIKResult computeKnee(Vec2 P, Vec2 F, double L, double facing)
+{
+    const double dx    = F.x - P.x;
+    const double dy    = F.y - P.y;
+    const double d_leg = std::sqrt(dx * dx + dy * dy);
+
+    // L² = (d/2)² + h²  →  h = sqrt(L² - (d/2)²)
+    const double h_k = std::sqrt(
+        std::max(0.0, L*L - (d_leg*0.5)*(d_leg*0.5)));
+
+    const double ex = (F.x - P.x) / d_leg;
+    const double ey = (F.y - P.y) / d_leg;
+    double nx = -ey, ny = ex;
+    if (nx * facing < 0.0) { nx = -nx; ny = -ny; }
+
+    const Vec2 M    = { (P.x + F.x)*0.5, (P.y + F.y)*0.5 };
+    const Vec2 knee = { M.x + h_k * nx,  M.y + h_k * ny  };
+    return { knee, F };
+}
+      </bt-code>
+      <bt-math label="Triangle isocèle">
+        $$h_k = \sqrt{L^2 - \left(\tfrac{d}{2}\right)^2}$$
+        $$\vec{genou} = M + h_k\,\hat{n}_\perp$$
+      </bt-math>
+    </bt-right>
+  </bt-slide>
+
+  <!-- ── SLIDE 07 : XCoM et marge de stabilité ────────────────────────────── -->
+  <bt-slide title="XCoM et marge de stabilité"
+    notes="- Le modèle du pendule inversé donne omega0 = sqrt(g / h_ref).
+- Le XCoM xi = x_cm + vx / omega0 ; il anticipe là où le CM va atterrir.
+- La MoS est la distance au bord du polygone de sustentation.
+- Si MoS < 0, le CM sort du support : il faut poser un pied.">
+    <bt-left>
+      <bt-video src="./data/videos/bob_slide_xcom_hof_2008.mp4" label="XCoM et déclenchement de pas pendant la marche"></bt-video>
+      <bt-bullets>
+        <li>Le XCoM combine position et vitesse du centre de masse.</li>
+        <li>Les pieds définissent l'intervalle de support.</li>
+        <li>Une marge négative signifie qu'un pas devient nécessaire.</li>
+      </bt-bullets>
+    </bt-left>
+    <bt-right>
+      <bt-code file="BalanceComputer.cpp">
+const double h_ref = *opt_target - support.ground_center();
+if (h_ref <= 0.0) return {};
+
+const double omega0 = std::sqrt(phys_cfg.gravity / h_ref);
+const double xi     = cm.position.x + cm.velocity.x / omega0;
+const double mos    = std::min(xi - support.x_left,
+                               support.x_right - xi);
+
+return { omega0, xi, mos };
+      </bt-code>
+      <bt-math label="Modèle de stabilité">
+        $$\omega_0 = \sqrt{\frac{g}{h_{\mathrm{ref}}}}$$
+        $$\xi = x_{\mathrm{cm}} + \frac{v_{x,\mathrm{cm}}}{\omega_0}$$
+        $$\mathrm{MoS} = \min(\xi - x_L,\; x_R - \xi)$$
+      </bt-math>
+    </bt-right>
+  </bt-slide>
+
+  <!-- ── SLIDE 08 : Deux déclencheurs de pas ──────────────────────────────── -->
+  <bt-slide title="Deux déclencheurs de pas"
+    notes="- Trigger normal (rear) : maintient la cadence, déclenche quand le pied arrière est trop loin du bassin.
+- Trigger urgence (xcom) : récupère l'équilibre quand le XCoM dépasse le pied avant.
+- Séparer les deux rôles rend chacun réglable indépendamment.
+- La cible du pas est calculée depuis le XCoM, pas depuis le bassin.">
+    <bt-left>
+      <bt-table label="Pourquoi deux triggers ?">
+        <thead><tr><th>Trigger</th><th>Condition</th><th>Rôle</th></tr></thead>
+        <tbody>
+          <tr><td>Normal</td><td>Pied arrière trop loin du bassin</td><td>Maintenir la cadence</td></tr>
+          <tr><td>Urgence</td><td>XCoM devant le pied avant</td><td>Récupérer l'équilibre</td></tr>
+        </tbody>
+      </bt-table>
+      <bt-bullets>
+        <li>Séparer les deux rôles rend chacun réglable indépendamment.</li>
+        <li>La cible du pas est calculée depuis le XCoM, pas depuis le bassin.</li>
+      </bt-bullets>
+    </bt-left>
+    <bt-right>
+      <bt-code file="SimulationCore.cpp">
+eval.xcom_trigger = std::abs(velocity_x) > eps_step
+                 && (xi - eval.front_x) * facing > 0.0;
+
+eval.d_rear = (pelvis.x - eval.rear_x) * facing;
+eval.rear_trigger = eval.d_rear > d_rear_max * L;
+
+if (!trigger_eval.xcom_trigger
+    && !trigger_eval.rear_trigger) return;
+
+stepLaunchSwing(trigger_eval.step_left_xcom,
+                corrective, ctx);
+      </bt-code>
+      <bt-math>
+        $$\xi_{\mathrm{step}} = x_{\mathrm{cm}} + s_{\mathrm{xcom}}\frac{v_x}{\omega_0}$$
+      </bt-math>
+    </bt-right>
+  </bt-slide>
+
+  <!-- ── SLIDE 09 : Référence de sol stable ───────────────────────────────── -->
+  <bt-slide title="Référence de sol stable"
+    notes="- Sans lissage, le terrain fait trembler le CM à chaque irrégularité.
+- GroundReference regarde derrière (w_back × L) et devant (w_fwd × L + |vx| × t_look).
+- alpha = 1 - exp(-dt / tau) : lissage exponentiel, stable et paramétrable.
+- La pente moyenne sert à adapter la hauteur de marche et l'inclinaison du pas.">
+    <bt-left>
+      <bt-video src="./data/videos/bob_slide_ground_reference.mp4" label="Référence de sol stable sur terrain irrégulier"></bt-video>
+    </bt-left>
+    <bt-right>
+      <bt-code file="GroundReference.cpp">
+const double x_back_target = cm_x - facing * (ts.w_back * L);
+const double x_fwd_target  = cm_x + facing * (ts.w_fwd * L
+                           + std::abs(speed_x) * ts.t_look);
+
+const double tau   = std::max(ts.tau_slide, 1.0e-4);
+const double alpha = 1.0 - std::exp(-dt / tau);
+
+const double x_left = slideTerrainEndpointX(
+    terrain, pelvis, reach, left_prev_x,
+    x_left_target, cm_x, alpha);
+
+const double slope = (span > 1.0e-9)
+                   ? facing * (fwd.y - back.y) / span
+                   : 0.0;
+      </bt-code>
+      <bt-math label="Fenêtre et lissage">
+        $$x_{\mathrm{front}} = x_{\mathrm{cm}} + f(w_{\mathrm{fwd}}L + |v_x|t_{\mathrm{look}})$$
+        $$\alpha = 1 - e^{-\Delta t / \tau}$$
+        $$slope = \frac{y_{\mathrm{front}} - y_{\mathrm{back}}}{|x_{\mathrm{front}} - x_{\mathrm{back}}|}$$
+      </bt-math>
+    </bt-right>
+  </bt-slide>
+
+  <!-- ── SLIDE 10 : Rendre la physique lisible ────────────────────────────── -->
+  <bt-slide title="Rendre la physique lisible"
+    notes="- Le renderer ne décide rien sur la physique ; il transforme CharacterState en pixels SDL2.
+- Les points de contrôle du Bézier sont calculés depuis pelvis, knee et foot.
+- handle0 = pelvis + 2/3 × (knee - pelvis), handle1 = foot - 2/3 × (foot - knee).
+- Le rendu spline rend la pose plus lisible sans changer la simulation.">
+    <bt-left>
+      <bt-video src="./data/videos/legacy_vs_splines.mp4" label="Comparaison du rendu legacy et du rendu spline"></bt-video>
+    </bt-left>
+    <bt-right>
+      <bt-code file="CharacterRenderer.cpp">
+void CharacterRenderer::renderSplineLeg(
+        SDL_Renderer* renderer,
+        const Camera2D& camera,
+        const Vec2& pelvis,
+        const Vec2& knee,
+        const Vec2& foot,
+        int depth_index,
+        const SplineRenderConfig& cfg,
+        double ground_y,
+        int viewport_w, int viewport_h) const
+{
+    const Vec2 handle0 = pelvis + (knee - pelvis) * (2.0 / 3.0);
+    const Vec2 handle1 = foot   - (foot  - knee)  * (2.0 / 3.0);
+
+    StrokePath path;
+    path.moveTo(pelvis);
+    path.cubicTo(handle0, handle1, foot);
+
+    renderFlattenedPath(renderer, m_strokeRenderer, camera,
+                        path, depth_index, cfg,
+                        ground_y, viewport_w, viewport_h);
+}
+      </bt-code>
+      <bt-math label="Courbe de Bézier cubique">
+        $$B(t)=(1-t)^3P_0+3(1-t)^2tP_1+3(1-t)t^2P_2+t^3P_3$$
+      </bt-math>
+    </bt-right>
+  </bt-slide>
+
+  <!-- ── SLIDE 11 : Validation headless ──────────────────────────────────── -->
+  <bt-slide title="Validation headless"
+    notes="- Le même SimulationCore tourne sans SDL, dans un binaire séparé.
+- Les scénarios fournissent des inputs déterministes et collectent la télémétrie dans un CSV.
+- Les assertions vérifient la progression, les états de locomotion, et l'absence de NaN.
+- Utile aussi pour Valgrind (make test_mem) sans ouvrir de fenêtre.">
+    <bt-left>
+      <bt-terminal>
+<span class="prompt">$</span> make test_headless
+<span class="pass">PASS</span> walk_3s
+<span class="pass">PASS</span> run_3s
+<span class="pass">PASS</span> jump_from_stand
+<span class="pass">PASS</span> walk_then_stop
+
+Results: <span class="pass">11 PASS</span>  <span class="dim">0 FAIL</span>
+      </bt-terminal>
+      <bt-bullets>
+        <li>Même noyau de simulation, sans SDL.</li>
+        <li>Entrées déterministes par scénario.</li>
+        <li>Assertions sur progression, états et absence de NaN.</li>
+      </bt-bullets>
+    </bt-left>
+    <bt-right>
+      <bt-code file="ScenarioRunner.cpp">
+while (core.time() < def.duration_s) {
+    const InputFrame input = def.input_fn
+                           ? def.input_fn(core.time())
+                           : InputFrame{};
+
+    core.step(dt, input);
+    rec.record(core.state());
+}
+
+rec.writeCsv(csv_out);
+return rec.runAssertions(report_out);
+      </bt-code>
+    </bt-right>
+  </bt-slide>
+
+  <!-- ── SLIDE 12 : Fil conducteur de la démonstration ────────────────────── -->
+  <bt-slide title="Fil conducteur de la démonstration" layout="full" fit="false" padding-top="3.4%"
+    notes="- Cette slide n'est pas une explication technique longue : c'est la carte de la démo qui vient après la présentation.
+- Pendant la démo, expliquer les bibliothèques en contexte : SDL2 quand la fenêtre tourne, SDL_mixer quand les sons jouent, ImGui quand on tune.
+- Faire entrer robustesse et mémoire dans la démo : make test, headless, ASan ou Valgrind si disponible.
+- Commencer la démo par Windows et Linux presque en parallèle pour montrer tout de suite le bonus multiplateforme.">
+    <bt-timeline-grid cols="2">
+      <li>
+        <strong>1. Lancement multiplateforme</strong>
+        <span>Ouvrir BobTricks sous Linux avec `make run`, puis lancer l'exécutable Windows préparé. Même application, même comportement visible.</span>
+      </li>
+      <li>
+        <strong>2. Bibliothèques en contexte</strong>
+        <span>SDL2 pour fenêtre, événements et rendu ; SDL_mixer pour les sons de pas ; Dear ImGui pour le réglage interactif.</span>
+      </li>
+      <li>
+        <strong>3. Locomotion visible</strong>
+        <span>Marche, arrêt, transition vers la course, saut et réception. Les sons suivent les vrais contacts de pieds produits par la simulation.</span>
+      </li>
+      <li>
+        <strong>4. Terrain et overlays</strong>
+        <span>Activer l'adaptation au terrain, la référence de sol, le CM, le XCoM, le support et les triggers pour relier rendu et physique.</span>
+      </li>
+      <li>
+        <strong>5. Tuning debug</strong>
+        <span>Modifier `AppConfig` avec ImGui sans recompiler : physique, rendu spline, overlays, terrain, audio et mode présentation.</span>
+      </li>
+      <li>
+        <strong>6. Validation automatique</strong>
+        <span>Lancer `make test`, `make test_headless`, puis `make test_asan` ou `make test_mem` selon la machine disponible.</span>
+      </li>
+    </bt-timeline-grid>
+  </bt-slide>
+
+  <!-- ── SLIDE 13 : Conclusion ─────────────────────────────────────────────── -->
+  <bt-slide title="Conclusion" fit="false" layout="full" padding-top="3%"
+    notes="- BobTricks atteint une locomotion procédurale lisible, testable et documentée.
+- Limite assumée : modèle 2D stylisé, pas un solveur biomécanique complet.
+- Ouverture naturelle : métriques de marche plus riches, terrains plus complexes.">
+    <bt-timeline-grid cols="2">
+      <li>
+        <strong>Résultat atteint</strong>
+        <span>Une locomotion procédurale lisible : marche, arrêt, course, saut, réception et adaptation au terrain.</span>
+      </li>
+      <li>
+        <strong>Choix technique central</strong>
+        <span>Le centre de masse pilote le mouvement ; bassin, jambes, pieds, torse et rendu sont reconstruits depuis cet état.</span>
+      </li>
+      <li>
+        <strong>Architecture MVC</strong>
+        <span>Le noyau reste indépendant de SDL : même `SimulationCore` pour l'application graphique et les scénarios headless.</span>
+      </li>
+      <li>
+        <strong>Validation</strong>
+        <span>Tests unitaires, régressions, scénarios headless, assertions anti-NaN, sanitizers ou Valgrind pour la mémoire.</span>
+      </li>
+      <li>
+        <strong>Limites assumées</strong>
+        <span>Modèle 2D stylisé, pas de solveur biomécanique complet, validation scientifique encore surtout qualitative.</span>
+      </li>
+      <li>
+        <strong>Suite possible</strong>
+        <span>Métriques de marche plus riches, terrains plus complexes, validation quantitative et meilleur packaging.</span>
+      </li>
+    </bt-timeline-grid>
+  </bt-slide>
+
+</bt-presentation-shell>
+
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+<script src="./data/notes/notes.js"></script>
+<script src="./system/components.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+<script>
+  window.BTPresentation.initTheme();
+  hljs.highlightAll();
+  window.addEventListener("load", () => {
+    if (!window.renderMathInElement) return;
+    window.renderMathInElement(document.body, {
+      delimiters: [
+        { left: "$$", right: "$$", display: true },
+        { left: "$",  right: "$",  display: false }
+      ],
+      throwOnError: false,
+      strict: "ignore",
+      ignoredTags: ["script", "noscript", "style", "textarea", "pre", "code"]
+    });
+  });
+</script>
+</body>
+</html>

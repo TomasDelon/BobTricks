@@ -1,19 +1,28 @@
 ```mermaid
+%%{init: {'flowchart': {'defaultRenderer': 'elk', 'nodeSpacing': 28, 'rankSpacing': 48}}}%%
 graph LR
 
     subgraph cfg["Config"]
+        direction TB
         AppConfig
         ConfigIO
     end
 
     subgraph math_g["Math"]
+        direction LR
         Vec2
         MathConstants
         Bezier
         StrokePath
     end
 
+    subgraph phys["Physics"]
+        direction TB
+        Geometry
+    end
+
     subgraph chardata["Character · Data"]
+        direction LR
         CMState
         FootState
         TrailPoint
@@ -23,6 +32,7 @@ graph LR
     end
 
     subgraph charlogic["Character · Logic"]
+        direction LR
         CharacterState
         ArmController
         HeadController
@@ -30,12 +40,14 @@ graph LR
     end
 
     subgraph loco["Locomotion"]
+        direction LR
         BalanceComputer
         LegIK
         StandingController
     end
 
     subgraph sim_g["Simulation"]
+        direction LR
         InputFrame
         SimState
         SimulationCore
@@ -45,25 +57,30 @@ graph LR
     end
 
     subgraph tele["Telemetry"]
+        direction LR
         TelemetryRow
         TelemetryRecorder
     end
 
     subgraph terra["Terrain"]
+        direction TB
         Terrain
     end
 
     subgraph rt["Runtime"]
+        direction TB
         SimulationLoop
     end
 
     subgraph hl["Headless"]
+        direction LR
         ScenarioDef
         ScenarioLibrary
         ScenarioRunner
     end
 
     subgraph rend["Render"]
+        direction LR
         Camera2D
         DustParticle
         StrokeRenderer
@@ -73,6 +90,7 @@ graph LR
     end
 
     subgraph app_g["App"]
+        direction LR
         AudioSystem
         EffectsSystem
         InputController
@@ -80,13 +98,29 @@ graph LR
     end
 
     subgraph dbg["Debug"]
+        direction TB
         DebugUI
     end
+
+    %% Horizontal layout spine
+    AppConfig ~~~ Vec2
+    Vec2 ~~~ CMState
+    CMState ~~~ CharacterState
+    CharacterState ~~~ BalanceComputer
+    BalanceComputer ~~~ SimulationCore
+    SimulationCore ~~~ TelemetryRecorder
+    TelemetryRecorder ~~~ ScenarioRunner
+    ScenarioRunner ~~~ SceneRenderer
+    SceneRenderer ~~~ Application
+    Application ~~~ DebugUI
 
     %% Math
     Vec2        --> MathConstants
     Bezier      --> Vec2
     StrokePath  --> Bezier
+
+    %% Physics / geometry helpers
+    Geometry --> MathConstants
 
     %% Character data (leaves use Vec2 only — not shown)
     CMState          --> Vec2
@@ -119,6 +153,7 @@ graph LR
     StandingController --> CMState
     StandingController --> FootState
     StandingController --> AppConfig
+    StandingController --> Geometry
 
     %% Terrain
     Terrain -.-> AppConfig
@@ -215,6 +250,12 @@ d'implémentation sans changer leur API publique :
   - `src/core/simulation/SimulationCoreLifecycle.cpp`
   - `src/core/simulation/SimulationCoreLocomotion.cpp`
   - `src/core/simulation/SimulationCoreInternal.h` pour les helpers internes partagés
+- `Math` / `Physics`
+  - `src/core/math/Vec2.cpp` contient les opérations de `Vec2`
+  - `src/core/physics/Geometry.cpp` contient les helpers géométriques partagés
+- `Character`
+  - `src/core/character/SupportState.cpp` contient les petites méthodes de support
+  - `src/core/character/UpperBodyKinematics.cpp` coordonne bras et tête
 - `DebugUI`
   - `src/debug/DebugUI.cpp`
   - `src/debug/DebugUICharacterPanels.cpp`
