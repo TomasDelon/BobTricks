@@ -8,9 +8,19 @@ headless via des scénarios déterministes.
 
 ## Démo vidéo
 
-[![Voir la démo BobTricks sur YouTube](https://img.youtube.com/vi/3eavnAWpd80/hqdefault.jpg)](https://www.youtube.com/watch?v=3eavnAWpd80)
+[![Voir la démo BobTricks sur YouTube](https://img.youtube.com/vi/XHGzJQBOebc/hqdefault.jpg)](https://youtu.be/XHGzJQBOebc)
 
-Lien direct : https://www.youtube.com/watch?v=3eavnAWpd80
+Lien direct : https://youtu.be/XHGzJQBOebc
+
+## Aperçu animé
+
+| Marche | Course |
+| --- | --- |
+| <img src="data/gif/bob_walking.gif" alt="BobTricks en marche" width="360"> | <img src="data/gif/bob_running.gif" alt="BobTricks en course" width="360"> |
+
+| Déclenchement XCoM | Rendu legacy vs splines |
+| --- | --- |
+| <img src="data/gif/bob_xcom_trigger_walking_bold.gif" alt="Déclenchement de pas par XCoM" width="360"> | <img src="data/gif/legacyvssplines.gif" alt="Comparaison entre rendu legacy et rendu spline" width="360"> |
 
 ## Prérequis
 
@@ -94,6 +104,7 @@ audio, marche, course et saut.
 Les assets se trouvent dans :
 
 - `data/audio/` pour les sons et musiques ;
+- `data/gif/` pour les animations utilisées dans ce README ;
 - `doc/presentation/data/` pour les vidéos et images de la soutenance.
 
 ## Utiliser le mode headless
