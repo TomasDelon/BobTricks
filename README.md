@@ -1,5 +1,17 @@
 # BobTricks
 
+**2D procedural character locomotion · C++20 · SDL2 · Dear ImGui**
+
+BobTricks is a 2D procedural locomotion system for a stick-figure character. It simulates walking, running, jumping and recovery using a centre-of-mass-driven physics core. The architecture separates the interactive SDL2/ImGui application from a deterministic, headless simulation executable.
+
+**Technical highlights:** modular simulation core, configurable parameters, reproducible headless scenarios, unit and regression tests, sanitizers and Valgrind checks.
+
+[Watch the demo](https://youtu.be/XHGzJQBOebc) · [Jump to build and test commands](#compilation-et-exécution)
+
+---
+
+## Documentation (français)
+
 BobTricks est un système de locomotion procédurale 2D pour stickman en C++20.
 Le projet repose sur un noyau physique `CM-first` (centre de masse) qui pilote
 la marche, la course, le saut, la chute, l'accroupissement et le relevé.
